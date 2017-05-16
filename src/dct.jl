@@ -1,8 +1,81 @@
-# This file is a part of Julia. License is MIT: https://julialang.org/license
+# This file was formerly a part of Julia. License is MIT: https://julialang.org/license
 
 # (This is part of the FFTW module.)
 
 export dct, idct, dct!, idct!, plan_dct, plan_idct, plan_dct!, plan_idct!
+
+"""
+    plan_dct!(A [, dims [, flags [, timelimit]]])
+
+Same as [`plan_dct`](@ref), but operates in-place on `A`.
+"""
+function plan_dct! end
+
+"""
+    plan_idct(A [, dims [, flags [, timelimit]]])
+
+Pre-plan an optimized inverse discrete cosine transform (DCT), similar to
+[`plan_fft`](@ref) except producing a function that computes
+[`idct`](@ref). The first two arguments have the same meaning as for
+[`idct`](@ref).
+"""
+function plan_idct end
+
+"""
+    plan_dct(A [, dims [, flags [, timelimit]]])
+
+Pre-plan an optimized discrete cosine transform (DCT), similar to
+[`plan_fft`](@ref) except producing a function that computes
+[`dct`](@ref). The first two arguments have the same meaning as for
+[`dct`](@ref).
+"""
+function plan_dct end
+
+"""
+    plan_idct!(A [, dims [, flags [, timelimit]]])
+
+Same as [`plan_idct`](@ref), but operates in-place on `A`.
+"""
+function plan_idct! end
+
+"""
+    dct(A [, dims])
+
+Performs a multidimensional type-II discrete cosine transform (DCT) of the array `A`, using
+the unitary normalization of the DCT. The optional `dims` argument specifies an iterable
+subset of dimensions (e.g. an integer, range, tuple, or array) to transform along.  Most
+efficient if the size of `A` along the transformed dimensions is a product of small primes;
+see [`nextprod`](@ref). See also [`plan_dct`](@ref) for even greater
+efficiency.
+"""
+function dct end
+
+"""
+    idct(A [, dims])
+
+Computes the multidimensional inverse discrete cosine transform (DCT) of the array `A`
+(technically, a type-III DCT with the unitary normalization). The optional `dims` argument
+specifies an iterable subset of dimensions (e.g. an integer, range, tuple, or array) to
+transform along.  Most efficient if the size of `A` along the transformed dimensions is a
+product of small primes; see [`nextprod`](@ref).  See also
+[`plan_idct`](@ref) for even greater efficiency.
+"""
+function idct end
+
+"""
+    dct!(A [, dims])
+
+Same as [`dct!`](@ref), except that it operates in-place on `A`, which must be an
+array of real or complex floating-point values.
+"""
+function dct! end
+
+"""
+    idct!(A [, dims])
+
+Same as [`idct!`](@ref), but operates in-place on `A`.
+"""
+function idct! end
 
 # Discrete cosine transforms (type II/III) via FFTW's r2r transforms;
 # we follow the Matlab convention and adopt a unitary normalization here.

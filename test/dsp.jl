@@ -1,4 +1,4 @@
-# This file is a part of Julia. License is MIT: https://julialang.org/license
+# This file was formerly a part of Julia. License is MIT: https://julialang.org/license
 
 # Filter
 b = [1., 2., 3., 4.]
@@ -53,7 +53,7 @@ b = [1., 2., 3.]
 
 # Discrete cosine transform (DCT) tests
 
-if Base.fftw_vendor() != :mkl
+if FFTW.fftw_vendor() != :mkl
     a = rand(8,11) + im*rand(8,11)
     @test norm(idct(dct(a)) - a) < 1e-8
 

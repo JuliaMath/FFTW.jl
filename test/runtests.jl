@@ -1,4 +1,8 @@
-# This file is a part of Julia. License is MIT: https://julialang.org/license
+# This file was formerly a part of Julia. License is MIT: https://julialang.org/license
+using FFTW
+using Base.Test
+
+importall FFTW
 
 # issue #19892
 # (test this first to make sure it happens before set_num_threads)
@@ -139,7 +143,7 @@ for (f,fi,pf,pfi) in ((fft,ifft,plan_fft,plan_ifft),
 
     # The following capabilities are FFTW only.
     # They are not available in MKL, and hence do not test them.
-    if Base.fftw_vendor() != :mkl
+    if FFTW.fftw_vendor() != :mkl
         ifft3_fft3_m3d = fi(f(m3d))
 
         fftd3_m3d = f(m3d,3)
@@ -222,7 +226,7 @@ for (f,fi,pf,pfi) in ((fft,ifft,plan_fft,plan_ifft),
         @test pirfftn_rfftn_m4[i] ≈ m4[i]
     end
 
-    if Base.fftw_vendor() != :mkl
+    if FFTW.fftw_vendor() != :mkl
         rfftn_m3d = rfft(m3d)
         rfftd3_m3d = rfft(m3d,3)
         @test size(rfftd3_m3d) == size(fftd3_m3d)
@@ -249,7 +253,7 @@ end
 #   the generator bottleneck," Proc. 27th ACM Symposium on the Theory
 #   of Computing, pp. 407-416 (1995).
 # Check linearity, impulse-response, and time-shift properties.
-function fft_test{T<:Complex}(p::Base.DFT.Plan{T}, ntrials=4,
+function fft_test{T<:Complex}(p::FFTW.Plan{T}, ntrials=4,
                               tol=1e5 * eps(real(T)))
     ndims(p) == 1 || throw(ArgumentError("not a 1d FFT"))
     n = length(p)
@@ -350,3 +354,6 @@ a = rand(5)
 a16 = convert(Vector{Float16}, a)
 @test  fft(a16) ==  fft(view(a16,:)) ==  fft(view(a16, 1:5)) ==  fft(view(a16, [1:5;]))
 @test rfft(a16) == rfft(view(a16,:)) == rfft(view(a16, 1:5)) == rfft(view(a16, [1:5;]))
+
+# TODO: Move DSP functionality to DSP.jl
+include("dsp.jl")

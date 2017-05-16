@@ -1,6 +1,4 @@
-# This file is a part of Julia. License is MIT: https://julialang.org/license
-
-module DSP
+# This file was formerly a part of Julia. License is MIT: https://julialang.org/license
 
 import Base.trailingsize
 
@@ -203,5 +201,3 @@ function xcorr(u, v)
     end
     flipdim(conv(flipdim(u, 1), v), 1)
 end
-
-end # module

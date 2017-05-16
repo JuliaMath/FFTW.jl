@@ -1,21 +1,64 @@
-# This file is a part of Julia. License is MIT: https://julialang.org/license
+# This file was formerly a part of Julia. License is MIT: https://julialang.org/license
 
 import Base: show, *, convert, unsafe_convert, size, strides, ndims, pointer, A_mul_B!
 
-export export_wisdom, import_wisdom, import_system_wisdom, forget_wisdom,
-       MEASURE, DESTROY_INPUT, UNALIGNED, CONSERVE_MEMORY, EXHAUSTIVE,
-       PRESERVE_INPUT, PATIENT, ESTIMATE, WISDOM_ONLY, NO_TIMELIMIT,
-       R2HC, HC2R, DHT, REDFT00, REDFT01, REDFT10, REDFT11,
-       RODFT00, RODFT01, RODFT10, RODFT11,
-       fftwNumber, fftwReal, fftwComplex, flops
+"""
+    r2r(A, kind [, dims])
+
+Performs a multidimensional real-input/real-output (r2r) transform
+of type `kind` of the array `A`, as defined in the FFTW manual.
+`kind` specifies either a discrete cosine transform of various types
+(`FFTW.REDFT00`, `FFTW.REDFT01`, `FFTW.REDFT10`, or
+`FFTW.REDFT11`), a discrete sine transform of various types
+(`FFTW.RODFT00`, `FFTW.RODFT01`, `FFTW.RODFT10`, or
+`FFTW.RODFT11`), a real-input DFT with halfcomplex-format output
+(`FFTW.R2HC` and its inverse `FFTW.HC2R`), or a discrete
+Hartley transform (`FFTW.DHT`).  The `kind` argument may be
+an array or tuple in order to specify different transform types
+along the different dimensions of `A`; `kind[end]` is used
+for any unspecified dimensions.  See the FFTW manual for precise
+definitions of these transform types, at http://www.fftw.org/doc.
+
+The optional `dims` argument specifies an iterable subset of
+dimensions (e.g. an integer, range, tuple, or array) to transform
+along. `kind[i]` is then the transform type for `dims[i]`,
+with `kind[end]` being used for `i > length(kind)`.
+
+See also [`plan_r2r`](@ref) to pre-plan optimized r2r transforms.
+"""
+function r2r end
+
+"""
+    r2r!(A, kind [, dims])
+
+Same as [`r2r`](@ref), but operates in-place on `A`, which must be
+an array of real or complex floating-point numbers.
+"""
+function r2r! end
+
+"""
+    plan_r2r!(A, kind [, dims [, flags [, timelimit]]])
+
+Similar to [`plan_fft`](@ref), but corresponds to [`r2r!`](@ref).
+"""
+function plan_r2r! end
+
+"""
+    plan_r2r(A, kind [, dims [, flags [, timelimit]]])
+
+Pre-plan an optimized r2r transform, similar to [`plan_fft`](@ref)
+except that the transforms (and the first three arguments)
+correspond to [`r2r`](@ref) and [`r2r!`](@ref), respectively.
+"""
+function plan_r2r end
 
 ## FFT: Implement fft by calling fftw.
 
-const libfftw = Base.libfftw_name
-const libfftwf = Base.libfftwf_name
+const libfftw = libfftw_name
+const libfftwf = libfftwf_name
 
 const version = convert(VersionNumber, split(unsafe_string(cglobal(
-    (:fftw_version,Base.DFT.FFTW.libfftw), UInt8)), ['-', ' '])[2])
+    (:fftw_version,libfftw), UInt8)), ['-', ' '])[2])
 
 ## Direction of FFT
 
@@ -188,7 +231,7 @@ end
 #   function will be documented in FFTW 3.3.4.
 
 
-if Base.libfftw_name == "libmkl_rt"
+if libfftw_name == "libmkl_rt"
     alignment_of(A::StridedArray{<:fftwDouble}) =
         convert(Int32, convert(Int64, pointer(A)) % 16)
     alignment_of(A::StridedArray{<:fftwSingle}) =
@@ -798,5 +841,3 @@ function *(p::r2rFFTWPlan{T,K,true}, x::StridedArray{T}) where {T,K}
     unsafe_execute!(p, x, x)
     return x
 end
-
-include("dct.jl")
