@@ -40,7 +40,7 @@ try
     push!(general_config, "--build=" * machine)
 end
 
-fftw_config = ["--enabled-shared", "--disable-fortran", "--disable-mpi", "--enable-threads"]
+fftw_config = ["--enable-shared", "--disable-fortran", "--disable-mpi", "--enable-threads"]
 fftw_enable_single = "--enable-single"
 
 if Sys.ARCH === :ppc
@@ -54,21 +54,25 @@ if is_windows()
     Sys.ARCH === :x86_64 || push!(fftw_config, "--with-incoming-stack-boundary=2")
 end
 
-const MAKE = is_bsd() && !is_apple() ? `gmake` : `make`
-
 provides(Sources, URI("http://www.fftw.org/fftw-$FFTW_VER.tar.gz"), [libfftw, libfftwf])
 
 provides(BuildProcess, (@build_steps begin
     GetSources(libfftw)
-    CreateDirectory(joinpath(builddir(libfftw), "libfftw"))
+    CreateDirectory(builddir(libfftw))
     @build_steps begin
-        ChangeDirectory(joinpath(builddir(libfftw), "libfftw"))
-        FileRule(joinpath(libdir(libfftw), "libfftw." * Libdl.dlext), @build_steps begin
+        ChangeDirectory(builddir(libfftw))
+        FileRule(joinpath(libdir(libfftw), libfftw_name * "." * Libdl.dlext), @build_steps begin
             CreateDirectory(libdir(libfftw))
-            `$(joinpath(".", "configure")) $general_config $fftw_config $fftw_enable_single`
-            `$MAKE`
+            `$(joinpath(srcdir(libfftw), "fftw-$FFTW_VER", "configure")) $general_config $fftw_config`
+            `$MAKE_CMD`
+            `$MAKE_CMD install`
+        end)
+        FileRule(joinpath(libdir(libfftw), libfftwf_name * "." * Libdl.dlext), @build_steps begin
+            `$(joinpath(srcdir(libfftw), "fftw-$FFTW_VER", "configure")) $general_config $fftw_config $fftw_enable_single`
+            `$MAKE_CMD`
+            `$MAKE_CMD install`
         end)
     end
-end), libfftw)
+end), [libfftw, libfftwf])
 
 BinDeps.@install Dict([:libfftw => :libfftw, :libfftwf => :libfftwf])
