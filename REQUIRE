@@ -1,4 +1,4 @@
 julia 0.6-
-BinDeps
+BinDeps 0.6.0
 @osx Homebrew
 @windows WinRPM
