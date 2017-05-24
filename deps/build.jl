@@ -44,7 +44,7 @@ fftw_config = ["--enable-shared", "--disable-fortran", "--disable-mpi", "--enabl
 fftw_enable_single = "--enable-single"
 
 if Sys.ARCH === :ppc
-    push!(fftw_config, "--enable-altivec")
+    append!(fftw_config, ["--enable-altivec", "--enable-fma"])
 elseif Sys.ARCH === :x86_64
     append!(fftw_config, ["--enable-sse2", "--enable-fma"])
 end
