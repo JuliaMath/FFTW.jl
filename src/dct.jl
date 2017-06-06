@@ -2,8 +2,6 @@
 
 # (This is part of the FFTW module.)
 
-export dct, idct, dct!, idct!, plan_dct, plan_idct, plan_dct!, plan_idct!
-
 """
     plan_dct!(A [, dims [, flags [, timelimit]]])
 
