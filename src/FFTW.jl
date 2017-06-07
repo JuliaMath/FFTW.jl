@@ -42,6 +42,24 @@ else
     const libfftwf_name = "libfftw3f_threads"
 end
 
+# Threads must be initialized before any FFTW planning routine.
+#   -- This initializes FFTW's threads support (defaulting to 1 thread).
+#      If this isn't called before the FFTW planner is created, then
+#      FFTW's threads algorithms won't be registered or used at all.
+#      (Previously, we called fftw_cleanup, but this invalidated existing
+#       plans, causing issue #19892.)
+const threads_initialized = Ref(false)
+function __init__()
+    if !threads_initialized[]
+        stat = ccall((:fftw_init_threads, libfftw), Int32, ())
+        statf = ccall((:fftwf_init_threads, libfftwf), Int32, ())
+        if stat == 0 || statf == 0
+            error("could not initialize FFTW threads")
+        end
+        threads_initialized[] = true
+    end
+end
+
 include("fft.jl")
 include("dct.jl")
 include("dsp.jl") # TODO: Move these functions to DSP.jl
