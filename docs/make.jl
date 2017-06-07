@@ -7,8 +7,7 @@ makedocs(
     sitename = "FFTW.jl",
     pages = Any[
         "Home" => "index.md",
-        "Fourier Transforms" => "fft.md",
-        "Signal Processing" => "dsp.md",
+        "API" => "fft.md",
     ],
 )
 
