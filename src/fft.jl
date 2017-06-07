@@ -129,27 +129,6 @@ alignment_of(A::FakeArray) = Int32(0)
 
 ## Julia wrappers around FFTW functions
 
-# _init_() must be called before any FFTW planning routine.
-#   -- Once FFTW is split into its own module, this can be called
-#      in the module __init__(), but for now we must call it lazily
-#      in every routine that might initialize the FFTW planner.
-#   -- This initializes FFTW's threads support (defaulting to 1 thread).
-#      If this isn't called before the FFTW planner is created, then
-#      FFTW's threads algorithms won't be registered or used at all.
-#      (Previously, we called fftw_cleanup, but this invalidated existing
-#       plans, causing issue #19892.)
-const threads_initialized = Ref(false)
-function _init_()
-    if !threads_initialized[]
-        stat = ccall((:fftw_init_threads,libfftw), Int32, ())
-        statf = ccall((:fftwf_init_threads,libfftwf), Int32, ())
-        if stat == 0 || statf == 0
-            error("could not initialize FFTW threads")
-        end
-        threads_initialized[] = true
-    end
-end
-
 # Wisdom
 
 # Import and export wisdom to/from a single file for all precisions,
@@ -162,7 +141,6 @@ end
 # FFTW's api/import-wisdom-from-file.c file].
 
 function export_wisdom(fname::AbstractString)
-    _init_()
     f = ccall(:fopen, Ptr{Void}, (Cstring,Cstring), fname, :w)
     systemerror("could not open wisdom file $fname for writing", f == C_NULL)
     ccall((:fftw_export_wisdom_to_file,libfftw), Void, (Ptr{Void},), f)
@@ -172,7 +150,6 @@ function export_wisdom(fname::AbstractString)
 end
 
 function import_wisdom(fname::AbstractString)
-    _init_()
     f = ccall(:fopen, Ptr{Void}, (Cstring,Cstring), fname, :r)
     systemerror("could not open wisdom file $fname for reading", f == C_NULL)
     if ccall((:fftw_import_wisdom_from_file,libfftw),Int32,(Ptr{Void},),f)==0||
@@ -183,7 +160,6 @@ function import_wisdom(fname::AbstractString)
 end
 
 function import_system_wisdom()
-    _init_()
     if ccall((:fftw_import_system_wisdom,libfftw), Int32, ()) == 0 ||
        ccall((:fftwf_import_system_wisdom,libfftwf), Int32, ()) == 0
         error("failed to import system wisdom")
@@ -191,7 +167,6 @@ function import_system_wisdom()
 end
 
 function forget_wisdom()
-    _init_()
     ccall((:fftw_forget_wisdom,libfftw), Void, ())
     ccall((:fftwf_forget_wisdom,libfftwf), Void, ())
 end
@@ -199,7 +174,6 @@ end
 # Threads
 
 function set_num_threads(nthreads::Integer)
-    _init_()
     ccall((:fftw_plan_with_nthreads,libfftw), Void, (Int32,), nthreads)
     ccall((:fftwf_plan_with_nthreads,libfftwf), Void, (Int32,), nthreads)
 end
@@ -214,12 +188,10 @@ const PlanPtr = Ptr{fftw_plan_struct}
 const NO_TIMELIMIT = -1.0 # from fftw3.h
 
 function set_timelimit(precision::fftwTypeDouble,seconds)
-    _init_()
     ccall((:fftw_set_timelimit,libfftw), Void, (Float64,), seconds)
 end
 
 function set_timelimit(precision::fftwTypeSingle,seconds)
-    _init_()
     ccall((:fftwf_set_timelimit,libfftwf), Void, (Float64,), seconds)
 end
 
