@@ -8,6 +8,7 @@ import AbstractFFTs: Plan, fft, ifft, bfft, fft!, ifft!, bfft!,
                      plan_fft, plan_ifft, plan_bfft, plan_fft!, plan_ifft!, plan_bfft!,
                      rfft, irfft, brfft, plan_rfft, plan_irfft, plan_brfft,
                      fftshift, ifftshift, plan_inv
+import FFTW: dct, idct, dct!, idct!, plan_dct, plan_idct, plan_dct!, plan_idct!
 
 # Base Julia issue #19892
 # (test this first to make sure it happens before set_num_threads)
