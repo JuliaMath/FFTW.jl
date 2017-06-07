@@ -359,6 +359,3 @@ a = rand(5)
 a16 = convert(Vector{Float16}, a)
 @test  fft(a16) ==  fft(view(a16,:)) ==  fft(view(a16, 1:5)) ==  fft(view(a16, [1:5;]))
 @test rfft(a16) == rfft(view(a16,:)) == rfft(view(a16, 1:5)) == rfft(view(a16, [1:5;]))
-
-# TODO: Move DSP functionality to DSP.jl
-include("dsp.jl")
