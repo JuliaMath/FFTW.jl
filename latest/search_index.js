@@ -41,238 +41,6 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
-    "location": "fft.html#FFTW.fft",
-    "page": "Fourier Transforms",
-    "title": "FFTW.fft",
-    "category": "Function",
-    "text": "fft(A [, dims])\n\nPerforms a multidimensional FFT of the array A. The optional dims argument specifies an iterable subset of dimensions (e.g. an integer, range, tuple, or array) to transform along. Most efficient if the size of A along the transformed dimensions is a product of small primes; see nextprod(). See also plan_fft() for even greater efficiency.\n\nA one-dimensional FFT computes the one-dimensional discrete Fourier transform (DFT) as defined by\n\noperatornameDFT(A)k =\n  sum_n=1^operatornamelength(A)\n  expleft(-ifrac2pi\n  (n-1)(k-1)operatornamelength(A) right) An\n\nA multidimensional FFT simply performs this operation along each transformed dimension of A.\n\nnote: Note\nJulia starts FFTW up with 1 thread by default. Higher performance is usually possible by increasing number of threads. Use FFTW.set_num_threads(Sys.CPU_CORES) to use as many threads as cores on your system.\nThis performs a multidimensional FFT by default. FFT libraries in other languages such as Python and Octave perform a one-dimensional FFT along the first non-singleton dimension of the array. This is worth noting while performing comparisons. For more details, refer to the Noteworthy Differences from other Languages section of the manual.\n\n\n\n"
-},
-
-{
-    "location": "fft.html#FFTW.fft!",
-    "page": "Fourier Transforms",
-    "title": "FFTW.fft!",
-    "category": "Function",
-    "text": "fft!(A [, dims])\n\nSame as fft, but operates in-place on A, which must be an array of complex floating-point numbers.\n\n\n\n"
-},
-
-{
-    "location": "fft.html#FFTW.ifft",
-    "page": "Fourier Transforms",
-    "title": "FFTW.ifft",
-    "category": "Function",
-    "text": "ifft(A [, dims])\n\nMultidimensional inverse FFT.\n\nA one-dimensional inverse FFT computes\n\noperatornameIDFT(A)k = frac1operatornamelength(A)\nsum_n=1^operatornamelength(A) expleft(+ifrac2pi (n-1)(k-1)\noperatornamelength(A) right) An\n\nA multidimensional inverse FFT simply performs this operation along each transformed dimension of A.\n\n\n\n"
-},
-
-{
-    "location": "fft.html#FFTW.ifft!",
-    "page": "Fourier Transforms",
-    "title": "FFTW.ifft!",
-    "category": "Function",
-    "text": "ifft!(A [, dims])\n\nSame as ifft, but operates in-place on A.\n\n\n\n"
-},
-
-{
-    "location": "fft.html#FFTW.bfft",
-    "page": "Fourier Transforms",
-    "title": "FFTW.bfft",
-    "category": "Function",
-    "text": "bfft(A [, dims])\n\nSimilar to ifft, but computes an unnormalized inverse (backward) transform, which must be divided by the product of the sizes of the transformed dimensions in order to obtain the inverse. (This is slightly more efficient than ifft because it omits a scaling step, which in some applications can be combined with other computational steps elsewhere.)\n\noperatornameBDFT(A)k = operatornamelength(A) operatornameIDFT(A)k\n\n\n\n"
-},
-
-{
-    "location": "fft.html#FFTW.bfft!",
-    "page": "Fourier Transforms",
-    "title": "FFTW.bfft!",
-    "category": "Function",
-    "text": "bfft!(A [, dims])\n\nSame as bfft, but operates in-place on A.\n\n\n\n"
-},
-
-{
-    "location": "fft.html#FFTW.plan_fft",
-    "page": "Fourier Transforms",
-    "title": "FFTW.plan_fft",
-    "category": "Function",
-    "text": "plan_fft(A [, dims]; flags=FFTW.ESTIMATE;  timelimit=Inf)\n\nPre-plan an optimized FFT along given dimensions (dims) of arrays matching the shape and type of A.  (The first two arguments have the same meaning as for fft.) Returns an object P which represents the linear operator computed by the FFT, and which contains all of the information needed to compute fft(A, dims) quickly.\n\nTo apply P to an array A, use P * A; in general, the syntax for applying plans is much like that of matrices.  (A plan can only be applied to arrays of the same size as the A for which the plan was created.)  You can also apply a plan with a preallocated output array Â by calling A_mul_B!(Â, plan, A).  (For A_mul_B!, however, the input array A must be a complex floating-point array like the output Â.) You can compute the inverse-transform plan by inv(P) and apply the inverse plan with P \\ Â (the inverse plan is cached and reused for subsequent calls to inv or \\), and apply the inverse plan to a pre-allocated output array A with A_ldiv_B!(A, P, Â).\n\nThe flags argument is a bitwise-or of FFTW planner flags, defaulting to FFTW.ESTIMATE. e.g. passing FFTW.MEASURE or FFTW.PATIENT will instead spend several seconds (or more) benchmarking different possible FFT algorithms and picking the fastest one; see the FFTW manual for more information on planner flags.  The optional timelimit argument specifies a rough upper bound on the allowed planning time, in seconds. Passing FFTW.MEASURE or FFTW.PATIENT may cause the input array A to be overwritten with zeros during plan creation.\n\nplan_fft! is the same as plan_fft but creates a plan that operates in-place on its argument (which must be an array of complex floating-point numbers). plan_ifft and so on are similar but produce plans that perform the equivalent of the inverse transforms ifft and so on.\n\n\n\n"
-},
-
-{
-    "location": "fft.html#FFTW.plan_ifft",
-    "page": "Fourier Transforms",
-    "title": "FFTW.plan_ifft",
-    "category": "Function",
-    "text": "plan_ifft(A [, dims]; flags=FFTW.ESTIMATE;  timelimit=Inf)\n\nSame as plan_fft, but produces a plan that performs inverse transforms ifft.\n\n\n\n"
-},
-
-{
-    "location": "fft.html#FFTW.plan_bfft",
-    "page": "Fourier Transforms",
-    "title": "FFTW.plan_bfft",
-    "category": "Function",
-    "text": "plan_bfft(A [, dims]; flags=FFTW.ESTIMATE;  timelimit=Inf)\n\nSame as plan_fft, but produces a plan that performs an unnormalized backwards transform bfft.\n\n\n\n"
-},
-
-{
-    "location": "fft.html#FFTW.plan_fft!",
-    "page": "Fourier Transforms",
-    "title": "FFTW.plan_fft!",
-    "category": "Function",
-    "text": "plan_fft!(A [, dims]; flags=FFTW.ESTIMATE;  timelimit=Inf)\n\nSame as plan_fft, but operates in-place on A.\n\n\n\n"
-},
-
-{
-    "location": "fft.html#FFTW.plan_ifft!",
-    "page": "Fourier Transforms",
-    "title": "FFTW.plan_ifft!",
-    "category": "Function",
-    "text": "plan_ifft!(A [, dims]; flags=FFTW.ESTIMATE;  timelimit=Inf)\n\nSame as plan_ifft, but operates in-place on A.\n\n\n\n"
-},
-
-{
-    "location": "fft.html#FFTW.plan_bfft!",
-    "page": "Fourier Transforms",
-    "title": "FFTW.plan_bfft!",
-    "category": "Function",
-    "text": "plan_bfft!(A [, dims]; flags=FFTW.ESTIMATE;  timelimit=Inf)\n\nSame as plan_bfft, but operates in-place on A.\n\n\n\n"
-},
-
-{
-    "location": "fft.html#FFTW.rfft",
-    "page": "Fourier Transforms",
-    "title": "FFTW.rfft",
-    "category": "Function",
-    "text": "rfft(A [, dims])\n\nMultidimensional FFT of a real array A, exploiting the fact that the transform has conjugate symmetry in order to save roughly half the computational time and storage costs compared with fft. If A has size (n_1, ..., n_d), the result has size (div(n_1,2)+1, ..., n_d).\n\nThe optional dims argument specifies an iterable subset of one or more dimensions of A to transform, similar to fft. Instead of (roughly) halving the first dimension of A in the result, the dims[1] dimension is (roughly) halved in the same way.\n\n\n\n"
-},
-
-{
-    "location": "fft.html#FFTW.irfft",
-    "page": "Fourier Transforms",
-    "title": "FFTW.irfft",
-    "category": "Function",
-    "text": "irfft(A, d [, dims])\n\nInverse of rfft: for a complex array A, gives the corresponding real array whose FFT yields A in the first half. As for rfft, dims is an optional subset of dimensions to transform, defaulting to 1:ndims(A).\n\nd is the length of the transformed real array along the dims[1] dimension, which must satisfy div(d,2)+1 == size(A,dims[1]). (This parameter cannot be inferred from size(A) since both 2*size(A,dims[1])-2 as well as 2*size(A,dims[1])-1 are valid sizes for the transformed real array.)\n\n\n\n"
-},
-
-{
-    "location": "fft.html#FFTW.brfft",
-    "page": "Fourier Transforms",
-    "title": "FFTW.brfft",
-    "category": "Function",
-    "text": "brfft(A, d [, dims])\n\nSimilar to irfft but computes an unnormalized inverse transform (similar to bfft), which must be divided by the product of the sizes of the transformed dimensions (of the real output array) in order to obtain the inverse transform.\n\n\n\n"
-},
-
-{
-    "location": "fft.html#FFTW.plan_rfft",
-    "page": "Fourier Transforms",
-    "title": "FFTW.plan_rfft",
-    "category": "Function",
-    "text": "plan_rfft(A [, dims]; flags=FFTW.ESTIMATE;  timelimit=Inf)\n\nPre-plan an optimized real-input FFT, similar to plan_fft except for rfft instead of fft. The first two arguments, and the size of the transformed result, are the same as for rfft.\n\n\n\n"
-},
-
-{
-    "location": "fft.html#FFTW.plan_brfft",
-    "page": "Fourier Transforms",
-    "title": "FFTW.plan_brfft",
-    "category": "Function",
-    "text": "plan_brfft(A, d [, dims]; flags=FFTW.ESTIMATE;  timelimit=Inf)\n\nPre-plan an optimized real-input unnormalized transform, similar to plan_rfft except for brfft instead of rfft. The first two arguments and the size of the transformed result, are the same as for brfft.\n\n\n\n"
-},
-
-{
-    "location": "fft.html#FFTW.plan_irfft",
-    "page": "Fourier Transforms",
-    "title": "FFTW.plan_irfft",
-    "category": "Function",
-    "text": "plan_irfft(A, d [, dims]; flags=FFTW.ESTIMATE;  timelimit=Inf)\n\nPre-plan an optimized inverse real-input FFT, similar to plan_rfft except for irfft and brfft, respectively. The first three arguments have the same meaning as for irfft.\n\n\n\n"
-},
-
-{
-    "location": "fft.html#FFTW.dct",
-    "page": "Fourier Transforms",
-    "title": "FFTW.dct",
-    "category": "Function",
-    "text": "dct(A [, dims])\n\nPerforms a multidimensional type-II discrete cosine transform (DCT) of the array A, using the unitary normalization of the DCT. The optional dims argument specifies an iterable subset of dimensions (e.g. an integer, range, tuple, or array) to transform along.  Most efficient if the size of A along the transformed dimensions is a product of small primes; see nextprod. See also plan_dct for even greater efficiency.\n\n\n\n"
-},
-
-{
-    "location": "fft.html#FFTW.dct!",
-    "page": "Fourier Transforms",
-    "title": "FFTW.dct!",
-    "category": "Function",
-    "text": "dct!(A [, dims])\n\nSame as dct!, except that it operates in-place on A, which must be an array of real or complex floating-point values.\n\n\n\n"
-},
-
-{
-    "location": "fft.html#FFTW.idct",
-    "page": "Fourier Transforms",
-    "title": "FFTW.idct",
-    "category": "Function",
-    "text": "idct(A [, dims])\n\nComputes the multidimensional inverse discrete cosine transform (DCT) of the array A (technically, a type-III DCT with the unitary normalization). The optional dims argument specifies an iterable subset of dimensions (e.g. an integer, range, tuple, or array) to transform along.  Most efficient if the size of A along the transformed dimensions is a product of small primes; see nextprod.  See also plan_idct for even greater efficiency.\n\n\n\n"
-},
-
-{
-    "location": "fft.html#FFTW.idct!",
-    "page": "Fourier Transforms",
-    "title": "FFTW.idct!",
-    "category": "Function",
-    "text": "idct!(A [, dims])\n\nSame as idct!, but operates in-place on A.\n\n\n\n"
-},
-
-{
-    "location": "fft.html#FFTW.plan_dct",
-    "page": "Fourier Transforms",
-    "title": "FFTW.plan_dct",
-    "category": "Function",
-    "text": "plan_dct(A [, dims [, flags [, timelimit]]])\n\nPre-plan an optimized discrete cosine transform (DCT), similar to plan_fft except producing a function that computes dct. The first two arguments have the same meaning as for dct.\n\n\n\n"
-},
-
-{
-    "location": "fft.html#FFTW.plan_dct!",
-    "page": "Fourier Transforms",
-    "title": "FFTW.plan_dct!",
-    "category": "Function",
-    "text": "plan_dct!(A [, dims [, flags [, timelimit]]])\n\nSame as plan_dct, but operates in-place on A.\n\n\n\n"
-},
-
-{
-    "location": "fft.html#FFTW.plan_idct",
-    "page": "Fourier Transforms",
-    "title": "FFTW.plan_idct",
-    "category": "Function",
-    "text": "plan_idct(A [, dims [, flags [, timelimit]]])\n\nPre-plan an optimized inverse discrete cosine transform (DCT), similar to plan_fft except producing a function that computes idct. The first two arguments have the same meaning as for idct.\n\n\n\n"
-},
-
-{
-    "location": "fft.html#FFTW.plan_idct!",
-    "page": "Fourier Transforms",
-    "title": "FFTW.plan_idct!",
-    "category": "Function",
-    "text": "plan_idct!(A [, dims [, flags [, timelimit]]])\n\nSame as plan_idct, but operates in-place on A.\n\n\n\n"
-},
-
-{
-    "location": "fft.html#FFTW.fftshift-Tuple{Any}",
-    "page": "Fourier Transforms",
-    "title": "FFTW.fftshift",
-    "category": "Method",
-    "text": "fftshift(x)\n\nSwap the first and second halves of each dimension of x.\n\n\n\n"
-},
-
-{
-    "location": "fft.html#FFTW.fftshift-Tuple{Any,Any}",
-    "page": "Fourier Transforms",
-    "title": "FFTW.fftshift",
-    "category": "Method",
-    "text": "fftshift(x,dim)\n\nSwap the first and second halves of the given dimension or iterable of dimensions of array x.\n\n\n\n"
-},
-
-{
-    "location": "fft.html#FFTW.ifftshift",
-    "page": "Fourier Transforms",
-    "title": "FFTW.ifftshift",
-    "category": "Function",
-    "text": "ifftshift(x, [dim])\n\nUndoes the effect of fftshift.\n\n\n\n"
-},
-
-{
     "location": "fft.html#FFTW.r2r",
     "page": "Fourier Transforms",
     "title": "FFTW.r2r",
@@ -305,11 +73,75 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
+    "location": "fft.html#FFTW.dct",
+    "page": "Fourier Transforms",
+    "title": "FFTW.dct",
+    "category": "Function",
+    "text": "dct(A [, dims])\n\nPerforms a multidimensional type-II discrete cosine transform (DCT) of the array A, using the unitary normalization of the DCT. The optional dims argument specifies an iterable subset of dimensions (e.g. an integer, range, tuple, or array) to transform along.  Most efficient if the size of A along the transformed dimensions is a product of small primes; see nextprod. See also plan_dct for even greater efficiency.\n\n\n\n"
+},
+
+{
+    "location": "fft.html#FFTW.idct",
+    "page": "Fourier Transforms",
+    "title": "FFTW.idct",
+    "category": "Function",
+    "text": "idct(A [, dims])\n\nComputes the multidimensional inverse discrete cosine transform (DCT) of the array A (technically, a type-III DCT with the unitary normalization). The optional dims argument specifies an iterable subset of dimensions (e.g. an integer, range, tuple, or array) to transform along.  Most efficient if the size of A along the transformed dimensions is a product of small primes; see nextprod.  See also plan_idct for even greater efficiency.\n\n\n\n"
+},
+
+{
+    "location": "fft.html#FFTW.dct!",
+    "page": "Fourier Transforms",
+    "title": "FFTW.dct!",
+    "category": "Function",
+    "text": "dct!(A [, dims])\n\nSame as dct!, except that it operates in-place on A, which must be an array of real or complex floating-point values.\n\n\n\n"
+},
+
+{
+    "location": "fft.html#FFTW.idct!",
+    "page": "Fourier Transforms",
+    "title": "FFTW.idct!",
+    "category": "Function",
+    "text": "idct!(A [, dims])\n\nSame as idct!, but operates in-place on A.\n\n\n\n"
+},
+
+{
+    "location": "fft.html#FFTW.plan_dct",
+    "page": "Fourier Transforms",
+    "title": "FFTW.plan_dct",
+    "category": "Function",
+    "text": "plan_dct(A [, dims [, flags [, timelimit]]])\n\nPre-plan an optimized discrete cosine transform (DCT), similar to plan_fft except producing a function that computes dct. The first two arguments have the same meaning as for dct.\n\n\n\n"
+},
+
+{
+    "location": "fft.html#FFTW.plan_idct",
+    "page": "Fourier Transforms",
+    "title": "FFTW.plan_idct",
+    "category": "Function",
+    "text": "plan_idct(A [, dims [, flags [, timelimit]]])\n\nPre-plan an optimized inverse discrete cosine transform (DCT), similar to plan_fft except producing a function that computes idct. The first two arguments have the same meaning as for idct.\n\n\n\n"
+},
+
+{
+    "location": "fft.html#FFTW.plan_dct!",
+    "page": "Fourier Transforms",
+    "title": "FFTW.plan_dct!",
+    "category": "Function",
+    "text": "plan_dct!(A [, dims [, flags [, timelimit]]])\n\nSame as plan_dct, but operates in-place on A.\n\n\n\n"
+},
+
+{
+    "location": "fft.html#FFTW.plan_idct!",
+    "page": "Fourier Transforms",
+    "title": "FFTW.plan_idct!",
+    "category": "Function",
+    "text": "plan_idct!(A [, dims [, flags [, timelimit]]])\n\nSame as plan_idct, but operates in-place on A.\n\n\n\n"
+},
+
+{
     "location": "fft.html#Fourier-Transforms-1",
     "page": "Fourier Transforms",
     "title": "Fourier Transforms",
     "category": "section",
-    "text": "FFTW.fft\nFFTW.fft!\nFFTW.ifft\nFFTW.ifft!\nFFTW.bfft\nFFTW.bfft!\nFFTW.plan_fft\nFFTW.plan_ifft\nFFTW.plan_bfft\nFFTW.plan_fft!\nFFTW.plan_ifft!\nFFTW.plan_bfft!\nFFTW.rfft\nFFTW.irfft\nFFTW.brfft\nFFTW.plan_rfft\nFFTW.plan_brfft\nFFTW.plan_irfft\nFFTW.dct\nFFTW.dct!\nFFTW.idct\nFFTW.idct!\nFFTW.plan_dct\nFFTW.plan_dct!\nFFTW.plan_idct\nFFTW.plan_idct!\nFFTW.fftshift(::Any)\nFFTW.fftshift(::Any, ::Any)\nFFTW.ifftshiftThe following functions are not exported from the package and thus must be qualified with the FFTW. prefix on use.FFTW.r2r\nFFTW.r2r!\nFFTW.plan_r2r\nFFTW.plan_r2r!"
+    "text": "This package extends the functionality provided by AbstractFFTs. To learn more about those functions, consult that package's documentation.The following functions are unique to this package.FFTW.r2r\nFFTW.r2r!\nFFTW.plan_r2r\nFFTW.plan_r2r!\nFFTW.dct\nFFTW.idct\nFFTW.dct!\nFFTW.idct!\nFFTW.plan_dct\nFFTW.plan_idct\nFFTW.plan_dct!\nFFTW.plan_idct!"
 },
 
 {
