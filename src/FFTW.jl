@@ -16,9 +16,6 @@ import AbstractFFTs: Plan, ScaledPlan,
 if !isdefined(Base, :FFTW)
     export dct, idct, dct!, idct!, plan_dct, plan_idct, plan_dct!, plan_idct!
 end
-if !isdefined(Base, :DSP)
-    export filt, filt!, deconv, conv, conv2, xcorr
-end
 
 const depsfile = joinpath(dirname(@__DIR__), "deps", "deps.jl")
 if isfile(depsfile)
@@ -58,6 +55,5 @@ end
 
 include("fft.jl")
 include("dct.jl")
-include("dsp.jl") # TODO: Move these functions to DSP.jl
 
 end # module
