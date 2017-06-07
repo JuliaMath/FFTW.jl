@@ -2,7 +2,12 @@
 using FFTW
 using Base.Test
 
+# Make super sure we don't pull in Base names
 importall FFTW
+import AbstractFFTs: Plan, fft, ifft, bfft, fft!, ifft!, bfft!,
+                     plan_fft, plan_ifft, plan_bfft, plan_fft!, plan_ifft!, plan_bfft!,
+                     rfft, irfft, brfft, plan_rfft, plan_irfft, plan_brfft,
+                     fftshift, ifftshift, plan_inv
 
 # issue #19892
 # (test this first to make sure it happens before set_num_threads)
@@ -253,7 +258,7 @@ end
 #   the generator bottleneck," Proc. 27th ACM Symposium on the Theory
 #   of Computing, pp. 407-416 (1995).
 # Check linearity, impulse-response, and time-shift properties.
-function fft_test{T<:Complex}(p::FFTW.Plan{T}, ntrials=4,
+function fft_test{T<:Complex}(p::Plan{T}, ntrials=4,
                               tol=1e5 * eps(real(T)))
     ndims(p) == 1 || throw(ArgumentError("not a 1d FFT"))
     n = length(p)
@@ -332,15 +337,15 @@ for x in (randn(10),randn(10,12))
               plan_bfft, plan_fft, plan_ifft,
               fft, bfft, fft_, ifft)
         p = @inferred f(z)
-        if isa(p, FFTW.Plan)
-            @inferred FFTW.plan_inv(p)
+        if isa(p, Plan)
+            @inferred plan_inv(p)
         end
     end
     for f in (plan_bfft, plan_fft, plan_ifft,
               plan_rfft, fft, bfft, fft_, ifft)
         p = @inferred f(x)
-        if isa(p, FFTW.Plan)
-            @inferred FFTW.plan_inv(p)
+        if isa(p, Plan)
+            @inferred plan_inv(p)
         end
     end
     # note: inference doesn't work for plan_fft_ since the
