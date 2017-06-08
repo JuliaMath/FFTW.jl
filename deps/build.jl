@@ -35,12 +35,6 @@ general_config = ["--prefix=" * abspath(builddir(libfftw)),
                   "--libdir=" * abspath(libdir(libfftw)),
                   "--bindir=" * abspath(bindir(libfftw))]
 
-try
-    # There might not be a cc defined or available in the path
-    machine = readchomp(`cc -dumpmachine`)
-    push!(general_config, "--build=" * machine)
-end
-
 fftw_config = ["--enable-shared", "--disable-fortran", "--disable-mpi", "--enable-threads"]
 fftw_enable_single = "--enable-single"
 
