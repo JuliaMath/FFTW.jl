@@ -13,8 +13,12 @@ import AbstractFFTs: Plan, ScaledPlan,
                      rfft_output_size, brfft_output_size,
                      plan_inv, normalization
 
-if !isdefined(Base, :FFTW)
-    export dct, idct, dct!, idct!, plan_dct, plan_idct, plan_dct!, plan_idct!
+if VERSION >= v"0.7.0-DEV.602"
+    if isdefined(Base, :FFTW)
+        import Base.FFTW: dct, idct, dct!, idct!, plan_dct, plan_idct, plan_dct!, plan_idct!
+    else
+        export dct, idct, dct!, idct!, plan_dct, plan_idct, plan_dct!, plan_idct!
+    end
 end
 
 const depsfile = joinpath(dirname(@__DIR__), "deps", "deps.jl")
