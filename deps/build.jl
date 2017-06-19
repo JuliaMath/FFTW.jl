@@ -70,4 +70,8 @@ provides(BuildProcess, (@build_steps begin
     end
 end), [libfftw, libfftwf])
 
-BinDeps.@install Dict([:libfftw => :libfftw, :libfftwf => :libfftwf])
+if is_windows()
+    BinDeps.@install Dict([:libfftw => :libfftw, :libfftwf => :libfftwf])
+else
+    BinDeps.@install Dict([:libfftw3_threads => :libfftw, :libfftw3f_threads => :libfftwf])
+end
