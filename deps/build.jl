@@ -6,15 +6,15 @@ BinDeps.@setup
 const FFTW_VER = v"3.3.6-pl1"
 
 if is_windows()
-    const libfftw_name = "libfftw3-3"
-    const libfftwf_name = "libfftw3f-3"
+    const libfftw_name = "libfftw3"
+    const libfftwf_name = "libfftw3f"
 else
     const libfftw_name = "libfftw3_threads"
     const libfftwf_name = "libfftw3f_threads"
 end
 
-libfftw = library_dependency(libfftw_name, aliases=[replace(libfftw_name, "3", "")])
-libfftwf = library_dependency(libfftwf_name, aliases=[replace(libfftwf_name, "3", "")])
+libfftw = library_dependency(libfftw_name, aliases=[replace(libfftw_name, "3", ""), libfftw_name * "-3"])
+libfftwf = library_dependency(libfftwf_name, aliases=[replace(libfftwf_name, "3", ""), libfftwf_name * "-3"])
 
 provides(AptGet, "libfftw3-double3", [libfftw], os=:Linux)
 provides(AptGet, "libfftw3-single3", [libfftwf], os=:Linux)
