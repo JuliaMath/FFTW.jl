@@ -25,7 +25,7 @@ provides(BSDPkg, "fftw3", [libfftw, libfftwf], os=:FreeBSD)
 
 if is_windows()
     using WinRPM
-    provides(WinRPM.RPM, "fftw", [libfftw, libfftwf], os=:Windows)
+    provides(WinRPM.RPM, "fftw3", [libfftw, libfftwf], os=:Windows)
 elseif is_apple()
     using Homebrew
     provides(Homebrew.HB, "fftw", [libfftw, libfftwf], os=:Darwin)
@@ -71,7 +71,7 @@ provides(BuildProcess, (@build_steps begin
 end), [libfftw, libfftwf])
 
 if is_windows()
-    BinDeps.@install Dict([:libfftw => :libfftw, :libfftwf => :libfftwf])
+    BinDeps.@install Dict([:libfftw3 => :libfftw, :libfftw3f => :libfftwf])
 else
     BinDeps.@install Dict([:libfftw3_threads => :libfftw, :libfftw3f_threads => :libfftwf])
 end
