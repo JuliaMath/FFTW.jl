@@ -25,7 +25,7 @@ provides(BSDPkg, "fftw3", [libfftw, libfftwf], os=:FreeBSD)
 
 if is_windows()
     using WinRPM
-    provides(WinRPM.RPM, "fftw3", [libfftw, libfftwf], os=:Windows)
+    provides(WinRPM.RPM, "libfftw3-3", [libfftw, libfftwf], os=:Windows)
 elseif is_apple()
     using Homebrew
     provides(Homebrew.HB, "fftw", [libfftw, libfftwf], os=:Darwin)
