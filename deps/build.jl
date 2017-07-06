@@ -13,14 +13,27 @@ else
     const libfftwf_name = "libfftw3f_threads"
 end
 
-libfftw = library_dependency(libfftw_name, aliases=[replace(libfftw_name, "3", ""), libfftw_name * "-3"])
-libfftwf = library_dependency(libfftwf_name, aliases=[replace(libfftwf_name, "3", ""), libfftwf_name * "-3"])
+# Why can't everyone just agree on what to call this library...
+function makealiases(lib)
+    major = string(FFTW_VER.major)
+    nover = replace(lib, major, "")
+    return String[
+        nover,
+        join([lib, Libdl.dlext, major], "."),
+        join([nover, Libdl.dlext, major], "."),
+        lib * "-" * major,
+        nover * "-" * major,
+    ]
+end
+
+libfftw = library_dependency(libfftw_name, aliases=makealiases(libfftw_name))
+libfftwf = library_dependency(libfftwf_name, aliases=makealiases(libfftwf_name))
 
 provides(AptGet, "libfftw3-double3", [libfftw], os=:Linux)
 provides(AptGet, "libfftw3-single3", [libfftwf], os=:Linux)
 provides(Pacman, "fftw", [libfftw, libfftwf], os=:Linux)
-provides(Zypper, "libfftw3", [libfftw, libfftwf], os=:Linux)
-provides(Yum, "fftw", [libfftw, libfftwf], os=:Linux)
+provides(Zypper, "libfftw3_threads3", [libfftw, libfftwf], os=:Linux)
+provides(Yum, "fftw-libs", [libfftw, libfftwf], os=:Linux)
 provides(BSDPkg, "fftw3", [libfftw, libfftwf], os=:FreeBSD)
 
 if is_windows()
