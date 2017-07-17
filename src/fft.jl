@@ -541,10 +541,10 @@ for (Tr,Tc,fftw,lib) in ((:Float64,:Complex128,"fftw",libfftw),
         return rFFTWPlan{$Tc,$BACKWARD,inplace,N}(plan, flags, R, X, Y)
     end
 
-    @eval function (::Type{r2rFFTWPlan{$Tr,Any,inplace,N}})(X::StridedArray{$Tr,N},
-                                                            Y::StridedArray{$Tr,N},
-                                                            region, kinds, flags::Integer,
-                                                            timelimit::Real) where {inplace,N}
+    @eval function (::Type{r2rFFTWPlan{$Tr,T,inplace,N}} where T)(X::StridedArray{$Tr,N},
+                                                                  Y::StridedArray{$Tr,N},
+                                                                  region, kinds, flags::Integer,
+                                                                  timelimit::Real) where {inplace,N}
         R = isa(region, Tuple) ? region : copy(region)
         knd = fix_kinds(region, kinds)
         set_timelimit($Tr, timelimit)
@@ -563,10 +563,10 @@ for (Tr,Tc,fftw,lib) in ((:Float64,:Complex128,"fftw",libfftw),
     end
 
     # support r2r transforms of complex = transforms of real & imag parts
-    @eval function (::Type{r2rFFTWPlan{$Tc,Any,inplace,N}})(X::StridedArray{$Tc,N},
-                                                            Y::StridedArray{$Tc,N},
-                                                            region, kinds, flags::Integer,
-                                                            timelimit::Real) where {inplace,N}
+    @eval function (::Type{r2rFFTWPlan{$Tc,T,inplace,N}} where T)(X::StridedArray{$Tc,N},
+                                                                  Y::StridedArray{$Tc,N},
+                                                                  region, kinds, flags::Integer,
+                                                                  timelimit::Real) where {inplace,N}
         R = isa(region, Tuple) ? region : copy(region)
         knd = fix_kinds(region, kinds)
         set_timelimit($Tr, timelimit)
