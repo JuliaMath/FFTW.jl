@@ -13,7 +13,7 @@ import AbstractFFTs: Plan, ScaledPlan,
                      rfft_output_size, brfft_output_size,
                      plan_inv, normalization
 
-if isdefined(Base, :FFTW) && VERSION < v"0.7.0-DEV.986"
+if VERSION < v"0.7.0-DEV.986"
     import Base.FFTW: dct, idct, dct!, idct!, plan_dct, plan_idct, plan_dct!, plan_idct!
 else
     export dct, idct, dct!, idct!, plan_dct, plan_idct, plan_dct!, plan_idct!
@@ -33,7 +33,7 @@ fftw_vendor() = Base.BLAS.vendor() === :mkl ? :mkl : :fftw
 if fftw_vendor() === :mkl
     const libfftw_name = "libmkl_rt"
     const libfftwf_name = "libmkl_rt"
-elseif is_windows()
+elseif Sys.KERNEL in [:Windows, :NT]
     const libfftw_name = "libfftw3"
     const libfftwf_name = "libfftw3f"
 else

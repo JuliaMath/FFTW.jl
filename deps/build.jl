@@ -1,3 +1,6 @@
+# Don't build and install FFTW if we're on a version of Julia that ships with it
+# Using include_string gets around the UndefVarErrors that happen when parsing macros
+VERSION >= v"0.7.0-DEV.602" && include_string("""
 using BinDeps
 using BinDeps: builddir
 
@@ -62,7 +65,7 @@ if is_windows()
     Sys.ARCH === :x86_64 || push!(fftw_config, "--with-incoming-stack-boundary=2")
 end
 
-provides(Sources, URI("http://www.fftw.org/fftw-$FFTW_VER.tar.gz"), [libfftw, libfftwf])
+provides(Sources, URI("http://www.fftw.org/fftw-\$FFTW_VER.tar.gz"), [libfftw, libfftwf])
 
 provides(BuildProcess, (@build_steps begin
     GetSources(libfftw)
@@ -71,14 +74,14 @@ provides(BuildProcess, (@build_steps begin
         ChangeDirectory(builddir(libfftw))
         FileRule(joinpath(libdir(libfftw), libfftw_name * "." * Libdl.dlext), @build_steps begin
             CreateDirectory(libdir(libfftw))
-            `$(joinpath(srcdir(libfftw), "fftw-$FFTW_VER", "configure")) $general_config $fftw_config`
-            `$MAKE_CMD`
-            `$MAKE_CMD install`
+            `\$(joinpath(srcdir(libfftw), "fftw-\$FFTW_VER", "configure")) \$general_config \$fftw_config`
+            `\$MAKE_CMD`
+            `\$MAKE_CMD install`
         end)
         FileRule(joinpath(libdir(libfftw), libfftwf_name * "." * Libdl.dlext), @build_steps begin
-            `$(joinpath(srcdir(libfftw), "fftw-$FFTW_VER", "configure")) $general_config $fftw_config $fftw_enable_single`
-            `$MAKE_CMD`
-            `$MAKE_CMD install`
+            `\$(joinpath(srcdir(libfftw), "fftw-\$FFTW_VER", "configure")) \$general_config \$fftw_config \$fftw_enable_single`
+            `\$MAKE_CMD`
+            `\$MAKE_CMD install`
         end)
     end
 end), [libfftw, libfftwf])
@@ -88,3 +91,4 @@ if is_windows()
 else
     BinDeps.@install Dict([:libfftw3_threads => :libfftw, :libfftw3f_threads => :libfftwf])
 end
+""")
