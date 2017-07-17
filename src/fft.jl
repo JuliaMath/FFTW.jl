@@ -541,7 +541,7 @@ for (Tr,Tc,fftw,lib) in ((:Float64,:Complex128,"fftw",libfftw),
         return rFFTWPlan{$Tc,$BACKWARD,inplace,N}(plan, flags, R, X, Y)
     end
 
-    @eval function (::Type{r2rFFTWPlan{$Tr,ANY,inplace,N}})(X::StridedArray{$Tr,N},
+    @eval function (::Type{r2rFFTWPlan{$Tr,Any,inplace,N}})(X::StridedArray{$Tr,N},
                                                             Y::StridedArray{$Tr,N},
                                                             region, kinds, flags::Integer,
                                                             timelimit::Real) where {inplace,N}
@@ -563,7 +563,7 @@ for (Tr,Tc,fftw,lib) in ((:Float64,:Complex128,"fftw",libfftw),
     end
 
     # support r2r transforms of complex = transforms of real & imag parts
-    @eval function (::Type{r2rFFTWPlan{$Tc,ANY,inplace,N}})(X::StridedArray{$Tc,N},
+    @eval function (::Type{r2rFFTWPlan{$Tc,Any,inplace,N}})(X::StridedArray{$Tc,N},
                                                             Y::StridedArray{$Tc,N},
                                                             region, kinds, flags::Integer,
                                                             timelimit::Real) where {inplace,N}
