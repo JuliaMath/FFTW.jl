@@ -3,7 +3,7 @@ __precompile__()
 module FFTW
 
 # Since nothing is exported from AbstractFFTs as long as the FFT functionality is
-# defined (or deprecated) in Base, we need to be very explicit about the things we
+# defined and not deprecated in Base, we need to be very explicit about the things we
 # want to import
 import AbstractFFTs: Plan, ScaledPlan,
                      fft, ifft, bfft, fft!, ifft!, bfft!,
@@ -13,7 +13,7 @@ import AbstractFFTs: Plan, ScaledPlan,
                      rfft_output_size, brfft_output_size,
                      plan_inv, normalization
 
-if isdefined(Base, :FFTW)
+if isdefined(Base, :FFTW) && VERSION < v"0.7.0-DEV.986"
     import Base.FFTW: dct, idct, dct!, idct!, plan_dct, plan_idct, plan_dct!, plan_idct!
 else
     export dct, idct, dct!, idct!, plan_dct, plan_idct, plan_dct!, plan_idct!
