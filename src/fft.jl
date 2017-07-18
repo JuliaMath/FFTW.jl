@@ -756,14 +756,14 @@ end
 function plan_r2r(X::StridedArray{T,N}, kinds, region;
                   flags::Integer=ESTIMATE,
                   timelimit::Real=NO_TIMELIMIT) where {T<:fftwNumber,N}
-    r2rFFTWPlan{T,ANY,false,N}(X, fakesimilar(flags, X, T), region, kinds,
+    r2rFFTWPlan{T,Any,false,N}(X, fakesimilar(flags, X, T), region, kinds,
                                flags, timelimit)
 end
 
 function plan_r2r!(X::StridedArray{T,N}, kinds, region;
                    flags::Integer=ESTIMATE,
                    timelimit::Real=NO_TIMELIMIT) where {T<:fftwNumber,N}
-    r2rFFTWPlan{T,ANY,true,N}(X, X, region, kinds, flags, timelimit)
+    r2rFFTWPlan{T,Any,true,N}(X, X, region, kinds, flags, timelimit)
 end
 
 # mapping from r2r kind to the corresponding inverse transform
@@ -788,7 +788,7 @@ function plan_inv(p::r2rFFTWPlan{T,K,inplace,N}) where {T<:fftwNumber,K,inplace,
     X = Array{T}(p.sz)
     iK = fix_kinds(p.region, [inv_kind[k] for k in K])
     Y = inplace ? X : fakesimilar(p.flags, X, T)
-    ScaledPlan(r2rFFTWPlan{T,ANY,inplace,N}(X, Y, p.region, iK,
+    ScaledPlan(r2rFFTWPlan{T,Any,inplace,N}(X, Y, p.region, iK,
                                             p.flags, NO_TIMELIMIT),
                normalization(real(T),
                              map(logical_size, [p.sz...][[p.region...]], iK),
