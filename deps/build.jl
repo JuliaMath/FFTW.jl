@@ -3,12 +3,13 @@
 VERSION >= v"0.7.0-DEV.602" && include_string("""
 using BinDeps
 using BinDeps: builddir
+using Compat.Sys: iswindows, isapple
 
 BinDeps.@setup
 
 const FFTW_VER = v"3.3.6-pl1"
 
-if is_windows()
+if iswindows()
     const libfftw_name = "libfftw3"
     const libfftwf_name = "libfftw3f"
 else
@@ -39,10 +40,10 @@ provides(Zypper, "libfftw3_threads3", [libfftw, libfftwf], os=:Linux)
 provides(Yum, "fftw-libs", [libfftw, libfftwf], os=:Linux)
 provides(BSDPkg, "fftw3", [libfftw, libfftwf], os=:FreeBSD)
 
-if is_windows()
+if iswindows()
     using WinRPM
     provides(WinRPM.RPM, "libfftw3-3", [libfftw, libfftwf], os=:Windows)
-elseif is_apple()
+elseif isapple()
     using Homebrew
     provides(Homebrew.HB, "fftw", [libfftw, libfftwf], os=:Darwin)
 end
@@ -60,7 +61,7 @@ elseif Sys.ARCH === :x86_64
     append!(fftw_config, ["--enable-sse2", "--enable-fma"])
 end
 
-if is_windows()
+if iswindows()
     append!(fftw_config, ["--with-our-malloc", "--with-combined-threads"])
     Sys.ARCH === :x86_64 || push!(fftw_config, "--with-incoming-stack-boundary=2")
 end
@@ -86,7 +87,7 @@ provides(BuildProcess, (@build_steps begin
     end
 end), [libfftw, libfftwf])
 
-if is_windows()
+if iswindows()
     BinDeps.@install Dict([:libfftw3 => :libfftw, :libfftw3f => :libfftwf])
 else
     BinDeps.@install Dict([:libfftw3_threads => :libfftw, :libfftw3f_threads => :libfftwf])

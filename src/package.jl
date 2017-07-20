@@ -2,9 +2,8 @@ __precompile__()
 
 module FFTW
 
-# Since nothing is exported from AbstractFFTs as long as the FFT functionality is
-# defined and not deprecated in Base, we need to be very explicit about the things we
-# want to import
+using Compat
+
 import AbstractFFTs: Plan, ScaledPlan,
                      fft, ifft, bfft, fft!, ifft!, bfft!,
                      plan_fft, plan_ifft, plan_bfft, plan_fft!, plan_ifft!, plan_bfft!,
@@ -33,7 +32,7 @@ fftw_vendor() = Base.BLAS.vendor() === :mkl ? :mkl : :fftw
 if fftw_vendor() === :mkl
     const libfftw_name = "libmkl_rt"
     const libfftwf_name = "libmkl_rt"
-elseif Sys.KERNEL in [:Windows, :NT]
+elseif Compat.Sys.iswindows()
     const libfftw_name = "libfftw3"
     const libfftwf_name = "libfftw3f"
 else

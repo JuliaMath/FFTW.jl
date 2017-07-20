@@ -1,22 +1,14 @@
 # This file was formerly a part of Julia. License is MIT: https://julialang.org/license
 using FFTW
+using AbstractFFTs
+using AbstractFFTs: Plan, plan_inv
 using Base.Test
 
-importall FFTW
 if VERSION >= v"0.7.0-DEV.602"
-    import AbstractFFTs: Plan, fft, ifft, bfft, fft!, ifft!, bfft!,
-                         plan_fft, plan_ifft, plan_bfft, plan_fft!, plan_ifft!, plan_bfft!,
-                         rfft, irfft, brfft, plan_rfft, plan_irfft, plan_brfft,
-                         fftshift, ifftshift, plan_inv
-    import FFTW: fftw_vendor
+    using FFTW: fftw_vendor
 else
-    import Base.DFT: Plan, fft, ifft, bfft, fft!, ifft!, bfft!,
-                     plan_fft, plan_ifft, plan_bfft, plan_fft!, plan_ifft!, plan_bfft!,
-                     rfft, irfft, brfft, plan_rfft, plan_irfft, plan_brfft,
-                     fftshift, ifftshift, plan_inv
-    import Base: fftw_vendor
+    using Base: fftw_vendor
 end
-import FFTW: dct, idct, dct!, idct!, plan_dct, plan_idct, plan_dct!, plan_idct!
 
 # Base Julia issue #19892
 # (test this first to make sure it happens before set_num_threads)
