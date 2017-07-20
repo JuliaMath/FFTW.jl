@@ -1,6 +1,5 @@
 # This file was formerly a part of Julia. License is MIT: https://julialang.org/license
 using FFTW
-using AbstractFFTs
 using AbstractFFTs: Plan, plan_inv
 using Base.Test
 
