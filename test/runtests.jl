@@ -1,14 +1,14 @@
 # This file was formerly a part of Julia. License is MIT: https://julialang.org/license
 using FFTW
+using AbstractFFTs
+using AbstractFFTs: Plan, plan_inv
 using Base.Test
 
-# Make super sure we don't pull in Base names
-importall FFTW
-import AbstractFFTs: Plan, fft, ifft, bfft, fft!, ifft!, bfft!,
-                     plan_fft, plan_ifft, plan_bfft, plan_fft!, plan_ifft!, plan_bfft!,
-                     rfft, irfft, brfft, plan_rfft, plan_irfft, plan_brfft,
-                     fftshift, ifftshift, plan_inv
-import FFTW: dct, idct, dct!, idct!, plan_dct, plan_idct, plan_dct!, plan_idct!
+if VERSION >= v"0.7.0-DEV.602"
+    using FFTW: fftw_vendor
+else
+    using Base: fftw_vendor
+end
 
 # Base Julia issue #19892
 # (test this first to make sure it happens before set_num_threads)
@@ -149,7 +149,7 @@ for (f,fi,pf,pfi) in ((fft,ifft,plan_fft,plan_ifft),
 
     # The following capabilities are FFTW only.
     # They are not available in MKL, and hence do not test them.
-    if FFTW.fftw_vendor() != :mkl
+    if fftw_vendor() != :mkl
         ifft3_fft3_m3d = fi(f(m3d))
 
         fftd3_m3d = f(m3d,3)
@@ -232,7 +232,7 @@ for (f,fi,pf,pfi) in ((fft,ifft,plan_fft,plan_ifft),
         @test pirfftn_rfftn_m4[i] ≈ m4[i]
     end
 
-    if FFTW.fftw_vendor() != :mkl
+    if fftw_vendor() != :mkl
         rfftn_m3d = rfft(m3d)
         rfftd3_m3d = rfft(m3d,3)
         @test size(rfftd3_m3d) == size(fftd3_m3d)
@@ -363,7 +363,7 @@ a16 = convert(Vector{Float16}, a)
 
 # Discrete cosine transform (DCT) tests
 
-if FFTW.fftw_vendor() != :mkl
+if fftw_vendor() != :mkl
     a = rand(8,11) + im*rand(8,11)
     @test norm(idct(dct(a)) - a) < 1e-8
 
