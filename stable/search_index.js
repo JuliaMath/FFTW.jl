@@ -73,65 +73,65 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
-    "location": "fft.html#Base.DFT.dct",
+    "location": "fft.html#FFTW.dct",
     "page": "API",
-    "title": "Base.DFT.dct",
+    "title": "FFTW.dct",
     "category": "Function",
     "text": "dct(A [, dims])\n\nPerforms a multidimensional type-II discrete cosine transform (DCT) of the array A, using the unitary normalization of the DCT. The optional dims argument specifies an iterable subset of dimensions (e.g. an integer, range, tuple, or array) to transform along.  Most efficient if the size of A along the transformed dimensions is a product of small primes; see nextprod. See also plan_dct for even greater efficiency.\n\n\n\n"
 },
 
 {
-    "location": "fft.html#Base.DFT.idct",
+    "location": "fft.html#FFTW.idct",
     "page": "API",
-    "title": "Base.DFT.idct",
+    "title": "FFTW.idct",
     "category": "Function",
     "text": "idct(A [, dims])\n\nComputes the multidimensional inverse discrete cosine transform (DCT) of the array A (technically, a type-III DCT with the unitary normalization). The optional dims argument specifies an iterable subset of dimensions (e.g. an integer, range, tuple, or array) to transform along.  Most efficient if the size of A along the transformed dimensions is a product of small primes; see nextprod.  See also plan_idct for even greater efficiency.\n\n\n\n"
 },
 
 {
-    "location": "fft.html#Base.DFT.dct!",
+    "location": "fft.html#FFTW.dct!",
     "page": "API",
-    "title": "Base.DFT.dct!",
+    "title": "FFTW.dct!",
     "category": "Function",
     "text": "dct!(A [, dims])\n\nSame as dct!, except that it operates in-place on A, which must be an array of real or complex floating-point values.\n\n\n\n"
 },
 
 {
-    "location": "fft.html#Base.DFT.idct!",
+    "location": "fft.html#FFTW.idct!",
     "page": "API",
-    "title": "Base.DFT.idct!",
+    "title": "FFTW.idct!",
     "category": "Function",
     "text": "idct!(A [, dims])\n\nSame as idct!, but operates in-place on A.\n\n\n\n"
 },
 
 {
-    "location": "fft.html#Base.DFT.plan_dct",
+    "location": "fft.html#FFTW.plan_dct",
     "page": "API",
-    "title": "Base.DFT.plan_dct",
+    "title": "FFTW.plan_dct",
     "category": "Function",
     "text": "plan_dct(A [, dims [, flags [, timelimit]]])\n\nPre-plan an optimized discrete cosine transform (DCT), similar to plan_fft except producing a function that computes dct. The first two arguments have the same meaning as for dct.\n\n\n\n"
 },
 
 {
-    "location": "fft.html#Base.DFT.plan_idct",
+    "location": "fft.html#FFTW.plan_idct",
     "page": "API",
-    "title": "Base.DFT.plan_idct",
+    "title": "FFTW.plan_idct",
     "category": "Function",
     "text": "plan_idct(A [, dims [, flags [, timelimit]]])\n\nPre-plan an optimized inverse discrete cosine transform (DCT), similar to plan_fft except producing a function that computes idct. The first two arguments have the same meaning as for idct.\n\n\n\n"
 },
 
 {
-    "location": "fft.html#Base.DFT.plan_dct!",
+    "location": "fft.html#FFTW.plan_dct!",
     "page": "API",
-    "title": "Base.DFT.plan_dct!",
+    "title": "FFTW.plan_dct!",
     "category": "Function",
     "text": "plan_dct!(A [, dims [, flags [, timelimit]]])\n\nSame as plan_dct, but operates in-place on A.\n\n\n\n"
 },
 
 {
-    "location": "fft.html#Base.DFT.plan_idct!",
+    "location": "fft.html#FFTW.plan_idct!",
     "page": "API",
-    "title": "Base.DFT.plan_idct!",
+    "title": "FFTW.plan_idct!",
     "category": "Function",
     "text": "plan_idct!(A [, dims [, flags [, timelimit]]])\n\nSame as plan_idct, but operates in-place on A.\n\n\n\n"
 },
