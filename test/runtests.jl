@@ -351,6 +351,12 @@ for x in (randn(10),randn(10,12))
     end
     for f in (plan_bfft, plan_fft, plan_ifft,
               plan_rfft, fft, bfft, fft_, ifft)
+        # More of #23063
+        if VERSION >= v"0.7.0-DEV.602" && ndims(x) == 2 && f == plan_bfft
+            @test_broken @inferred f(x)
+            @test_broken @inferred plan_inv(f(x))
+            continue
+        end
         p = @inferred f(x)
         if isa(p, Plan)
             @inferred plan_inv(p)
