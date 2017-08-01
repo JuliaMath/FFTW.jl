@@ -332,7 +332,14 @@ for x in (randn(10),randn(10,12))
     z = complex(x)
     y = rfft(x)
     @inferred rfft(x)
-    @inferred brfft(x,18)
+
+    # See Julia issue #23063
+    if VERSION >= v"0.7.0-DEV.602" && ndims(x) == 2
+        @test_broken @inferred brfft(x,18)
+    else
+        @inferred brfft(x,18)
+    end
+
     @inferred brfft(y,10)
     for f in (plan_bfft!, plan_fft!, plan_ifft!,
               plan_bfft, plan_fft, plan_ifft,
