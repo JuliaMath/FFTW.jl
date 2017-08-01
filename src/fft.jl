@@ -119,8 +119,8 @@ size(a::FakeArray) = a.sz
 strides(a::FakeArray) = a.st
 unsafe_convert(::Type{Ptr{T}}, a::FakeArray{T}) where {T} = convert(Ptr{T}, C_NULL)
 pointer(a::FakeArray{T}) where {T} = convert(Ptr{T}, C_NULL)
-FakeArray{T,N}(::Type{T}, sz::NTuple{N,Int}) = FakeArray{T,N}(sz, colmajorstrides(sz))
-FakeArray{T}(::Type{T}, sz::Int...) = FakeArray(T, sz)
+FakeArray(::Type{T}, sz::NTuple{N,Int}) where {T,N} = FakeArray{T,N}(sz, colmajorstrides(sz))
+FakeArray(::Type{T}, sz::Int...) where {T} = FakeArray(T, sz)
 fakesimilar(flags, X, T) = flags & ESTIMATE != 0 ? FakeArray(T, size(X)) : Array{T}(size(X))
 alignment_of(A::FakeArray) = Int32(0)
 
@@ -209,9 +209,9 @@ if libfftw_name == "libmkl_rt"
     alignment_of(A::StridedArray{<:fftwSingle}) =
         convert(Int32, convert(Int64, pointer(A)) % 16)
 else
-    alignment_of{T<:fftwDouble}(A::StridedArray{T}) =
+    alignment_of(A::StridedArray{T}) where {T<:fftwDouble} =
         ccall((:fftw_alignment_of, libfftw), Int32, (Ptr{T},), A)
-    alignment_of{T<:fftwSingle}(A::StridedArray{T}) =
+    alignment_of(A::StridedArray{T}) where {T<:fftwSingle} =
         ccall((:fftwf_alignment_of, libfftwf), Int32, (Ptr{T},), A)
 end
 
@@ -756,14 +756,14 @@ end
 function plan_r2r(X::StridedArray{T,N}, kinds, region;
                   flags::Integer=ESTIMATE,
                   timelimit::Real=NO_TIMELIMIT) where {T<:fftwNumber,N}
-    r2rFFTWPlan{T,ANY,false,N}(X, fakesimilar(flags, X, T), region, kinds,
+    r2rFFTWPlan{T,Any,false,N}(X, fakesimilar(flags, X, T), region, kinds,
                                flags, timelimit)
 end
 
 function plan_r2r!(X::StridedArray{T,N}, kinds, region;
                    flags::Integer=ESTIMATE,
                    timelimit::Real=NO_TIMELIMIT) where {T<:fftwNumber,N}
-    r2rFFTWPlan{T,ANY,true,N}(X, X, region, kinds, flags, timelimit)
+    r2rFFTWPlan{T,Any,true,N}(X, X, region, kinds, flags, timelimit)
 end
 
 # mapping from r2r kind to the corresponding inverse transform
@@ -788,7 +788,7 @@ function plan_inv(p::r2rFFTWPlan{T,K,inplace,N}) where {T<:fftwNumber,K,inplace,
     X = Array{T}(p.sz)
     iK = fix_kinds(p.region, [inv_kind[k] for k in K])
     Y = inplace ? X : fakesimilar(p.flags, X, T)
-    ScaledPlan(r2rFFTWPlan{T,ANY,inplace,N}(X, Y, p.region, iK,
+    ScaledPlan(r2rFFTWPlan{T,Any,inplace,N}(X, Y, p.region, iK,
                                             p.flags, NO_TIMELIMIT),
                normalization(real(T),
                              map(logical_size, [p.sz...][[p.region...]], iK),
