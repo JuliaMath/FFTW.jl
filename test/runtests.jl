@@ -70,8 +70,8 @@ for A in (Array,SubArray)
     for f in (:fft,:ifft,:plan_fft,:plan_ifft)
         f_ = Symbol(f, "_")
         @eval begin
-            $f_{T,N}(x::$A{T,N}) = invoke($f, Tuple{AbstractArray{T,N}}, x)
-            $f_{T,N,R}(x::$A{T,N},r::R) = invoke($f,Tuple{AbstractArray{T,N},R},x,r)
+            $f_(x::$A{T,N}) where {T,N} = invoke($f, Tuple{AbstractArray{T,N}}, x)
+            $f_(x::$A{T,N},r::R) where {T,N,R} = invoke($f,Tuple{AbstractArray{T,N},R},x,r)
         end
     end
 end
