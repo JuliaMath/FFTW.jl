@@ -3,6 +3,8 @@ __precompile__()
 module FFTW
 
 using Compat
+using Reexport
+@reexport using AbstractFFTs
 
 import AbstractFFTs: Plan, ScaledPlan,
                      fft, ifft, bfft, fft!, ifft!, bfft!,
