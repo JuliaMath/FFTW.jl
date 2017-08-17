@@ -258,8 +258,8 @@ end
 #   the generator bottleneck," Proc. 27th ACM Symposium on the Theory
 #   of Computing, pp. 407-416 (1995).
 # Check linearity, impulse-response, and time-shift properties.
-function fft_test{T<:Complex}(p::Plan{T}, ntrials=4,
-                              tol=1e5 * eps(real(T)))
+function fft_test(p::Plan{T}, ntrials=4,
+                  tol=1e5 * eps(real(T))) where T<:Complex
     ndims(p) == 1 || throw(ArgumentError("not a 1d FFT"))
     n = length(p)
     twopi_i = (-2 * convert(real(T), π)/n * (0:n-1)) * im
