@@ -5,16 +5,12 @@ dist: trusty
 matrix:
   include:
     - os: linux
-      julia: 0.6
-    - os: linux
       julia: nightly
       addons:
         apt:
           packages:
             - libfftw3-double3
             - libfftw3-single3
-    - os: osx
-      julia: 0.6
     - os: osx
       julia: nightly
 notifications:

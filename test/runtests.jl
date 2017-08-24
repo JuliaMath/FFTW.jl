@@ -1,13 +1,8 @@
 # This file was formerly a part of Julia. License is MIT: https://julialang.org/license
 using FFTW
+using FFTW: fftw_vendor
 using AbstractFFTs: Plan, plan_inv
 using Base.Test
-
-if VERSION >= v"0.7.0-DEV.602"
-    using FFTW: fftw_vendor
-else
-    using Base: fftw_vendor
-end
 
 # Base Julia issue #19892
 # (test this first to make sure it happens before set_num_threads)
@@ -333,10 +328,8 @@ for x in (randn(10),randn(10,12))
     @inferred rfft(x)
 
     # See Julia issue #23063
-    if VERSION >= v"0.7.0-DEV.602" && ndims(x) == 2
+    if ndims(x) == 2
         @test_broken @inferred brfft(x,18)
-    else
-        @inferred brfft(x,18)
     end
 
     @inferred brfft(y,10)
@@ -351,7 +344,7 @@ for x in (randn(10),randn(10,12))
     for f in (plan_bfft, plan_fft, plan_ifft,
               plan_rfft, fft, bfft, fft_, ifft)
         # More of #23063 (why does plan_rfft work and the others don't)?
-        if VERSION >= v"0.7.0-DEV.602" && ndims(x) == 2 && f != plan_rfft
+        if ndims(x) == 2 && f != plan_rfft
             @test_broken @inferred f(x)
             @test_broken @inferred plan_inv(f(x))
             continue

@@ -1,6 +1,3 @@
-# Don't build and install FFTW if we're on a version of Julia that ships with it
-# Using include_string gets around the UndefVarErrors that happen when parsing macros
-VERSION >= v"0.7.0-DEV.602" && include_string("""
 using BinDeps
 using BinDeps: builddir
 using Compat.Sys: iswindows, isapple
@@ -92,4 +89,3 @@ if iswindows()
 else
     BinDeps.@install Dict([:libfftw3_threads => :libfftw, :libfftw3f_threads => :libfftwf])
 end
-""")
