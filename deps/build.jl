@@ -2,8 +2,10 @@ using BinDeps
 using BinDeps: builddir, usrdir
 
 # Binaries is not a recognized provider on Linux >:/
-if Sys.islinux()
-    prepend!(BinDeps.defaults, [BinDeps.Binaries])
+modified_defaults = false
+if !in(BinDeps.Binaries, BinDeps.defaults)
+    unshift!(BinDeps.defaults, BinDeps.Binaries)
+    modified_defaults = true
 end
 
 BinDeps.@setup
@@ -55,7 +57,8 @@ const machine = Sys.isapple() ? "x86_64-apple-darwin" : Sys.MACHINE
 if haskey(downloads, machine)
     url, sha = downloads[machine]
     isdir(usrdir(libfftw)) || mkpath(usrdir(libfftw))
-    provides(Binaries, URI(url), [libfftw, libfftwf], SHA=sha, os=BinDeps.OSNAME)
+    provides(Binaries, URI(url), [libfftw, libfftwf], SHA=sha, os=BinDeps.OSNAME,
+             unpacked_dir="fftw-$FFTW_VER")
     scratch = false
 elseif Sys.KERNEL === :FreeBSD
     provides(BSDPkg, "fftw3", [libfftw, libfftwf], os=:FreeBSD)
@@ -113,6 +116,6 @@ else
     BinDeps.@install Dict([:libfftw3_threads => :libfftw, :libfftw3f_threads => :libfftwf])
 end
 
-if Sys.islinux()
-    deleteat!(BinDeps.defaults, 1)
+if modified_defaults
+    shift!(BinDeps.defaults)
 end
