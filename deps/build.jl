@@ -1,5 +1,5 @@
 using BinDeps
-using BinDeps: builddir, usrdir
+using BinDeps: builddir, depsdir
 
 # Binaries is not a recognized provider on Linux >:/
 modified_defaults = false
@@ -56,7 +56,10 @@ const machine = Sys.isapple() ? "x86_64-apple-darwin" : Sys.MACHINE
 
 if haskey(downloads, machine)
     url, sha = downloads[machine]
-    isdir(usrdir(libfftw)) || mkpath(usrdir(libfftw))
+    let d = joinpath(depsdir(libfftw), "fftw-$FFTW_VER")
+        isdir(d) && rm(d, force=true, recursive=true)
+        mkpath(d)
+    end
     provides(Binaries, URI(url), [libfftw, libfftwf], SHA=sha, os=BinDeps.OSNAME,
              unpacked_dir="fftw-$FFTW_VER")
     scratch = false
