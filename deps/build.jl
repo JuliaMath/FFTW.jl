@@ -41,27 +41,27 @@ const URL = "https://github.com/ararslan/fftw-builder/releases/download/v$FFTW_V
 # Mapping of Sys.MACHINE to (url, sha) for precompiled binaries from fftw-builder
 const downloads = Dict(
     "x86_64-pc-linux-gnu" => ("$URL-linux-x86_64.tar.gz",
-                              "b0576a403691a54bb3c234cccb8f0b97bb8f51ca1835c43c69e9c90358eb2647"),
+                              "0b911d9dca94b3d5e3b4fb9708a11e563979f1fd0db99e30696d818397f56de7"),
     "i686-pc-linux-gnu"   => ("$URL-linux-i686.tar.gz",
-                              "d7ce5f18719eb93691ba5c3f7c04b97dde54e4569581a063be096ea52f8126e5"),
+                              "264855d8662e012403877bc98e0712ce7f78dcfa67f43bc591ab757df7677ca4"),
     "x86_64-apple-darwin" => ("$URL-osx-x86_64.tar.gz",
-                              "6f354ed992e9c8f33b565d6bc32ea0ff08c8caf8e4a00402c0c1ab56106c706e"),
+                              "4d00e3ac6fdee6b1af4f929310da52afa1d166673dfbd3740ebf77fc1109f750"),
     "x86_64-w64-mingw32"  => ("$URL-win-x86_64.zip",
-                              "915a0290d495d8d1c040bec8743ccfe35246fe85bdba79ac11b66f2f6a413ab3"),
+                              "d56a7b2f6ad09e4886d65cde0ddbfcb51169239ac1ecc66def9f3e4a11e7bdf2"),
     "i686-w64-mingw32"    => ("$URL-win-i686.zip",
-                              "84ecb82afb9f210a711391aad11b76af7b8f284d7e56f5d5d409e1c47cc547c2"),
+                              "caaf4c3d487de95092f56e10326980548f5998b5244b765ce1dbe9fc4b991584"),
 )
 
 const machine = Sys.isapple() ? "x86_64-apple-darwin" : Sys.MACHINE
 
 if haskey(downloads, machine)
     url, sha = downloads[machine]
-    let d = joinpath(depsdir(libfftw), "fftw-$FFTW_VER")
-        isdir(d) && rm(d, force=true, recursive=true)
-        mkpath(d)
-    end
+    #let d = joinpath(depsdir(libfftw), "fftw-$FFTW_VER")
+    #    isdir(d) && rm(d, force=true, recursive=true)
+    #    mkpath(d)
+    #end
     provides(Binaries, URI(url), [libfftw, libfftwf], SHA=sha, os=BinDeps.OSNAME,
-             unpacked_dir="fftw-$FFTW_VER")
+             unpacked_dir=joinpath("usr", "lib"))
     scratch = false
 elseif Sys.KERNEL === :FreeBSD
     provides(BSDPkg, "fftw3", [libfftw, libfftwf], os=:FreeBSD)
