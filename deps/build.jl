@@ -41,15 +41,15 @@ const URL = "https://github.com/ararslan/fftw-builder/releases/download/v$FFTW_V
 # Mapping of Sys.MACHINE to (url, sha) for precompiled binaries from fftw-builder
 const downloads = Dict(
     "x86_64-pc-linux-gnu" => ("$URL-linux-x86_64.tar.gz",
-                              "f8382542f93b391590faee540d71ed8022d5e04037ae664e8f8a6a445b2ea876"),
+                              "43a049496d47dd1919283a981d21078942d04b067edd75b61cc6aef538098b53"),
     "i686-pc-linux-gnu"   => ("$URL-linux-i686.tar.gz",
-                              "b3a7e6726470de92407259ad198d9d9e256df77a3e0276de5d9a81965f5c5176"),
+                              "0b6ec1440ea76f72ed6e5d105a4d634e195b484e847c521ac0812092069f0c74"),
     "x86_64-apple-darwin" => ("$URL-osx-x86_64.tar.gz",
-                              "97fa4cca555d4587c1d2a02d749c92c513cc59eb209a19d3882009006d911c6b"),
+                              "193f20bba844fd2524f70e941aa5203b153bdcd321df2f20fc3a9d15b4aae50a"),
     "x86_64-w64-mingw32"  => ("$URL-win-x86_64.zip",
-                              "40199c4de73e23c0009acb625b14999130d489621d357c9d88003559089d69eb"),
+                              "4e9bd1022c5980869b06bb9d10767fd2578dfe47f9323e6f572d0918da8c8a07"),
     "i686-w64-mingw32"    => ("$URL-win-i686.zip",
-                              "47eeac9c8a8a869ac0d9114e4a57dc6463aa4dd4e7dd12eaf73aea9993c04b8f"),
+                              "60a65fd689495629a1558858f3a52011f9ce28df8aa756f5b315b17dd8dd8843"),
 )
 
 const machine = Sys.isapple() ? "x86_64-apple-darwin" : Sys.MACHINE
