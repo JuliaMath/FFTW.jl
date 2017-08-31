@@ -1,12 +1,18 @@
 using BinDeps
-using BinDeps: builddir
-using Compat.Sys: iswindows, isapple
+using BinDeps: builddir, depsdir, libdir
+
+# Binaries is not a recognized provider on Linux >:/
+modified_defaults = false
+if !in(BinDeps.Binaries, BinDeps.defaults)
+    unshift!(BinDeps.defaults, BinDeps.Binaries)
+    modified_defaults = true
+end
 
 BinDeps.@setup
 
-const FFTW_VER = v"3.3.6-pl1"
+const FFTW_VER = v"3.3.6-pl2"
 
-if iswindows()
+if Sys.iswindows()
     const libfftw_name = "libfftw3"
     const libfftwf_name = "libfftw3f"
 else
@@ -30,19 +36,35 @@ end
 libfftw = library_dependency(libfftw_name, aliases=makealiases(libfftw_name))
 libfftwf = library_dependency(libfftwf_name, aliases=makealiases(libfftwf_name))
 
-provides(AptGet, "libfftw3-double3", [libfftw], os=:Linux)
-provides(AptGet, "libfftw3-single3", [libfftwf], os=:Linux)
-provides(Pacman, "fftw", [libfftw, libfftwf], os=:Linux)
-provides(Zypper, "libfftw3_threads3", [libfftw, libfftwf], os=:Linux)
-provides(Yum, "fftw-libs", [libfftw, libfftwf], os=:Linux)
-provides(BSDPkg, "fftw3", [libfftw, libfftwf], os=:FreeBSD)
+const URL = "https://github.com/ararslan/fftw-builder/releases/download/v$FFTW_VER/libfftw-$FFTW_VER"
 
-if iswindows()
-    using WinRPM
-    provides(WinRPM.RPM, "libfftw3-3", [libfftw, libfftwf], os=:Windows)
-elseif isapple()
-    using Homebrew
-    provides(Homebrew.HB, "fftw", [libfftw, libfftwf], os=:Darwin)
+# Mapping of Sys.MACHINE to (url, sha) for precompiled binaries from fftw-builder
+const downloads = Dict(
+    "x86_64-pc-linux-gnu" => ("$URL-linux-x86_64.tar.gz",
+                              "43a049496d47dd1919283a981d21078942d04b067edd75b61cc6aef538098b53"),
+    "i686-pc-linux-gnu"   => ("$URL-linux-i686.tar.gz",
+                              "0b6ec1440ea76f72ed6e5d105a4d634e195b484e847c521ac0812092069f0c74"),
+    "x86_64-apple-darwin" => ("$URL-osx-x86_64.tar.gz",
+                              "193f20bba844fd2524f70e941aa5203b153bdcd321df2f20fc3a9d15b4aae50a"),
+    "x86_64-w64-mingw32"  => ("$URL-win-x86_64.zip",
+                              "4e9bd1022c5980869b06bb9d10767fd2578dfe47f9323e6f572d0918da8c8a07"),
+    "i686-w64-mingw32"    => ("$URL-win-i686.zip",
+                              "60a65fd689495629a1558858f3a52011f9ce28df8aa756f5b315b17dd8dd8843"),
+)
+
+const machine = Sys.isapple() ? "x86_64-apple-darwin" : Sys.MACHINE
+
+if haskey(downloads, machine)
+    url, sha = downloads[machine]
+    provides(Binaries, URI(url), [libfftw, libfftwf], SHA=sha, os=BinDeps.OSNAME,
+             unpacked_dir=joinpath("usr", "lib"), installed_libpath=libdir(libfftw))
+    scratch = false
+elseif Sys.KERNEL === :FreeBSD
+    provides(BSDPkg, "fftw3", [libfftw, libfftwf], os=:FreeBSD)
+    scratch = false
+else
+    info("No precompiled binaries found for your system. Building from scratch...")
+    scratch = true
 end
 
 general_config = ["--prefix=" * abspath(builddir(libfftw)),
@@ -58,34 +80,41 @@ elseif Sys.ARCH === :x86_64
     append!(fftw_config, ["--enable-sse2", "--enable-fma"])
 end
 
-if iswindows()
+if Sys.iswindows()
     append!(fftw_config, ["--with-our-malloc", "--with-combined-threads"])
     Sys.ARCH === :x86_64 || push!(fftw_config, "--with-incoming-stack-boundary=2")
 end
 
-provides(Sources, URI("http://www.fftw.org/fftw-\$FFTW_VER.tar.gz"), [libfftw, libfftwf])
+# Make it harder to build from scratch
+if scratch
+    provides(Sources, URI("http://www.fftw.org/fftw-$FFTW_VER.tar.gz"), [libfftw, libfftwf])
 
-provides(BuildProcess, (@build_steps begin
-    GetSources(libfftw)
-    CreateDirectory(builddir(libfftw))
-    @build_steps begin
-        ChangeDirectory(builddir(libfftw))
-        FileRule(joinpath(libdir(libfftw), libfftw_name * "." * Libdl.dlext), @build_steps begin
-            CreateDirectory(libdir(libfftw))
-            `\$(joinpath(srcdir(libfftw), "fftw-\$FFTW_VER", "configure")) \$general_config \$fftw_config`
-            `\$MAKE_CMD`
-            `\$MAKE_CMD install`
-        end)
-        FileRule(joinpath(libdir(libfftw), libfftwf_name * "." * Libdl.dlext), @build_steps begin
-            `\$(joinpath(srcdir(libfftw), "fftw-\$FFTW_VER", "configure")) \$general_config \$fftw_config \$fftw_enable_single`
-            `\$MAKE_CMD`
-            `\$MAKE_CMD install`
-        end)
-    end
-end), [libfftw, libfftwf])
+    provides(BuildProcess, (@build_steps begin
+        GetSources(libfftw)
+        CreateDirectory(builddir(libfftw))
+        @build_steps begin
+            ChangeDirectory(builddir(libfftw))
+            FileRule(joinpath(libdir(libfftw), libfftw_name * "." * Libdl.dlext), @build_steps begin
+                CreateDirectory(libdir(libfftw))
+                `$(joinpath(srcdir(libfftw), "fftw-$FFTW_VER", "configure")) $general_config $fftw_config`
+                `$MAKE_CMD`
+                `$MAKE_CMD install`
+            end)
+            FileRule(joinpath(libdir(libfftw), libfftwf_name * "." * Libdl.dlext), @build_steps begin
+                `$(joinpath(srcdir(libfftw), "fftw-$FFTW_VER", "configure")) $general_config $fftw_config $fftw_enable_single`
+                `$MAKE_CMD`
+                `$MAKE_CMD install`
+            end)
+        end
+    end), [libfftw, libfftwf])
+end
 
-if iswindows()
+if Sys.iswindows()
     BinDeps.@install Dict([:libfftw3 => :libfftw, :libfftw3f => :libfftwf])
 else
     BinDeps.@install Dict([:libfftw3_threads => :libfftw, :libfftw3f_threads => :libfftwf])
+end
+
+if modified_defaults
+    shift!(BinDeps.defaults)
 end

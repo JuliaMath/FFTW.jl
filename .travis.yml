@@ -1,18 +1,10 @@
 # Documentation: http://docs.travis-ci.com/user/languages/julia/
 language: julia
-sudo: required
-dist: trusty
-matrix:
-  include:
-    - os: linux
-      julia: nightly
-      addons:
-        apt:
-          packages:
-            - libfftw3-double3
-            - libfftw3-single3
-    - os: osx
-      julia: nightly
+os:
+  - linux
+  - osx
+julia:
+  - nightly
 notifications:
   email: false
 # uncomment the following lines to override the default test script
