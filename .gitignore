@@ -8,3 +8,4 @@ deps/src
 deps/builds
 docs/build
 docs/site
+.build_settings
