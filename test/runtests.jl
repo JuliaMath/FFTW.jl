@@ -2,7 +2,12 @@
 using FFTW
 using FFTW: fftw_vendor
 using AbstractFFTs: Plan, plan_inv
-using Base.Test
+
+if isdefined(Base, :Test) && !Base.isdeprecated(Base, :Test)
+    using Base.Test
+else
+    using Test
+end
 
 # Base Julia issue #19892
 # (test this first to make sure it happens before set_num_threads)
