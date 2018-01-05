@@ -485,3 +485,5 @@ if fftw_vendor() != :mkl
         @test psXdct![i] ≈ true_Xdct[i]
     end
 end # fftw_vendor() != :mkl
+
+include("test_rfft!.jl")

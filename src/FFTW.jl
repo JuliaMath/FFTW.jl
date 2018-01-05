@@ -55,5 +55,6 @@ end
 
 include("fft.jl")
 include("dct.jl")
+include("rfft!.jl")
 
 end # module
