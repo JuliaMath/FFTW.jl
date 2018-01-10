@@ -1,3 +1,7 @@
+if VERSION >= v"0.7.0-DEV.3382"
+    using Libdl
+end
+
 # If BLAS was compiled with MKL and the user wants MKL-based FFTs, we'll oblige.
 # In that case, we have to do this little dance to get around having to use BinDeps
 # for a library that's already linked to Julia.
@@ -18,6 +22,9 @@ if provider == "MKL" && Base.BLAS.vendor() === :mkl
     open(depsfile, "w") do f
         println(f, """
             # This is an auto-generated file, do not edit
+            if VERSION >= v"0.7.0-DEV.3382"
+                using Libdl
+            end
             if Libdl.dlopen_e("$mklpath") == C_NULL
                 error("Unable to load MKL from '$mklpath'.\\n",
                       "Please rerun Pkg.build(\\"FFTW\\") and restart Julia.")
