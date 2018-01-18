@@ -444,11 +444,11 @@ function dims_howmany(X::StridedArray, Y::StridedArray,
     end
     ist = [strides(X)...]
     ost = [strides(Y)...]
-    dims = Matrix(adjoint([sz[reg] ist[reg] ost[reg]]))
+    dims = Matrix(transpose([sz[reg] ist[reg] ost[reg]]))
     oreg = [1:ndims(X);]
     oreg[reg] = 0
     oreg = filter(d -> d > 0, oreg)
-    howmany = Matrix(adjoint([sz[oreg] ist[oreg] ost[oreg]]))
+    howmany = Matrix(transpose([sz[oreg] ist[oreg] ost[oreg]]))
     return (dims, howmany)
 end
 
