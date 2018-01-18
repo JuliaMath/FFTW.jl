@@ -1,10 +1,15 @@
+using Compat
 using BinDeps
 using BinDeps: builddir, depsdir, libdir
+
+if VERSION >= v"0.7.0-DEV.3382"
+    using Libdl
+end
 
 # Binaries is not a recognized provider on Linux >:/
 modified_defaults = false
 if !in(BinDeps.Binaries, BinDeps.defaults)
-    unshift!(BinDeps.defaults, BinDeps.Binaries)
+    pushfirst!(BinDeps.defaults, BinDeps.Binaries)
     modified_defaults = true
 end
 
@@ -23,7 +28,7 @@ end
 # Why can't everyone just agree on what to call this library...
 function makealiases(lib)
     major = string(FFTW_VER.major)
-    nover = replace(lib, major, "")
+    nover = replace(lib, major=>"")
     return String[
         nover,
         join([lib, Libdl.dlext, major], "."),
@@ -116,5 +121,5 @@ else
 end
 
 if modified_defaults
-    shift!(BinDeps.defaults)
+    popfirst!(BinDeps.defaults)
 end
