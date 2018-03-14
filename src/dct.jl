@@ -134,8 +134,7 @@ const sqrthalf = sqrt(0.5)
 const sqrt2 = sqrt(2.0)
 const onerange = 1:1
 
-function A_mul_B!(y::StridedArray{T}, p::DCTPlan{T,REDFT10},
-                  x::StridedArray{T}) where T
+function mul!(y::StridedArray{T}, p::DCTPlan{T,REDFT10}, x::StridedArray{T}) where T
     assert_applicable(p.plan, x, y)
     unsafe_execute!(p.plan, x, y)
     scale!(y, p.nrm)
@@ -150,8 +149,7 @@ function A_mul_B!(y::StridedArray{T}, p::DCTPlan{T,REDFT10},
 end
 
 # note: idct changes input data
-function A_mul_B!(y::StridedArray{T}, p::DCTPlan{T,REDFT01},
-                  x::StridedArray{T}) where T
+function mul!(y::StridedArray{T}, p::DCTPlan{T,REDFT01}, x::StridedArray{T}) where T
     assert_applicable(p.plan, x, y)
     scale!(x, p.nrm)
     r = p.r
@@ -166,9 +164,9 @@ function A_mul_B!(y::StridedArray{T}, p::DCTPlan{T,REDFT01},
 end
 
 *(p::DCTPlan{T,REDFT10,false}, x::StridedArray{T}) where {T} =
-    A_mul_B!(Array{T}(p.plan.osz), p, x)
+    mul!(Array{T}(undef, p.plan.osz), p, x)
 
 *(p::DCTPlan{T,REDFT01,false}, x::StridedArray{T}) where {T} =
-    A_mul_B!(Array{T}(p.plan.osz), p, copy(x)) # need copy to preserve input
+    mul!(Array{T}(undef, p.plan.osz), p, copy(x)) # need copy to preserve input
 
-*(p::DCTPlan{T,K,true}, x::StridedArray{T}) where {T,K} = A_mul_B!(x, p, x)
+*(p::DCTPlan{T,K,true}, x::StridedArray{T}) where {T,K} = mul!(x, p, x)

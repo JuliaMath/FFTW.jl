@@ -3,6 +3,7 @@ __precompile__()
 module FFTW
 
 using Compat
+using LinearAlgebra
 using Reexport
 @reexport using AbstractFFTs
 
@@ -14,11 +15,7 @@ import AbstractFFTs: Plan, ScaledPlan,
                      rfft_output_size, brfft_output_size,
                      plan_inv, normalization
 
-if VERSION < v"0.7.0-DEV.986"
-    import Base.FFTW: dct, idct, dct!, idct!, plan_dct, plan_idct, plan_dct!, plan_idct!
-else
-    export dct, idct, dct!, idct!, plan_dct, plan_idct, plan_dct!, plan_idct!
-end
+export dct, idct, dct!, idct!, plan_dct, plan_idct, plan_dct!, plan_idct!
 
 const depsfile = joinpath(dirname(@__DIR__), "deps", "deps.jl")
 if isfile(depsfile)
@@ -29,12 +26,12 @@ else
 end
 
 # MKL provides its own FFTW
-fftw_vendor() = Base.BLAS.vendor() === :mkl ? :mkl : :fftw
+fftw_vendor() = BLAS.vendor() === :mkl ? :mkl : :fftw
 
 if fftw_vendor() === :mkl
     const libfftw_name = "libmkl_rt"
     const libfftwf_name = "libmkl_rt"
-elseif Compat.Sys.iswindows()
+elseif Sys.iswindows()
     const libfftw_name = "libfftw3"
     const libfftwf_name = "libfftw3f"
 else
