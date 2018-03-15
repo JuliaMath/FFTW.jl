@@ -2,12 +2,9 @@
 using FFTW
 using FFTW: fftw_vendor
 using AbstractFFTs: Plan, plan_inv
-
-if isdefined(Base, :Test) && !Base.isdeprecated(Base, :Test)
-    using Base.Test
-else
-    using Test
-end
+using Test
+using LinearAlgebra
+using Compat
 
 # Base Julia issue #19892
 # (test this first to make sure it happens before set_num_threads)
@@ -105,9 +102,9 @@ for (f,fi,pf,pfi) in ((fft,ifft,plan_fft,plan_ifft),
 
     sfftn_m4 = f(sm4)
     psfftn_m4 = pf(sm4)*sm4
-    sfft!n_b = map(Complex128,b)
+    sfft!n_b = map(Complex{Float64},b)
     sfft!n_m4 = view(sfft!n_b,3:6,9:12); fft!(sfft!n_m4)
-    psfft!n_b = map(Complex128,b)
+    psfft!n_b = map(Complex{Float64},b)
     psfft!n_m4 = view(psfft!n_b,3:6,9:12); plan_fft!(psfft!n_m4)*psfft!n_m4
 
     for i = 1:length(m4)
@@ -163,14 +160,14 @@ for (f,fi,pf,pfi) in ((fft,ifft,plan_fft,plan_ifft),
         pfft!d3_m3d = complex(m3d); plan_fft!(pfft!d3_m3d,3)*pfft!d3_m3d
         pifft!d3_fftd3_m3d = copy(fft!d3_m3d); plan_ifft!(pifft!d3_fftd3_m3d,3)*pifft!d3_fftd3_m3d
 
-        @test isa(fftd3_m3d, Array{Complex64,3})
-        @test isa(ifftd3_fftd3_m3d, Array{Complex64,3})
-        @test isa(fft!d3_m3d, Array{Complex64,3})
-        @test isa(ifft!d3_fftd3_m3d, Array{Complex64,3})
-        @test isa(pfftd3_m3d, Array{Complex64,3})
-        @test isa(pifftd3_fftd3_m3d, Array{Complex64,3})
-        @test isa(pfft!d3_m3d, Array{Complex64,3})
-        @test isa(pifft!d3_fftd3_m3d, Array{Complex64,3})
+        @test isa(fftd3_m3d, Array{Complex{Float32},3})
+        @test isa(ifftd3_fftd3_m3d, Array{Complex{Float32},3})
+        @test isa(fft!d3_m3d, Array{Complex{Float32},3})
+        @test isa(ifft!d3_fftd3_m3d, Array{Complex{Float32},3})
+        @test isa(pfftd3_m3d, Array{Complex{Float32},3})
+        @test isa(pifftd3_fftd3_m3d, Array{Complex{Float32},3})
+        @test isa(pfft!d3_m3d, Array{Complex{Float32},3})
+        @test isa(pifft!d3_fftd3_m3d, Array{Complex{Float32},3})
 
         for i = 1:length(m3d)
             @test fftd3_m3d[i] ≈ true_fftd3_m3d[i]
@@ -291,7 +288,7 @@ function fft_test(p::Plan{T}, ntrials=4,
     end
 end
 
-for T in (Complex64, Complex128)
+for T in (Complex{Float32}, Complex{Float64})
     for n in [1:100; 121; 143; 1000; 1024; 1031; 2000; 2048]
         x = zeros(T, n)
         fft_test(plan_fft(x))
@@ -300,7 +297,7 @@ for T in (Complex64, Complex128)
 end
 
 # test inversion, scaling, and pre-allocated variants
-for T in (Complex64, Complex128)
+for T in (Complex{Float32}, Complex{Float64})
     for x in (T[1:100;], copy(reshape(T[1:200;], 20,10)))
         y = similar(x)
         for planner in (plan_fft, plan_fft_, plan_ifft, plan_ifft_)
@@ -311,9 +308,9 @@ for T in (Complex64, Complex128)
             @test eltype(p) == eltype(pi) == eltype(p3) == eltype(p3i) == T
             @test vecnorm(x - p3i * (p * 3x)) < eps(real(T)) * 10000
             @test vecnorm(3x - pi * (p3 * x)) < eps(real(T)) * 10000
-            A_mul_B!(y, p, x)
+            mul!(y, p, x)
             @test y == p * x
-            A_ldiv_B!(y, p, x)
+            ldiv!(y, p, x)
             @test y == p \ x
         end
     end
