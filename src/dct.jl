@@ -137,7 +137,7 @@ const onerange = 1:1
 function mul!(y::StridedArray{T}, p::DCTPlan{T,REDFT10}, x::StridedArray{T}) where T
     assert_applicable(p.plan, x, y)
     unsafe_execute!(p.plan, x, y)
-    scale!(y, p.nrm)
+    rmul!(y, p.nrm)
     r = p.r
     for d in p.region
         oldr = r[d]
@@ -151,7 +151,7 @@ end
 # note: idct changes input data
 function mul!(y::StridedArray{T}, p::DCTPlan{T,REDFT01}, x::StridedArray{T}) where T
     assert_applicable(p.plan, x, y)
-    scale!(x, p.nrm)
+    rmul!(x, p.nrm)
     r = p.r
     for d in p.region
         oldr = r[d]
