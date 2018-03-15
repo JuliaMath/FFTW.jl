@@ -462,7 +462,7 @@ function fix_kinds(region, kinds)
             if isempty(kinds)
                 throw(ArgumentError("must supply a transform kind"))
             end
-            k = Vector{Int32}(length(region))
+            k = Vector{Int32}(undef, length(region))
             k[1:length(kinds)] = [kinds...]
             k[length(kinds)+1:end] = kinds[end]
             kinds = k
@@ -594,11 +594,11 @@ end
 # (FIXME: is there a way to use the Julia promotion rules more cleverly here?)
 fftwcomplex(X::StridedArray{<:fftwComplex}) = X
 fftwcomplex(X::AbstractArray{T}) where {T<:fftwReal} =
-    copy!(Array{typeof(complex(zero(T)))}(undef, size(X)), X)
-fftwcomplex(X::AbstractArray{<:Real}) = copy!(Array{Complex{Float64}}(undef, size(X)),X)
-fftwcomplex(X::AbstractArray{<:Complex}) = copy!(Array{Complex{Float64}}(undef, size(X)), X)
+    copyto!(Array{typeof(complex(zero(T)))}(undef, size(X)), X)
+fftwcomplex(X::AbstractArray{<:Real}) = copyto!(Array{Complex{Float64}}(undef, size(X)),X)
+fftwcomplex(X::AbstractArray{<:Complex}) = copyto!(Array{Complex{Float64}}(undef, size(X)), X)
 fftwfloat(X::StridedArray{<:fftwReal}) = X
-fftwfloat(X::AbstractArray{<:Real}) = copy!(Array{Float64}(undef, size(X)), X)
+fftwfloat(X::AbstractArray{<:Real}) = copyto!(Array{Float64}(undef, size(X)), X)
 fftwfloat(X::AbstractArray{<:Complex}) = fftwcomplex(X)
 
 for (f,direction) in ((:fft,FORWARD), (:bfft,BACKWARD))
