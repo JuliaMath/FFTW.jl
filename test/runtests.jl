@@ -230,6 +230,36 @@ for i = 1:length(m4)
     @test pirfftn_rfftn_m4[i] ≈ m4[i]
 end
 
+# rfft/rfftn with preallocated array
+
+prfft_m4_prealloc = zero(prfft_m4)
+prfftd2_m4_prealloc = zero(prfftd2_m4)
+prfftn_m4_prealloc = zero(prfftn_m4)
+
+pirfft_rfft_m4_prealloc = zero(pirfft_rfft_m4)
+pirfft_rfftd2_m4_prealloc = zero(pirfft_rfftd2_m4)
+pirfftn_rfftn_m4_prealloc = zero(pirfftn_rfftn_m4)
+
+mul!(prfft_m4_prealloc,plan_rfft(m4,1),m4)
+mul!(prfftd2_m4_prealloc,plan_rfft(m4,2),m4)
+mul!(prfftn_m4_prealloc,plan_rfft(m4),m4)
+
+for i = 1:3, j = 1:4
+    @test prfft_m4_prealloc[i,j] ≈ true_fft_m4[i,j]
+    @test prfftd2_m4_prealloc[j,i] ≈ true_fftd2_m4[j,i]
+    @test prfftn_m4_prealloc[i,j] ≈ true_fftn_m4[i,j]
+end
+
+mul!(pirfft_rfft_m4_prealloc,plan_irfft(rfft_m4,size(m4,1),1),prfft_m4_prealloc)
+mul!(pirfft_rfftd2_m4_prealloc,plan_irfft(rfftd2_m4,size(m4,2),2),prfftd2_m4_prealloc)
+mul!(pirfftn_rfftn_m4_prealloc,plan_irfft(rfftn_m4,size(m4,1)),prfftn_m4_prealloc)
+
+for i = 1:length(m4)
+    @test pirfft_rfft_m4_prealloc[i] ≈ m4[i]
+    @test pirfft_rfftd2_m4_prealloc[i] ≈ m4[i]
+    @test pirfftn_rfftn_m4_prealloc[i] ≈ m4[i]
+end
+
 if fftw_vendor() != :mkl
     rfftn_m3d = rfft(m3d)
     rfftd3_m3d = rfft(m3d,3)
