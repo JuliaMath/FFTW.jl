@@ -698,7 +698,7 @@ for (Tr,Tc) in ((:Float32,:(Complex{Float32})),(:Float64,:(Complex{Float64})))
         end
 
         function plan_inv(p::rFFTWPlan{$Tc,$BACKWARD,false,N}) where N
-            X = Arra{$Tc}(p.sz)
+            X = Array{$Tc}(undef, p.sz)
             Y = p.flags&ESTIMATE != 0 ? FakeArray($Tr,p.osz) : Array{$Tr}(undef, p.osz)
             ScaledPlan(rFFTWPlan{$Tr,$FORWARD,false,N}(Y, X, p.region,
                                                        p.flags, NO_TIMELIMIT),
