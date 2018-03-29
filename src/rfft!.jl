@@ -1,33 +1,18 @@
 import Base: IndexStyle, getindex, setindex!, eltype, \, similar, copy, real, read!
 
-#For compatibility between Julia v0.6 and v0.7 - begin
-if VERSION >= v"0.7-"
-    using Base.@gc_preserve
-else
-    macro gc_preserve(s::Symbol,ex::Expr)
-        return esc(ex)
-    end
-end
-#For compatibility between Julia v0.6 and v0.7 - end
-
 export PaddedRFFTArray, plan_rfft!, rfft!, plan_irfft!, plan_brfft!, brfft!, irfft!
 
 
 
 # As the time this code was written the new `ReinterpretArray` introduced in
 # Julia v0.7 had major performace issues. Those issues were bypassed with the usage of the
-# unsafe_wrap for the complex view of the data. As the name sugest, this is
-# unsafe: whenever this complex view is called one must be careful to gc_preserve
-# the "parent" PaddedRFFTArray. Therefore this view should not be "exported" to the
-# user and the PaddedRFFTArray itself behaves like the complex view.
-# Since it is not possible to not export a particular field of a exported type,
-# a "hack" was used to name the unsafe field "#c", a fieldname that a non-advanced user
-# will likely not be able to call.
+# custom getindex and setindex! below. Hopefully, once the performance issues with ReinterpretArray
+# are solved we can just index the reinterpret array directly.
 
-const c = Symbol("#c") 
-@eval struct PaddedRFFTArray{T<:fftwReal,N,L} <: DenseArray{Complex{T},N}
+struct PaddedRFFTArray{T<:fftwReal,N,L} <: DenseArray{Complex{T},N}
+    data::Array{T,N}
     r::SubArray{T,N,Array{T,N},NTuple{N,UnitRange{Int}},L} # Real view skipping padding
-    ($c)::Array{Complex{T},N}
+    c::(@static VERSION >= v"0.7-" ? Base.ReinterpretArray{Complex{T},N,T,Array{T,N}} : Array{Complex{T},N})
 
     function PaddedRFFTArray{T,N}(rr::Array{T,N},nx::Int) where {T<:fftwReal,N}
         rrsize = size(rr)
@@ -38,24 +23,22 @@ const c = Symbol("#c")
             ArgumentError("Number of elements on the first dimension of array must be either 1 or 2 less than the number of elements on the first dimension of the allocated array"))
         fsize = fsize÷2
         csize = (fsize, rrsize[2:end]...)
-        if VERSION >= v"0.7-" 
-            @gc_preserve rr c = unsafe_wrap(Array{Complex{T},N}, 
-                                           reinterpret(Ptr{Complex{T}},pointer(rr)), 
-                                           csize)
-        else 
-            c = reinterpret(Complex{T}, rr, csize)
-        end
+        c = @static VERSION >= v"0.7-" ? 
+            reinterpret(Complex{T}, rr) :
+            reinterpret(Complex{T}, rr, csize)
         rsize = (nx,rrsize[2:end]...)
         r = view(rr,(1:l for l in rsize)...)
-        return  @gc_preserve rr new{T, N, N === 1 ? true : false}(r,c)
+        return  new{T, N, N === 1 ? true : false}(rr,r,c)
     end # function
 end # struct
 
 @inline real(S::PaddedRFFTArray) = S.r
 
-@inline unsafe_complex_view(S::PaddedRFFTArray) = getfield(S,c)
+@inline complex_view(S::PaddedRFFTArray) = S.c
 
-copy(S::PaddedRFFTArray) = PaddedRFFTArray(copy(parent(real(S))),size(real(S))[1])
+@inline data(S::PaddedRFFTArray) = S.data
+
+copy(S::PaddedRFFTArray) = PaddedRFFTArray(copy(data(S)),size(real(S),1))
 
 similar(f::PaddedRFFTArray,::Type{T},dims::Tuple{Vararg{Int,N}}) where {T, N} =
     PaddedRFFTArray{T}(dims) 
@@ -64,32 +47,75 @@ similar(f::PaddedRFFTArray{T,N,L},dims::NTuple{N2,Int}) where {T,N,L,N2} =
 similar(f::PaddedRFFTArray,::Type{T}) where {T} =
     PaddedRFFTArray{T}(size(real(f))) 
 similar(f::PaddedRFFTArray{T,N}) where {T,N} = 
-    PaddedRFFTArray{T,N}(similar(parent(real(f))), size(real(f))[1]) 
+    PaddedRFFTArray{T,N}(similar(data(f)), size(real(f),1)) 
 
 size(S::PaddedRFFTArray) =
-    @gc_preserve S size(unsafe_complex_view(S))
+    size(complex_view(S))
 
 IndexStyle(::Type{T}) where {T<:PaddedRFFTArray} = 
     IndexLinear()
 
-Base.@propagate_inbounds @inline getindex(S::PaddedRFFTArray, i::Int) =
-    @gc_preserve S getindex(unsafe_complex_view(S),i)
+@inline function getindex(A::PaddedRFFTArray{T,N}, i2::Integer) where {T,N}
+    d = data(A)
+    i = 2i2
+    @boundscheck checkbounds(d,i)
+    @inbounds begin 
+        return Complex{T}(d[i-1],d[i])
+    end
+end    
 
-Base.@propagate_inbounds @inline getindex(S::PaddedRFFTArray{T,N}, I::Vararg{Int, N}) where {T,N} =
-    @gc_preserve S getindex(unsafe_complex_view(S),I...)
+@inline @generated function getindex(A::PaddedRFFTArray{T,N}, I2::Vararg{Integer,N}) where {T,N}
+    ip = :(2*I2[1])
+    t = Expr(:tuple)
+    for i=2:N
+        push!(t.args,:(I2[$i]))
+    end
+    quote
+        d = data(A)
+        i = $ip
+        I = $t
+        @boundscheck checkbounds(d,i,I...)
+        @inbounds begin 
+            return Complex{T}(d[i-1,I...],d[i,I...])
+        end
+    end
+end
 
-Base.@propagate_inbounds @inline setindex!(S::PaddedRFFTArray,v,i::Int) = 
-    @gc_preserve S setindex!(unsafe_complex_view(S),v,i)
+@inline function setindex!(A::PaddedRFFTArray{T,N},x, i2::Integer) where {T,N}
+    d = data(A)
+    i = 2i2
+    @boundscheck checkbounds(d,i)
+    @inbounds begin 
+        d[i-1] = real(x)
+        d[i] = imag(x)
+    end
+    A
+end
 
-Base.@propagate_inbounds @inline setindex!(S::PaddedRFFTArray{T,N},v,I::Vararg{Int,N}) where {T,N} =
-    @gc_preserve S setindex!(unsafe_complex_view(S),v,I...)
-
+@inline @generated function setindex!(A::PaddedRFFTArray{T,N}, x, I2::Vararg{Integer,N}) where {T,N}
+    ip = :(2*I2[1])
+    t = Expr(:tuple)
+    for i=2:N
+        push!(t.args,:(I2[$i]))
+    end
+    quote
+        d = data(A)
+        i = $ip
+        I = $t
+        @boundscheck checkbounds(d,i,I...)
+        @inbounds begin 
+            d[i-1,I...] = real(x)
+            d[i,I...] = imag(x)
+        end
+        A
+    end
+end
 
 PaddedRFFTArray(rr::Array{T,N},nx::Int) where {T<:fftwReal,N} = PaddedRFFTArray{T,N}(rr,nx)
 
 function PaddedRFFTArray{T}(ndims::Vararg{Integer,N}) where {T,N}
     fsize = (ndims[1]÷2 + 1)*2
-    a = Array{T,N}((fsize, ndims[2:end]...))
+    a = zeros(T,(fsize, ndims[2:end]...))
     PaddedRFFTArray{T,N}(a, ndims[1])
 end
 
@@ -104,7 +130,7 @@ PaddedRFFTArray(ndims::NTuple{N,Integer}) where N =
 
 function PaddedRFFTArray{T}(a::AbstractArray{<:Real,N}) where {T<:fftwReal,N}
     t = PaddedRFFTArray{T}(size(a))
-    @inbounds copy!(t.r, a) 
+    @inbounds copyto!(t.r, a) 
     return t
 end
 
@@ -130,7 +156,7 @@ end
 # of the creation of a intermediary Array. If the data is already padded then the user
 # should just use PaddedRFFTArray{T}(read("file",unpaddeddim),nx)
 function read!(stream::IO, field::PaddedRFFTArray{T,N,L}) where {T,N,L}
-    rr = parent(field.r)
+    rr = data(field)
     dims = size(real(field))
     nx = dims[1]
     nb = sizeof(T)*nx
@@ -152,12 +178,10 @@ function plan_rfft!(X::PaddedRFFTArray{T,N}, region;
 
     (1 in region) || throw(ArgumentError("The first dimension must always be transformed"))
     if flags&ESTIMATE != 0
-        @gc_preserve X p = 
-            rFFTWPlan{T,FORWARD,true,N}(real(X), unsafe_complex_view(X), region, flags, timelimit)
+        p = rFFTWPlan{T,FORWARD,true,N}(real(X), complex_view(X), region, flags, timelimit)
     else
         x = similar(X)
-        @gc_preserve x p =
-            rFFTWPlan{T,FORWARD,true,N}(real(x), unsafe_complex_view(x), region, flags, timelimit)
+        p = rFFTWPlan{T,FORWARD,true,N}(real(x), complex_view(x), region, flags, timelimit)
     end
     return p
 end
@@ -165,7 +189,7 @@ end
 plan_rfft!(f::PaddedRFFTArray;kws...) = plan_rfft!(f, 1:ndims(f); kws...)
 
 *(p::rFFTWPlan{T,FORWARD,true,N},f::PaddedRFFTArray{T,N}) where {T<:fftwReal,N} = 
-    (@gc_preserve f A_mul_B!(unsafe_complex_view(f), p, real(f)); f)
+    (mul!(complex_view(f), p, real(f)); f)
 
 rfft!(f::PaddedRFFTArray, region=1:ndims(f)) = plan_rfft!(f, region) * f
 
@@ -184,16 +208,16 @@ function plan_brfft!(X::PaddedRFFTArray{T,N}, region;
     (1 in region) || throw(ArgumentError("The first dimension must always be transformed"))
     if flags&PRESERVE_INPUT != 0
         a = similar(X)
-        return @gc_preserve a rFFTWPlan{Complex{T},BACKWARD,true,N}(unsafe_complex_view(a), real(a), region, flags,timelimit)
+        return rFFTWPlan{Complex{T},BACKWARD,true,N}(complex_view(a), real(a), region, flags,timelimit)
     else
-        return @gc_preserve X rFFTWPlan{Complex{T},BACKWARD,true,N}(unsafe_complex_view(X), real(X), region, flags,timelimit)
+        return rFFTWPlan{Complex{T},BACKWARD,true,N}(complex_view(X), real(X), region, flags,timelimit)
     end
 end
 
 plan_brfft!(f::PaddedRFFTArray;kws...) = plan_brfft!(f,1:ndims(f);kws...)
 
 *(p::rFFTWPlan{Complex{T},BACKWARD,true,N},f::PaddedRFFTArray{T,N}) where {T<:fftwReal,N} = 
-    (@gc_preserve f A_mul_B!(real(f), p, unsafe_complex_view(f)); real(f))
+    (mul!(real(f), p, complex_view(f)); real(f))
 
 brfft!(f::PaddedRFFTArray, region=1:ndims(f)) = plan_brfft!(f, region) * f
 
@@ -205,7 +229,7 @@ plan_irfft!(f::PaddedRFFTArray;kws...) = plan_irfft!(f,1:ndims(f);kws...)
 
 *(p::ScaledPlan,f::PaddedRFFTArray) = begin
     p.p * f
-    scale!(parent(real(f)), p.scale)
+    rmul!(data(f), p.scale)
     real(f)
 end
 
