@@ -661,8 +661,8 @@ for (Tr,Tc) in ((:Float32,:(Complex{Float32})),(:Float64,:(Complex{Float64})))
                            flags::Integer=ESTIMATE,
                            timelimit::Real=NO_TIMELIMIT) where N
             osize = rfft_output_size(X, region)
-            Y = flags&ESTIMATE != 0 ? FakeArray($Tc,osize...) : Array{$Tc}(undef, osize...)
-            rFFTWPlan{$Tr,$FORWARD,false,N}(X, Y, region, flags, timelimit)
+            Y = flags&ESTIMATE != 0 ? FakeArray($Tc, osize...) : Array{$Tc}(undef, osize...)
+            rFFTWPlan{$Tr,$FORWARD,false,N}(X, Y, region, flags, timelimit)::rFFTWPlan{$Tr,$FORWARD,false,N}
         end
 
         function plan_brfft(X::StridedArray{$Tc,N}, d::Integer, region;
@@ -677,10 +677,10 @@ for (Tr,Tc) in ((:Float32,:(Complex{Float32})),(:Float64,:(Complex{Float64})))
             if length(region) <= 1
                 rFFTWPlan{$Tc,$BACKWARD,false,N}(X, Y, region,
                                                  flags | PRESERVE_INPUT,
-                                                 timelimit)
+                                                 timelimit)::rFFTWPlan{$Tc,$BACKWARD,false,N}
             else
                 rFFTWPlan{$Tc,$BACKWARD,false,N}(copy(X), Y, region, flags,
-                                                 timelimit)
+                                                 timelimit)::rFFTWPlan{$Tc,$BACKWARD,false,N}
             end
         end
 
