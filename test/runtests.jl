@@ -485,3 +485,30 @@ if fftw_vendor() != :mkl
         @test psXdct![i] ≈ true_Xdct[i]
     end
 end # fftw_vendor() != :mkl
+
+# test UNALIGNED flag
+let A = rand(Float32, 35), Ac = rand(Complex{Float32}, 35)
+    Y = Array{Complex{Float32}}(undef, 20)
+    Yc = Array{Complex{Float32}}(undef, 35)
+    planr = plan_rfft(Array{Float32}(undef, 32), flags=FFTW.UNALIGNED)
+    planc = plan_fft(Array{Complex{Float32}}(undef, 32), flags=FFTW.UNALIGNED)
+    for ioff in 0:3
+        ii = 1+ioff:32+ioff
+        @test planr * view(A, ii) ≈ planr * A[ii] ≈ rfft(view(A, ii)) ≈ rfft(A[ii])
+        @test planc * view(Ac, ii) ≈ planc * Ac[ii] ≈ fft(view(Ac, ii)) ≈ fft(Ac[ii])
+        for ooff in 0:3
+            io = 1+ooff:17+ooff
+            FFTW.mul!(view(Y, io), planr, view(A, ii))
+            @test Y[io] ≈ rfft(A[ii])
+            FFTW.mul!(view(Y, io), planr, A[ii])
+            @test Y[io] ≈ rfft(A[ii])
+            io = 1+ooff:32+ooff
+            FFTW.mul!(view(Yc, io), planc, view(Ac, ii))
+            @test Yc[io] ≈ fft(Ac[ii])
+            FFTW.mul!(view(Yc, io), planc, Ac[ii])
+            @test Yc[io] ≈ fft(Ac[ii])
+        end
+    end
+    @test_throws ArgumentError plan_rfft(Array{Float32}(undef, 32)) * view(A, 2:33)
+    @test_throws ArgumentError plan_fft(Array{Complex{Float32}}(undef, 32)) * view(Ac, 2:33)
+end
