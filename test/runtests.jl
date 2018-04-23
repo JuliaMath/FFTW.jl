@@ -488,7 +488,7 @@ end # fftw_vendor() != :mkl
 
 # test UNALIGNED flag
 let A = rand(Float32, 35), Ac = rand(Complex{Float32}, 35)
-    Y = Array{Complex{Float32}}(undef, 20)
+    local Y = Array{Complex{Float32}}(undef, 20)
     Yc = Array{Complex{Float32}}(undef, 35)
     planr = plan_rfft(Array{Float32}(undef, 32), flags=FFTW.UNALIGNED)
     planc = plan_fft(Array{Complex{Float32}}(undef, 32), flags=FFTW.UNALIGNED)
