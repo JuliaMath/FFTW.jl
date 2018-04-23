@@ -55,7 +55,7 @@ function plan_r2r end
 
 ## FFT: Implement fft by calling fftw.
 
-const version = convert(VersionNumber, split(unsafe_string(cglobal(
+const version = VersionNumber(split(unsafe_string(cglobal(
     (:fftw_version,libfftw), UInt8)), ['-', ' '])[2])
 
 ## Direction of FFT
