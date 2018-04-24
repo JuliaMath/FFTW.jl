@@ -15,8 +15,8 @@ let a = randn(10^5,1), p1 = plan_rfft(a, flags=FFTW.ESTIMATE)
     # make sure threads are actually being used for p2
     # (tests #21163).
     if FFTW.version >= v"3.3.4"
-        @test !contains(string(p1), "dft-thr")
-        @test contains(string(p2), "dft-thr")
+        @test !occursin("dft-thr", string(p1))
+        @test occursin("dft-thr", string(p2))
     end
 end
 
@@ -57,7 +57,7 @@ b[3:6,9:12] = m4
 sm4 = view(b,3:6,9:12)
 
 m3d = map(Float32,copy(reshape(1:5*3*2, 5, 3, 2)))
-true_fftd3_m3d = Array{Float32}(5, 3, 2)
+true_fftd3_m3d = Array{Float32}(undef, 5, 3, 2)
 true_fftd3_m3d[:,:,1] = 17:2:45
 true_fftd3_m3d[:,:,2] = -15
 
@@ -488,7 +488,7 @@ end # fftw_vendor() != :mkl
 
 # test UNALIGNED flag
 let A = rand(Float32, 35), Ac = rand(Complex{Float32}, 35)
-    Y = Array{Complex{Float32}}(undef, 20)
+    local Y = Array{Complex{Float32}}(undef, 20)
     Yc = Array{Complex{Float32}}(undef, 35)
     planr = plan_rfft(Array{Float32}(undef, 32), flags=FFTW.UNALIGNED)
     planc = plan_fft(Array{Complex{Float32}}(undef, 32), flags=FFTW.UNALIGNED)
