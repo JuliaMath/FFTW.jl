@@ -447,7 +447,7 @@ function dims_howmany(X::StridedArray, Y::StridedArray,
     ost = [strides(Y)...]
     dims = Matrix(transpose([sz[reg] ist[reg] ost[reg]]))
     oreg = [1:ndims(X);]
-    oreg[reg] = 0
+    oreg[reg] .= 0
     oreg = filter(d -> d > 0, oreg)
     howmany = Matrix(transpose([sz[oreg] ist[oreg] ost[oreg]]))
     return (dims, howmany)
@@ -464,7 +464,7 @@ function fix_kinds(region, kinds)
             end
             k = Vector{Int32}(undef, length(region))
             k[1:length(kinds)] = [kinds...]
-            k[length(kinds)+1:end] = kinds[end]
+            k[length(kinds)+1:end] .= kinds[end]
             kinds = k
         end
     else
