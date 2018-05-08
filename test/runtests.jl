@@ -59,7 +59,7 @@ sm4 = view(b,3:6,9:12)
 m3d = map(Float32,copy(reshape(1:5*3*2, 5, 3, 2)))
 true_fftd3_m3d = Array{Float32}(undef, 5, 3, 2)
 true_fftd3_m3d[:,:,1] = 17:2:45
-true_fftd3_m3d[:,:,2] = -15
+true_fftd3_m3d[:,:,2] .= -15
 
 # use invoke to force usage of CTPlan versions even if FFTW is present
 for A in (Array,SubArray)
