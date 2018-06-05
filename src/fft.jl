@@ -56,7 +56,7 @@ function plan_r2r end
 ## FFT: Implement fft by calling fftw.
 
 const version = VersionNumber(split(unsafe_string(cglobal(
-    (:fftw_version,libfftw), UInt8)), ['-', ' '])[2])
+    (:fftw_version,libfftw3), UInt8)), ['-', ' '])[2])
 
 ## Direction of FFT
 
@@ -141,39 +141,41 @@ alignment_of(A::FakeArray) = Int32(0)
 function export_wisdom(fname::AbstractString)
     f = ccall(:fopen, Ptr{Cvoid}, (Cstring,Cstring), fname, :w)
     systemerror("could not open wisdom file $fname for writing", f == C_NULL)
-    ccall((:fftw_export_wisdom_to_file,libfftw), Cvoid, (Ptr{Cvoid},), f)
+    ccall((:fftw_export_wisdom_to_file,libfftw3), Cvoid, (Ptr{Cvoid},), f)
     ccall(:fputs, Int32, (Ptr{UInt8},Ptr{Cvoid}), " "^256, f) # no NUL, hence no Cstring
-    ccall((:fftwf_export_wisdom_to_file,libfftwf), Cvoid, (Ptr{Cvoid},), f)
+    ccall((:fftwf_export_wisdom_to_file,libfftw3f), Cvoid, (Ptr{Cvoid},), f)
     ccall(:fclose, Cvoid, (Ptr{Cvoid},), f)
 end
 
 function import_wisdom(fname::AbstractString)
     f = ccall(:fopen, Ptr{Cvoid}, (Cstring,Cstring), fname, :r)
     systemerror("could not open wisdom file $fname for reading", f == C_NULL)
-    if ccall((:fftw_import_wisdom_from_file,libfftw),Int32,(Ptr{Cvoid},),f)==0||
-       ccall((:fftwf_import_wisdom_from_file,libfftwf),Int32,(Ptr{Cvoid},),f)==0
+    if ccall((:fftw_import_wisdom_from_file,libfftw3),Int32,(Ptr{Cvoid},),f)==0||
+       ccall((:fftwf_import_wisdom_from_file,libfftw3f),Int32,(Ptr{Cvoid},),f)==0
         error("failed to import wisdom from $fname")
     end
     ccall(:fclose, Cvoid, (Ptr{Cvoid},), f)
 end
 
 function import_system_wisdom()
-    if ccall((:fftw_import_system_wisdom,libfftw), Int32, ()) == 0 ||
-       ccall((:fftwf_import_system_wisdom,libfftwf), Int32, ()) == 0
+    if ccall((:fftw_import_system_wisdom,libfftw3), Int32, ()) == 0 ||
+       ccall((:fftwf_import_system_wisdom,libfftw3f), Int32, ()) == 0
         error("failed to import system wisdom")
     end
 end
 
 function forget_wisdom()
-    ccall((:fftw_forget_wisdom,libfftw), Cvoid, ())
-    ccall((:fftwf_forget_wisdom,libfftwf), Cvoid, ())
+    ccall((:fftw_forget_wisdom,libfftw3), Cvoid, ())
+    ccall((:fftwf_forget_wisdom,libfftw3f), Cvoid, ())
 end
 
 # Threads
 
 function set_num_threads(nthreads::Integer)
-    ccall((:fftw_plan_with_nthreads,libfftw), Cvoid, (Int32,), nthreads)
-    ccall((:fftwf_plan_with_nthreads,libfftwf), Cvoid, (Int32,), nthreads)
+    @static if has_threads
+        ccall((:fftw_plan_with_nthreads,libfftw3), Cvoid, (Int32,), nthreads)
+        ccall((:fftwf_plan_with_nthreads,libfftw3f), Cvoid, (Int32,), nthreads)
+    end
 end
 
 # pointer type for fftw_plan (opaque pointer)
@@ -186,11 +188,11 @@ const PlanPtr = Ptr{fftw_plan_struct}
 const NO_TIMELIMIT = -1.0 # from fftw3.h
 
 function set_timelimit(precision::fftwTypeDouble,seconds)
-    ccall((:fftw_set_timelimit,libfftw), Cvoid, (Float64,), seconds)
+    ccall((:fftw_set_timelimit,libfftw3), Cvoid, (Float64,), seconds)
 end
 
 function set_timelimit(precision::fftwTypeSingle,seconds)
-    ccall((:fftwf_set_timelimit,libfftwf), Cvoid, (Float64,), seconds)
+    ccall((:fftwf_set_timelimit,libfftw3f), Cvoid, (Float64,), seconds)
 end
 
 # Array alignment mod 16:
@@ -204,16 +206,16 @@ end
 #   function will be documented in FFTW 3.3.4.
 
 
-if libfftw_name == "libmkl_rt"
+if libfftw3 == "libmkl_rt"
     alignment_of(A::StridedArray{<:fftwDouble}) =
         convert(Int32, convert(Int64, pointer(A)) % 16)
     alignment_of(A::StridedArray{<:fftwSingle}) =
         convert(Int32, convert(Int64, pointer(A)) % 16)
 else
     alignment_of(A::StridedArray{T}) where {T<:fftwDouble} =
-        ccall((:fftw_alignment_of, libfftw), Int32, (Ptr{T},), A)
+        ccall((:fftw_alignment_of, libfftw3), Int32, (Ptr{T},), A)
     alignment_of(A::StridedArray{T}) where {T<:fftwSingle} =
-        ccall((:fftwf_alignment_of, libfftwf), Int32, (Ptr{T},), A)
+        ccall((:fftwf_alignment_of, libfftw3f), Int32, (Ptr{T},), A)
 end
 
 # FFTWPlan (low-level)
@@ -253,21 +255,21 @@ size(p::FFTWPlan) = p.sz
 unsafe_convert(::Type{PlanPtr}, p::FFTWPlan) = p.plan
 
 destroy_plan(plan::FFTWPlan{<:fftwDouble}) =
-    ccall((:fftw_destroy_plan,libfftw), Cvoid, (PlanPtr,), plan)
+    ccall((:fftw_destroy_plan,libfftw3), Cvoid, (PlanPtr,), plan)
 
 destroy_plan(plan::FFTWPlan{<:fftwSingle}) =
-    ccall((:fftwf_destroy_plan,libfftwf), Cvoid, (PlanPtr,), plan)
+    ccall((:fftwf_destroy_plan,libfftw3f), Cvoid, (PlanPtr,), plan)
 
 cost(plan::FFTWPlan{<:fftwDouble}) =
-    ccall((:fftw_cost,libfftw), Float64, (PlanPtr,), plan)
+    ccall((:fftw_cost,libfftw3), Float64, (PlanPtr,), plan)
 cost(plan::FFTWPlan{<:fftwSingle}) =
-    ccall((:fftwf_cost,libfftwf), Float64, (PlanPtr,), plan)
+    ccall((:fftwf_cost,libfftw3f), Float64, (PlanPtr,), plan)
 
 function arithmetic_ops(plan::FFTWPlan{<:fftwDouble})
     # Change to individual Ref after we can allocate them on stack
     ref = Ref{NTuple{3,Float64}}()
     ptr = Ptr{Float64}(Base.unsafe_convert(Ptr{NTuple{3,Float64}}, ref))
-    ccall((:fftw_flops,libfftw), Cvoid,
+    ccall((:fftw_flops,libfftw3), Cvoid,
           (PlanPtr,Ptr{Float64},Ptr{Float64},Ptr{Float64}),
           plan, ptr, ptr + 8, ptr + 16)
     (round(Int64, ref[][1]), round(Int64, ref[][2]), round(Int64, ref[][3]))
@@ -276,7 +278,7 @@ function arithmetic_ops(plan::FFTWPlan{<:fftwSingle})
     # Change to individual Ref after we can allocate them on stack
     ref = Ref{NTuple{3,Float64}}()
     ptr = Ptr{Float64}(Base.unsafe_convert(Ptr{NTuple{3,Float64}}, ref))
-    ccall((:fftwf_flops,libfftwf), Cvoid,
+    ccall((:fftwf_flops,libfftw3f), Cvoid,
           (PlanPtr,Ptr{Float64},Ptr{Float64},Ptr{Float64}),
           plan, ptr, ptr + 8, ptr + 16)
     (round(Int64, ref[][1]), round(Int64, ref[][2]), round(Int64, ref[][3]))
@@ -304,9 +306,9 @@ end
 
 # The sprint_plan function was released in FFTW 3.3.4
 sprint_plan_(plan::FFTWPlan{<:fftwDouble}) =
-    ccall((:fftw_sprint_plan,libfftw), Ptr{UInt8}, (PlanPtr,), plan)
+    ccall((:fftw_sprint_plan,libfftw3), Ptr{UInt8}, (PlanPtr,), plan)
 sprint_plan_(plan::FFTWPlan{<:fftwSingle}) =
-    ccall((:fftwf_sprint_plan,libfftwf), Ptr{UInt8}, (PlanPtr,), plan)
+    ccall((:fftwf_sprint_plan,libfftw3f), Ptr{UInt8}, (PlanPtr,), plan)
 function sprint_plan(plan::FFTWPlan)
     p = sprint_plan_(plan)
     str = unsafe_string(p)
@@ -381,49 +383,49 @@ colmajorstrides(sz) = isempty(sz) ? () : (1,cumprod(Int[sz[1:end-1]...])...)
 # Execute
 
 unsafe_execute!(plan::FFTWPlan{<:fftwDouble}) =
-    ccall((:fftw_execute,libfftw), Cvoid, (PlanPtr,), plan)
+    ccall((:fftw_execute,libfftw3), Cvoid, (PlanPtr,), plan)
 
 unsafe_execute!(plan::FFTWPlan{<:fftwSingle}) =
-    ccall((:fftwf_execute,libfftwf), Cvoid, (PlanPtr,), plan)
+    ccall((:fftwf_execute,libfftw3f), Cvoid, (PlanPtr,), plan)
 
 unsafe_execute!(plan::cFFTWPlan{T},
                 X::StridedArray{T}, Y::StridedArray{T}) where {T<:fftwDouble} =
-    ccall((:fftw_execute_dft,libfftw), Cvoid,
+    ccall((:fftw_execute_dft,libfftw3), Cvoid,
           (PlanPtr,Ptr{T},Ptr{T}), plan, X, Y)
 
 unsafe_execute!(plan::cFFTWPlan{T},
                 X::StridedArray{T}, Y::StridedArray{T}) where {T<:fftwSingle} =
-    ccall((:fftwf_execute_dft,libfftwf), Cvoid,
+    ccall((:fftwf_execute_dft,libfftw3f), Cvoid,
           (PlanPtr,Ptr{T},Ptr{T}), plan, X, Y)
 
 unsafe_execute!(plan::rFFTWPlan{Float64,FORWARD},
                 X::StridedArray{Float64}, Y::StridedArray{Complex{Float64}}) =
-    ccall((:fftw_execute_dft_r2c,libfftw), Cvoid,
+    ccall((:fftw_execute_dft_r2c,libfftw3), Cvoid,
           (PlanPtr,Ptr{Float64},Ptr{Complex{Float64}}), plan, X, Y)
 
 unsafe_execute!(plan::rFFTWPlan{Float32,FORWARD},
                 X::StridedArray{Float32}, Y::StridedArray{Complex{Float32}}) =
-    ccall((:fftwf_execute_dft_r2c,libfftwf), Cvoid,
+    ccall((:fftwf_execute_dft_r2c,libfftw3f), Cvoid,
           (PlanPtr,Ptr{Float32},Ptr{Complex{Float32}}), plan, X, Y)
 
 unsafe_execute!(plan::rFFTWPlan{Complex{Float64},BACKWARD},
                 X::StridedArray{Complex{Float64}}, Y::StridedArray{Float64}) =
-    ccall((:fftw_execute_dft_c2r,libfftw), Cvoid,
+    ccall((:fftw_execute_dft_c2r,libfftw3), Cvoid,
           (PlanPtr,Ptr{Complex{Float64}},Ptr{Float64}), plan, X, Y)
 
 unsafe_execute!(plan::rFFTWPlan{Complex{Float32},BACKWARD},
                 X::StridedArray{Complex{Float32}}, Y::StridedArray{Float32}) =
-    ccall((:fftwf_execute_dft_c2r,libfftwf), Cvoid,
+    ccall((:fftwf_execute_dft_c2r,libfftw3f), Cvoid,
           (PlanPtr,Ptr{Complex{Float32}},Ptr{Float32}), plan, X, Y)
 
 unsafe_execute!(plan::r2rFFTWPlan{T},
                 X::StridedArray{T}, Y::StridedArray{T}) where {T<:fftwDouble} =
-    ccall((:fftw_execute_r2r,libfftw), Cvoid,
+    ccall((:fftw_execute_r2r,libfftw3), Cvoid,
           (PlanPtr,Ptr{T},Ptr{T}), plan, X, Y)
 
 unsafe_execute!(plan::r2rFFTWPlan{T},
                 X::StridedArray{T}, Y::StridedArray{T}) where {T<:fftwSingle} =
-    ccall((:fftwf_execute_r2r,libfftwf), Cvoid,
+    ccall((:fftwf_execute_r2r,libfftw3f), Cvoid,
           (PlanPtr,Ptr{T},Ptr{T}), plan, X, Y)
 
 # NOTE ON GC (garbage collection):
@@ -480,8 +482,8 @@ end
 
 # low-level FFTWPlan creation (for internal use in FFTW module)
 
-for (Tr,Tc,fftw,lib) in ((:Float64,:(Complex{Float64}),"fftw",libfftw),
-                         (:Float32,:(Complex{Float32}),"fftwf",libfftwf))
+for (Tr,Tc,fftw,lib) in ((:Float64,:(Complex{Float64}),"fftw",libfftw3),
+                         (:Float32,:(Complex{Float32}),"fftwf",libfftw3f))
     @eval function cFFTWPlan{$Tc,K,inplace,N}(X::StridedArray{$Tc,N},
                                               Y::StridedArray{$Tc,N},
                                               region, flags::Integer, timelimit::Real) where {K,inplace,N}
