@@ -206,7 +206,7 @@ end
 #   function will be documented in FFTW 3.3.4.
 
 
-if libfftw3 == "libmkl_rt"
+@static if fftw_vendor == :mkl
     alignment_of(A::StridedArray{<:fftwDouble}) =
         convert(Int32, convert(Int64, pointer(A)) % 16)
     alignment_of(A::StridedArray{<:fftwSingle}) =
