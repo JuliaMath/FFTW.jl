@@ -35,12 +35,10 @@ const fftw_vendor = occursin("libmkl_rt", libfftw3) ? :mkl : :fftw
 #       plans, causing Base Julia issue #19892.)
 function __init__()
     check_deps()
-    @static if has_threads
-        stat = ccall((:fftw_init_threads, libfftw3), Int32, ())
-        statf = ccall((:fftwf_init_threads, libfftw3f), Int32, ())
-        if stat == 0 || statf == 0
-            error("could not initialize FFTW threads")
-        end
+    stat = ccall((:fftw_init_threads, libfftw3), Int32, ())
+    statf = ccall((:fftwf_init_threads, libfftw3f), Int32, ())
+    if stat == 0 || statf == 0
+        error("could not initialize FFTW threads")
     end
 end
 

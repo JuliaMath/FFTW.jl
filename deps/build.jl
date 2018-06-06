@@ -42,12 +42,3 @@ elseif provider != "FFTW"
 else
     include("build_fftw.jl")
 end
-
-# on some platforms, FFTW may be built without threads.  We need to define
-# a variable for this in deps.jl so that we can check for it statically,
-# in order to decide whether to ccall the FFTW threads functions.
-include(depsfile)
-open(depsfile, "a") do f
-    has_threads = Libdl.dlsym_e(Libdl.dlopen(libfftw3), "fftw_init_threads") != C_NULL
-    println(f, "const has_threads = $has_threads")
-end

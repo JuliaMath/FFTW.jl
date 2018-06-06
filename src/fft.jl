@@ -172,10 +172,8 @@ end
 # Threads
 
 function set_num_threads(nthreads::Integer)
-    @static if has_threads
-        ccall((:fftw_plan_with_nthreads,libfftw3), Cvoid, (Int32,), nthreads)
-        ccall((:fftwf_plan_with_nthreads,libfftw3f), Cvoid, (Int32,), nthreads)
-    end
+    ccall((:fftw_plan_with_nthreads,libfftw3), Cvoid, (Int32,), nthreads)
+    ccall((:fftwf_plan_with_nthreads,libfftw3f), Cvoid, (Int32,), nthreads)
 end
 
 # pointer type for fftw_plan (opaque pointer)
