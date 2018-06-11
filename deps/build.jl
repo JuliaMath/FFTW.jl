@@ -20,7 +20,7 @@ if provider == "MKL"
     else
         using Conda
         Conda.add("mkl_fft")
-        mklpath = joinpath(Conda.lib_dir(Conda.ROOTENV), "libmkl_rt." * Libdl.dlext)
+        mklpath = joinpath(Conda.lib_dir(Conda.ROOTENV), "libmkl_rt")
     end
     mklpath = escape_string(mklpath)
     isfile(depsfile) && rm(depsfile, force=true)
