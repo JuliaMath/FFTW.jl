@@ -302,23 +302,30 @@ function showfftdims(io, sz::Dims, istride::Dims, T)
     end
 end
 
-# The sprint_plan function was released in FFTW 3.3.4
-sprint_plan_(plan::FFTWPlan{<:fftwDouble}) =
-    ccall((:fftw_sprint_plan,libfftw3), Ptr{UInt8}, (PlanPtr,), plan)
-sprint_plan_(plan::FFTWPlan{<:fftwSingle}) =
-    ccall((:fftwf_sprint_plan,libfftw3f), Ptr{UInt8}, (PlanPtr,), plan)
-function sprint_plan(plan::FFTWPlan)
-    p = sprint_plan_(plan)
-    str = unsafe_string(p)
-    Libc.free(p)
-    return str
+# The sprint_plan function was released in FFTW 3.3.4, but MKL versions
+# claiming to be FFTW 3.3.4 still don't seem to have this function.
+const has_sprint_plan = version >= v"3.3.4" && fftw_vendor == :fftw
+
+@static if has_sprint_plan
+    sprint_plan_(plan::FFTWPlan{<:fftwDouble}) =
+        ccall((:fftw_sprint_plan,libfftw3), Ptr{UInt8}, (PlanPtr,), plan)
+    sprint_plan_(plan::FFTWPlan{<:fftwSingle}) =
+        ccall((:fftwf_sprint_plan,libfftw3f), Ptr{UInt8}, (PlanPtr,), plan)
+    function sprint_plan(plan::FFTWPlan)
+        p = sprint_plan_(plan)
+        str = unsafe_string(p)
+        Libc.free(p)
+        return str
+    end
+else
+    sprint_plan(plan::FFTWPlan) = ""
 end
 
 function show(io::IO, p::cFFTWPlan{T,K,inplace}) where {T,K,inplace}
     print(io, inplace ? "FFTW in-place " : "FFTW ",
           K < 0 ? "forward" : "backward", " plan for ")
     showfftdims(io, p.sz, p.istride, T)
-    version >= v"3.3.4" && print(io, "\n", sprint_plan(p))
+    has_sprint_plan && print(io, "\n", sprint_plan(p))
 end
 
 function show(io::IO, p::rFFTWPlan{T,K,inplace}) where {T,K,inplace}
@@ -326,7 +333,7 @@ function show(io::IO, p::rFFTWPlan{T,K,inplace}) where {T,K,inplace}
           K < 0 ? "real-to-complex" : "complex-to-real",
           " plan for ")
     showfftdims(io, p.sz, p.istride, T)
-    version >= v"3.3.4" && print(io, "\n", sprint_plan(p))
+    has_sprint_plan && print(io, "\n", sprint_plan(p))
 end
 
 function show(io::IO, p::r2rFFTWPlan{T,K,inplace}) where {T,K,inplace}
@@ -343,7 +350,7 @@ function show(io::IO, p::r2rFFTWPlan{T,K,inplace}) where {T,K,inplace}
     end
     print(io, " plan for ")
     showfftdims(io, p.sz, p.istride, T)
-    version >= v"3.3.4" && print(io, "\n", sprint_plan(p))
+    has_sprint_plan && print(io, "\n", sprint_plan(p))
 end
 
 # Check whether a FFTWPlan is applicable to a given input array, and

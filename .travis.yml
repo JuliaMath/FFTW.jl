@@ -5,6 +5,10 @@ os:
   - osx
 julia:
   - nightly
+env:
+  matrix:
+    - JULIA_FFTW_PROVIDER=FFTW
+    - JULIA_FFTW_PROVIDER=MKL
 notifications:
   email: false
 # uncomment the following lines to override the default test script

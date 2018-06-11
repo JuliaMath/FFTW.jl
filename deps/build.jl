@@ -14,8 +14,15 @@ else
     provider = "FFTW"
     open(f -> println(f, provider), settings, "w")
 end
-if provider == "MKL" && Base.BLAS.vendor() === :mkl
-    mklpath = escape_string(Libdl.dlpath("libmkl_rt"))
+if provider == "MKL"
+    if Base.BLAS.vendor() === :mkl
+        mklpath = Libdl.dlpath("libmkl_rt")
+    else
+        using Conda
+        Conda.add("mkl_fft")
+        mklpath = joinpath(Conda.lib_dir(Conda.ROOTENV), "libmkl_rt." * Libdl.dlext)
+    end
+    mklpath = escape_string(mklpath)
     isfile(depsfile) && rm(depsfile, force=true)
     open(depsfile, "w") do f
         println(f, """
@@ -31,10 +38,6 @@ if provider == "MKL" && Base.BLAS.vendor() === :mkl
             end
         """)
     end
-elseif provider == "MKL"
-    error("MKL build requested for FFTW but Julia was not built with MKL.\n",
-          "To fix this, set ENV[\"JULIA_FFTW_PROVIDER\"] = \"FFTW\" and \n",
-          "rerun Pkg.build(\"FFTW\").")
 elseif provider != "FFTW"
     error("Unrecognized JULIA_FFTW_PROVIDER \"$provider\".\n",
           "To fix this, set ENV[\"JULIA_FFTW_PROVIDER\"] to \"FFTW\" or \"MKL\"\n",
