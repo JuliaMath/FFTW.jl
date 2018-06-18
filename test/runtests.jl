@@ -14,7 +14,7 @@ let a = randn(10^5,1), p1 = plan_rfft(a, flags=FFTW.ESTIMATE)
     @test p1*a ≈ p2*a
     # make sure threads are actually being used for p2
     # (tests #21163).
-    if FFTW.version >= v"3.3.4"
+    if FFTW.has_sprint_plan
         @test !occursin("dft-thr", string(p1))
         @test occursin("dft-thr", string(p2))
     end
@@ -145,7 +145,7 @@ for (f,fi,pf,pfi) in ((fft,ifft,plan_fft,plan_ifft),
 
     # The following capabilities are FFTW only.
     # They are not available in MKL, and hence do not test them.
-    if fftw_vendor() != :mkl
+    if fftw_vendor != :mkl
         ifft3_fft3_m3d = fi(f(m3d))
 
         fftd3_m3d = f(m3d,3)
@@ -182,7 +182,7 @@ for (f,fi,pf,pfi) in ((fft,ifft,plan_fft,plan_ifft),
             @test pfft!d3_m3d[i] ≈ true_fftd3_m3d[i]
             @test pifft!d3_fftd3_m3d[i] ≈ m3d[i]
         end
-    end  # if fftw_vendor() != :mkl
+    end  # if fftw_vendor != :mkl
 
 end
 
@@ -260,7 +260,7 @@ for i = 1:length(m4)
     @test pirfftn_rfftn_m4_prealloc[i] ≈ m4[i]
 end
 
-if fftw_vendor() != :mkl
+if fftw_vendor != :mkl
     rfftn_m3d = rfft(m3d)
     rfftd3_m3d = rfft(m3d,3)
     @test size(rfftd3_m3d) == size(true_fftd3_m3d)
@@ -401,7 +401,7 @@ a16 = convert(Vector{Float16}, a)
 
 # Discrete cosine transform (DCT) tests
 
-if fftw_vendor() != :mkl
+if fftw_vendor != :mkl
     a = rand(8,11) + im*rand(8,11)
     @test norm(idct(dct(a)) - a) < 1e-8
 
@@ -484,7 +484,7 @@ if fftw_vendor() != :mkl
         @test sXdct![i] ≈ true_Xdct[i]
         @test psXdct![i] ≈ true_Xdct[i]
     end
-end # fftw_vendor() != :mkl
+end # fftw_vendor != :mkl
 
 # test UNALIGNED flag
 let A = rand(Float32, 35), Ac = rand(Complex{Float32}, 35)
