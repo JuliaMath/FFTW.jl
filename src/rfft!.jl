@@ -12,7 +12,7 @@ export PaddedRFFTArray, plan_rfft!, rfft!, plan_irfft!, plan_brfft!, brfft!, irf
 struct PaddedRFFTArray{T<:fftwReal,N,L} <: DenseArray{Complex{T},N}
     data::Array{T,N}
     r::SubArray{T,N,Array{T,N},NTuple{N,UnitRange{Int}},L} # Real view skipping padding
-    c::(@static VERSION >= v"0.7-" ? Base.ReinterpretArray{Complex{T},N,T,Array{T,N}} : Array{Complex{T},N})
+    c::Base.ReinterpretArray{Complex{T},N,T,Array{T,N}}
 
     function PaddedRFFTArray{T,N}(rr::Array{T,N},nx::Int) where {T<:fftwReal,N}
         rrsize = size(rr)
@@ -23,9 +23,7 @@ struct PaddedRFFTArray{T<:fftwReal,N,L} <: DenseArray{Complex{T},N}
             ArgumentError("Number of elements on the first dimension of array must be either 1 or 2 less than the number of elements on the first dimension of the allocated array"))
         fsize = fsize÷2
         csize = (fsize, rrsize[2:end]...)
-        c = @static VERSION >= v"0.7-" ? 
-            reinterpret(Complex{T}, rr) :
-            reinterpret(Complex{T}, rr, csize)
+        c = reinterpret(Complex{T}, rr)
         rsize = (nx,rrsize[2:end]...)
         r = view(rr,(1:l for l in rsize)...)
         return  new{T, N, N === 1 ? true : false}(rr,r,c)
@@ -234,7 +232,3 @@ plan_irfft!(f::PaddedRFFTArray;kws...) = plan_irfft!(f,1:ndims(f);kws...)
 end
 
 irfft!(f::PaddedRFFTArray, region=1:ndims(f)) = plan_irfft!(f,region) * f
-
-
-
-
