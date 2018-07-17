@@ -1,6 +1,4 @@
-a = rand(Float64,(8,4,4))
-b = PaddedRFFTArray(a)
-c = copy(b)
+let a = rand(Float64,(8,4,4)), b = PaddedRFFTArray(a), c = copy(b)
 
 @testset "PaddedRFFTArray creation" begin
   @test a == real(b)
@@ -64,3 +62,4 @@ end
   @test p*c ≈ rfft!(b)
   @test p\c ≈ irfft!(b)
 end
+end #let block
