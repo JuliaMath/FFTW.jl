@@ -14,9 +14,9 @@ let a = randn(10^5,1), p1 = plan_rfft(a, flags=FFTW.ESTIMATE)
     @test p1*a ≈ p2*a
     # make sure threads are actually being used for p2
     # (tests #21163).
-    if FFTW.version >= v"3.3.4"
-        @test !contains(string(p1), "dft-thr")
-        @test contains(string(p2), "dft-thr")
+    if FFTW.has_sprint_plan
+        @test !occursin("dft-thr", string(p1))
+        @test occursin("dft-thr", string(p2))
     end
 end
 
@@ -57,9 +57,9 @@ b[3:6,9:12] = m4
 sm4 = view(b,3:6,9:12)
 
 m3d = map(Float32,copy(reshape(1:5*3*2, 5, 3, 2)))
-true_fftd3_m3d = Array{Float32}(5, 3, 2)
+true_fftd3_m3d = Array{Float32}(undef, 5, 3, 2)
 true_fftd3_m3d[:,:,1] = 17:2:45
-true_fftd3_m3d[:,:,2] = -15
+true_fftd3_m3d[:,:,2] .= -15
 
 # use invoke to force usage of CTPlan versions even if FFTW is present
 for A in (Array,SubArray)
@@ -145,7 +145,7 @@ for (f,fi,pf,pfi) in ((fft,ifft,plan_fft,plan_ifft),
 
     # The following capabilities are FFTW only.
     # They are not available in MKL, and hence do not test them.
-    if fftw_vendor() != :mkl
+    if fftw_vendor != :mkl
         ifft3_fft3_m3d = fi(f(m3d))
 
         fftd3_m3d = f(m3d,3)
@@ -182,7 +182,7 @@ for (f,fi,pf,pfi) in ((fft,ifft,plan_fft,plan_ifft),
             @test pfft!d3_m3d[i] ≈ true_fftd3_m3d[i]
             @test pifft!d3_fftd3_m3d[i] ≈ m3d[i]
         end
-    end  # if fftw_vendor() != :mkl
+    end  # if fftw_vendor != :mkl
 
 end
 
@@ -260,7 +260,7 @@ for i = 1:length(m4)
     @test pirfftn_rfftn_m4_prealloc[i] ≈ m4[i]
 end
 
-if fftw_vendor() != :mkl
+if fftw_vendor != :mkl
     rfftn_m3d = rfft(m3d)
     rfftd3_m3d = rfft(m3d,3)
     @test size(rfftd3_m3d) == size(true_fftd3_m3d)
@@ -401,7 +401,7 @@ a16 = convert(Vector{Float16}, a)
 
 # Discrete cosine transform (DCT) tests
 
-if fftw_vendor() != :mkl
+if fftw_vendor != :mkl
     a = rand(8,11) + im*rand(8,11)
     @test norm(idct(dct(a)) - a) < 1e-8
 
@@ -484,6 +484,33 @@ if fftw_vendor() != :mkl
         @test sXdct![i] ≈ true_Xdct[i]
         @test psXdct![i] ≈ true_Xdct[i]
     end
-end # fftw_vendor() != :mkl
+end # fftw_vendor != :mkl
+
+# test UNALIGNED flag
+let A = rand(Float32, 35), Ac = rand(Complex{Float32}, 35)
+    local Y = Array{Complex{Float32}}(undef, 20)
+    Yc = Array{Complex{Float32}}(undef, 35)
+    planr = plan_rfft(Array{Float32}(undef, 32), flags=FFTW.UNALIGNED)
+    planc = plan_fft(Array{Complex{Float32}}(undef, 32), flags=FFTW.UNALIGNED)
+    for ioff in 0:3
+        ii = 1+ioff:32+ioff
+        @test planr * view(A, ii) ≈ planr * A[ii] ≈ rfft(view(A, ii)) ≈ rfft(A[ii])
+        @test planc * view(Ac, ii) ≈ planc * Ac[ii] ≈ fft(view(Ac, ii)) ≈ fft(Ac[ii])
+        for ooff in 0:3
+            io = 1+ooff:17+ooff
+            FFTW.mul!(view(Y, io), planr, view(A, ii))
+            @test Y[io] ≈ rfft(A[ii])
+            FFTW.mul!(view(Y, io), planr, A[ii])
+            @test Y[io] ≈ rfft(A[ii])
+            io = 1+ooff:32+ooff
+            FFTW.mul!(view(Yc, io), planc, view(Ac, ii))
+            @test Yc[io] ≈ fft(Ac[ii])
+            FFTW.mul!(view(Yc, io), planc, Ac[ii])
+            @test Yc[io] ≈ fft(Ac[ii])
+        end
+    end
+    @test_throws ArgumentError plan_rfft(Array{Float32}(undef, 32)) * view(A, 2:33)
+    @test_throws ArgumentError plan_fft(Array{Complex{Float32}}(undef, 32)) * view(Ac, 2:33)
+end
 
 include("test_rfft!.jl")

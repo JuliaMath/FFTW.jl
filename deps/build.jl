@@ -1,4 +1,5 @@
-using Libdl
+import Libdl
+const depsfile = joinpath(@__DIR__, "deps.jl")
 
 # If BLAS was compiled with MKL and the user wants MKL-based FFTs, we'll oblige.
 # In that case, we have to do this little dance to get around having to use BinDeps
@@ -13,26 +14,34 @@ else
     provider = "FFTW"
     open(f -> println(f, provider), settings, "w")
 end
-if provider == "MKL" && Base.BLAS.vendor() === :mkl
-    mklpath = Libdl.dlpath("libmkl_rt")
-    depsfile = joinpath(@__DIR__, "deps.jl")
+if provider == "MKL"
+    if Base.BLAS.vendor() === :mkl
+        mklpath = Libdl.dlpath("libmkl_rt")
+    else
+        using Conda
+        Conda.add("mkl_fft")
+        mklpath = joinpath(Conda.lib_dir(Conda.ROOTENV), "libmkl_rt")
+    end
+    mklpath = escape_string(mklpath)
     isfile(depsfile) && rm(depsfile, force=true)
     open(depsfile, "w") do f
         println(f, """
             # This is an auto-generated file, do not edit
-            using Libdl
-            if Libdl.dlopen_e("$mklpath") == C_NULL
-                error("Unable to load MKL from '$mklpath'.\\n",
-                      "Please rerun Pkg.build(\\"FFTW\\") and restart Julia.")
+            import Libdl
+            const libfftw3 = "$mklpath"
+            const libfftw3f = libfftw3
+            function check_deps()
+                if Libdl.dlopen_e(libfftw3) == C_NULL
+                    error("Unable to load MKL from '$mklpath'.\\n",
+                          "Please rerun Pkg.build(\\"FFTW\\") and restart Julia.")
+                end
             end
-            const libfftw = "$mklpath"
-            const libfftwf = "$mklpath"
         """)
     end
-elseif provider == "MKL"
-    error("MKL build requested for FFTW but Julia was not built with MKL.\n",
-          "To fix this, set ENV[\"JULIA_FFTW_PROVIDER\"] = \"FFTW\" and \n",
-          "rerun Pkg.build(\"FFTW\").")
+elseif provider != "FFTW"
+    error("Unrecognized JULIA_FFTW_PROVIDER \"$provider\".\n",
+          "To fix this, set ENV[\"JULIA_FFTW_PROVIDER\"] to \"FFTW\" or \"MKL\"\n",
+          "and rerun Pkg.build(\"FFTW\").")
 else
     include("build_fftw.jl")
 end
