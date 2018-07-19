@@ -9,26 +9,26 @@ export PaddedRFFTArray, plan_rfft!, rfft!, plan_irfft!, plan_brfft!, brfft!, irf
 # custom getindex and setindex! below. Hopefully, once the performance issues with ReinterpretArray
 # are solved we can just index the reinterpret array directly.
 
-struct PaddedRFFTArray{T<:fftwReal,N,L} <: DenseArray{Complex{T},N}
+struct PaddedRFFTArray{T<:fftwReal,N,Nm1,L} <: DenseArray{Complex{T},N}
     data::Array{T,N}
-    r::SubArray{T,N,Array{T,N},NTuple{N,UnitRange{Int}},L} # Real view skipping padding
+    r::SubArray{T,N,Array{T,N},Tuple{UnitRange{Int},Vararg{Base.Slice{Base.OneTo{Int}},Nm1}},L} # Real view skipping padding
     c::Base.ReinterpretArray{Complex{T},N,T,Array{T,N}}
 
-    function PaddedRFFTArray{T,N}(rr::Array{T,N},nx::Int) where {T<:fftwReal,N}
-        rrsize = size(rr)
-        fsize = rrsize[1]
+    function PaddedRFFTArray{T,N,Nm1,L}(rr::Array{T,N},nx::Int) where {T<:fftwReal,N,Nm1,L}
+        fsize = size(rr)[1]
         iseven(fsize) || throw(
             ArgumentError("First dimension of allocated array must have even number of elements"))
         (nx == fsize-2 || nx == fsize-1) || throw(
             ArgumentError("Number of elements on the first dimension of array must be either 1 or 2 less than the number of elements on the first dimension of the allocated array"))
-        fsize = fsize÷2
-        csize = (fsize, rrsize[2:end]...)
         c = reinterpret(Complex{T}, rr)
-        rsize = (nx,rrsize[2:end]...)
-        r = view(rr,(1:l for l in rsize)...)
-        return  new{T, N, N === 1 ? true : false}(rr,r,c)
+        r = view(rr, 1:nx, ntuple(i->Colon(),Nm1)...)
+        return  new{T, N, Nm1, L}(rr,r,c)
     end # function
 end # struct
+
+@generated function PaddedRFFTArray{T,N}(rr::Array{T,N},nx::Int) where {T<:fftwReal,N}
+    :(PaddedRFFTArray{T,N,$(N-1),$(N === 1 ? true : false)}(rr,nx))
+end
 
 @inline real(S::PaddedRFFTArray) = S.r
 
