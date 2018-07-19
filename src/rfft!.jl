@@ -201,14 +201,14 @@ end
 # Inverse plans
 
 function plan_brfft!(X::PaddedRFFTArray{T,N}, region;
-                    flags::Integer=PRESERVE_INPUT,
+                    flags::Integer=ESTIMATE,
                     timelimit::Real=NO_TIMELIMIT) where {T<:fftwReal,N}
     (1 in region) || throw(ArgumentError("The first dimension must always be transformed"))
-    if flags&PRESERVE_INPUT != 0
+    if flags&ESTIMATE != 0
+        return rFFTWPlan{Complex{T},BACKWARD,true,N}(complex_view(X), real(X), region, flags,timelimit)
+    else
         a = similar(X)
         return rFFTWPlan{Complex{T},BACKWARD,true,N}(complex_view(a), real(a), region, flags,timelimit)
-    else
-        return rFFTWPlan{Complex{T},BACKWARD,true,N}(complex_view(X), real(X), region, flags,timelimit)
     end
 end
 
