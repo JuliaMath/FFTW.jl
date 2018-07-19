@@ -37,12 +37,13 @@ end
 @testset "Read binary file to PaddedRFFTArray" begin
   for s in ((8,4,4),(9,4,4),(8,),(9,))
     aa = rand(Float64,s)
-    f = Base.Filesystem.tempname()
+    f = IOBuffer()
     write(f,aa)
-    @test aa == real(PaddedRFFTArray(f,s))
+    @test aa == real(PaddedRFFTArray(seekstart(f),s))
     aa = rand(Float32,s)
+    f = IOBuffer()
     write(f,aa)
-    @test aa == real(PaddedRFFTArray{Float32}(f,s))
+    @test aa == real(PaddedRFFTArray{Float32}(seekstart(f),s))
   end
 end
 
