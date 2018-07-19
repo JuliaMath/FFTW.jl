@@ -175,13 +175,7 @@ function plan_rfft!(X::PaddedRFFTArray{T,N}, region;
                    timelimit::Real=NO_TIMELIMIT) where {T<:fftwReal,N}
 
     (1 in region) || throw(ArgumentError("The first dimension must always be transformed"))
-    if flags&ESTIMATE != 0
-        p = rFFTWPlan{T,FORWARD,true,N}(real(X), complex_view(X), region, flags, timelimit)
-    else
-        x = similar(X)
-        p = rFFTWPlan{T,FORWARD,true,N}(real(x), complex_view(x), region, flags, timelimit)
-    end
-    return p
+    return rFFTWPlan{T,FORWARD,true,N}(real(X), complex_view(X), region, flags, timelimit)
 end
 
 plan_rfft!(f::PaddedRFFTArray;kws...) = plan_rfft!(f, 1:ndims(f); kws...)
@@ -204,12 +198,7 @@ function plan_brfft!(X::PaddedRFFTArray{T,N}, region;
                     flags::Integer=ESTIMATE,
                     timelimit::Real=NO_TIMELIMIT) where {T<:fftwReal,N}
     (1 in region) || throw(ArgumentError("The first dimension must always be transformed"))
-    if flags&ESTIMATE != 0
-        return rFFTWPlan{Complex{T},BACKWARD,true,N}(complex_view(X), real(X), region, flags,timelimit)
-    else
-        a = similar(X)
-        return rFFTWPlan{Complex{T},BACKWARD,true,N}(complex_view(a), real(a), region, flags,timelimit)
-    end
+    return rFFTWPlan{Complex{T},BACKWARD,true,N}(complex_view(X), real(X), region, flags,timelimit)
 end
 
 plan_brfft!(f::PaddedRFFTArray;kws...) = plan_brfft!(f,1:ndims(f);kws...)
