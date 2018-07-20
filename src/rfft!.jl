@@ -11,7 +11,7 @@ export PaddedRFFTArray, plan_rfft!, rfft!, plan_irfft!, plan_brfft!, brfft!, irf
 
 struct PaddedRFFTArray{T<:fftwReal,N,Nm1,L} <: DenseArray{Complex{T},N}
     data::Array{T,N}
-    r::SubArray{T,N,Array{T,N},Tuple{UnitRange{Int},Vararg{Base.Slice{Base.OneTo{Int}},Nm1}},L} # Real view skipping padding
+    r::SubArray{T,N,Array{T,N},Tuple{Base.OneTo{Int},Vararg{Base.Slice{Base.OneTo{Int}},Nm1}},L} # Real view skipping padding
     c::Base.ReinterpretArray{Complex{T},N,T,Array{T,N}}
 
     function PaddedRFFTArray{T,N,Nm1,L}(rr::Array{T,N},nx::Int) where {T<:fftwReal,N,Nm1,L}
@@ -21,7 +21,7 @@ struct PaddedRFFTArray{T<:fftwReal,N,Nm1,L} <: DenseArray{Complex{T},N}
         (nx == fsize-2 || nx == fsize-1) || throw(
             ArgumentError("Number of elements on the first dimension of array must be either 1 or 2 less than the number of elements on the first dimension of the allocated array"))
         c = reinterpret(Complex{T}, rr)
-        r = view(rr, 1:nx, ntuple(i->Colon(),Val(Nm1))...)
+        r = view(rr, Base.OneTo(nx), ntuple(i->Colon(),Val(Nm1))...)
         return  new{T, N, Nm1, L}(rr,r,c)
     end # function
 end # struct
