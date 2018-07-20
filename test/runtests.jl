@@ -337,8 +337,8 @@ for T in (Complex{Float32}, Complex{Float64})
             p3 = 3*p
             p3i = inv(p3)
             @test eltype(p) == eltype(pi) == eltype(p3) == eltype(p3i) == T
-            @test vecnorm(x - p3i * (p * 3x)) < eps(real(T)) * 10000
-            @test vecnorm(3x - pi * (p3 * x)) < eps(real(T)) * 10000
+            @test norm(x - p3i * (p * 3x)) < eps(real(T)) * 10000
+            @test norm(3x - pi * (p3 * x)) < eps(real(T)) * 10000
             mul!(y, p, x)
             @test y == p * x
             ldiv!(y, p, x)
