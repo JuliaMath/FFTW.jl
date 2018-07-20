@@ -21,7 +21,7 @@ struct PaddedRFFTArray{T<:fftwReal,N,Nm1,L} <: DenseArray{Complex{T},N}
         (nx == fsize-2 || nx == fsize-1) || throw(
             ArgumentError("Number of elements on the first dimension of array must be either 1 or 2 less than the number of elements on the first dimension of the allocated array"))
         c = reinterpret(Complex{T}, rr)
-        r = view(rr, 1:nx, ntuple(i->Colon(),Nm1)...)
+        r = view(rr, 1:nx, ntuple(i->Colon(),Val(Nm1))...)
         return  new{T, N, Nm1, L}(rr,r,c)
     end # function
 end # struct
