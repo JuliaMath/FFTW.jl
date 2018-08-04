@@ -1,5 +1,3 @@
-__precompile__()
-
 module FFTW
 
 using Compat, LinearAlgebra, Reexport
