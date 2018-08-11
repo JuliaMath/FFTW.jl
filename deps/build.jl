@@ -1,3 +1,5 @@
+using LinearAlgebra
+
 import Libdl
 const depsfile = joinpath(@__DIR__, "deps.jl")
 
@@ -15,7 +17,7 @@ else
     open(f -> println(f, provider), settings, "w")
 end
 if provider == "MKL"
-    if Base.BLAS.vendor() === :mkl
+    if BLAS.vendor() === :mkl
         mklpath = Libdl.dlpath("libmkl_rt")
     else
         using Conda
