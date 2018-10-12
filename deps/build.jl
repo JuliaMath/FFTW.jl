@@ -6,7 +6,7 @@ const depsfile = joinpath(@__DIR__, "deps.jl")
 # If BLAS was compiled with MKL and the user wants MKL-based FFTs, we'll oblige.
 # In that case, we have to do this little dance to get around having to use BinDeps
 # for a library that's already linked to Julia.
-settings = joinpath(@__DIR__, "..", ".build_settings")
+settings = joinpath(first(DEPOT_PATH), "prefs", "FFTW")
 if haskey(ENV, "JULIA_FFTW_PROVIDER")
     provider = ENV["JULIA_FFTW_PROVIDER"]
     open(f -> println(f, provider), settings, "w")
