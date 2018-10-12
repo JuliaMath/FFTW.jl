@@ -7,6 +7,7 @@ const depsfile = joinpath(@__DIR__, "deps.jl")
 # In that case, we have to do this little dance to get around having to use BinDeps
 # for a library that's already linked to Julia.
 settings = joinpath(first(DEPOT_PATH), "prefs", "FFTW")
+mkpath(dirname(settings))
 if haskey(ENV, "JULIA_FFTW_PROVIDER")
     provider = ENV["JULIA_FFTW_PROVIDER"]
     open(f -> println(f, provider), settings, "w")
