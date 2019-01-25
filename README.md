@@ -28,6 +28,7 @@ returns
 ```
 
 The documentation of generic FFT functionality can be found in the [AbstractFFTs.jl package](https://juliamath.github.io/AbstractFFTs.jl/latest/api.html#Public-Interface-1). Additional functionalities supported by the FFTW library are documented in the present package.
+
 ## MKL
 
 Alternatively, the FFTs in Intel's Math Kernel Library (MKL) can be used
@@ -43,6 +44,7 @@ for more information about potential differences or gaps in functionality.
 
 
 ## License
+
 The FFTW library will be downloaded on versions of Julia where it is no longer distributed
 as part of Julia.
 Note that FFTW is licensed under GPLv2 or higher (see
