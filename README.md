@@ -27,7 +27,7 @@ returns
  -2.0 + 0.0im
 ```
 
-The documentation of generic FFT functionality can be found in the [AbstractFFTs.jl package](https://juliamath.github.io/AbstractFFTs.jl/latest/api.html#Public-Interface-1). Additional functionalities supported by the FFTW library are documented in the present package.
+The documentation of generic FFT functionality can be found in the [AbstractFFTs.jl package](https://juliamath.github.io/AbstractFFTs.jl/stable/api/#Public-Interface-1). Additional functionalities supported by the FFTW library are documented in the present package.
 
 ## MKL
 
