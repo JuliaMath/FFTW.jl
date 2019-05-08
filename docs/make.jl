@@ -8,6 +8,7 @@ makedocs(
     pages = Any[
         "Home" => "index.md",
         "API" => "fft.md",
+        "Examples" => "examples.md",
     ],
 )
 
