@@ -4,8 +4,8 @@ os:
   - linux
   - osx
 julia:
-  - 0.7
   - 1.0
+  - 1.1
   - nightly
 env:
   matrix:
@@ -19,4 +19,15 @@ notifications:
 #  - julia -e 'Pkg.clone(pwd()); Pkg.build("FFTW"); Pkg.test("FFTW"; coverage=true)'
 after_success:
   - julia -e 'using Pkg; Pkg.add("Coverage"); Pkg.dir("FFTW"); using Coverage; Coveralls.submit(Coveralls.process_folder())'
-  - julia -e 'using Pkg; ps=Pkg.PackageSpec(name="Documenter", version="0.19"); Pkg.add(ps); Pkg.pin(ps); Pkg.dir("FFTW"); include(joinpath("docs", "make.jl"))'
+
+jobs:
+  include:
+    - stage: "Documentation"
+      julia: 1.0
+      os: linux
+      script:
+        - julia --project=docs/ -e 'using Pkg; Pkg.develop(PackageSpec(path=pwd()));
+                                               Pkg.instantiate();
+                                               Pkg.build("FFTW")'
+        - julia --project=docs/ docs/make.jl
+      after_success: skip

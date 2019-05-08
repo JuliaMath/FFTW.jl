@@ -1,6 +1,6 @@
 module FFTW
 
-using Compat, LinearAlgebra, Reexport
+using LinearAlgebra, Reexport
 import Libdl
 @reexport using AbstractFFTs
 
