@@ -29,8 +29,8 @@ t = t0:Ts:tmax
 signal = sin.(2π * 60 * t) + .5 * sin.(2π * 120 * t)
 
 # Fourier Transform of it
-F = fft(signal) |> fftshift
-freqs = fftfreq(length(t), fs) |> fftshift
+F = fftshift(fft(signal))
+freqs =  fftshift(fftfreq(length(t), fs))
 
 # Plot
 time_domain = plot(t, signal, title="Signal", xlims=(0, 4 / 60), xlabel="time (s)", label="")
