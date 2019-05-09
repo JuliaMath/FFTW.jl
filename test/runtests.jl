@@ -4,7 +4,6 @@ using FFTW: fftw_vendor
 using AbstractFFTs: Plan, plan_inv
 using Test
 using LinearAlgebra
-using Compat
 
 # Base Julia issue #19892
 # (test this first to make sure it happens before set_num_threads)
