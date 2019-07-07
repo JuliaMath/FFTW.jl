@@ -3,7 +3,7 @@
 This package extends the functionality provided by
 [AbstractFFTs](https://github.com/JuliaMath/AbstractFFTs.jl).
 To learn more about those functions, consult that package's
-[documentation](https://juliamath.github.io/AbstractFFTs.jl/stable/api.html).
+[documentation](https://juliamath.github.io/AbstractFFTs.jl/stable/api/).
 
 The following functions are unique to this package.
 
