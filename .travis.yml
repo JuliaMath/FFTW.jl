@@ -11,6 +11,7 @@ env:
   matrix:
     - JULIA_FFTW_PROVIDER=FFTW
     - JULIA_FFTW_PROVIDER=MKL
+    - JULIA_NUM_THREADS=2
 notifications:
   email: false
 # uncomment the following lines to override the default test script
