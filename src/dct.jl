@@ -110,7 +110,7 @@ for (pf, pfr, K, inplace) in ((:plan_dct, :plan_r2r, REDFT10, false),
 end
 
 function plan_inv(p::DCTPlan{T,K,inplace}) where {T,K,inplace}
-    X = Array{T}(p.plan.sz)
+    X = Array{T}(undef, p.plan.sz)
     iK = inv_kind[K]
     DCTPlan{T,iK,inplace}(inplace ?
                           plan_r2r!(X, iK, p.region, flags=p.plan.flags) :
