@@ -5,20 +5,6 @@ using AbstractFFTs: Plan, plan_inv
 using Test
 using LinearAlgebra
 
-# Base Julia issue #19892
-# (test this first to make sure it happens before set_num_threads)
-let a = randn(10^5,1), p1 = plan_rfft(a, flags=FFTW.ESTIMATE)
-    FFTW.set_num_threads(2)
-    p2 = plan_rfft(a, flags=FFTW.ESTIMATE)
-    @test p1*a ≈ p2*a
-    # make sure threads are actually being used for p2
-    # (tests #21163).
-    if FFTW.has_sprint_plan
-        @test !occursin("dft-thr", string(p1))
-        @test occursin("dft-thr", string(p2))
-    end
-end
-
 # fft
 a = rand(8) + im*rand(8)
 @test norm(ifft(fft(a)) - a) < 1e-8
@@ -514,5 +500,20 @@ let A = rand(Float32, 35), Ac = rand(Complex{Float32}, 35)
     if nontrivial_alignment
         @test_throws ArgumentError plan_rfft(Array{Float32}(undef, 32)) * view(A, 2:33)
         @test_throws ArgumentError plan_fft(Array{Complex{Float32}}(undef, 32)) * view(Ac, 2:33)
+    end
+end
+
+# Base Julia issue #19892
+let a = randn(10^5,1)
+    FFTW.set_num_threads(1)
+    p1 = plan_rfft(a, flags=FFTW.ESTIMATE)
+    FFTW.set_num_threads(2)
+    p2 = plan_rfft(a, flags=FFTW.ESTIMATE)
+    @test p1*a ≈ p2*a
+    # make sure threads are actually being used for p2
+    # (tests #21163).
+    if FFTW.has_sprint_plan
+        @test !occursin("dft-thr", string(p1))
+        @test occursin("dft-thr", string(p2))
     end
 end
