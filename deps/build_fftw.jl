@@ -4,8 +4,8 @@ using BinaryProvider # requires BinaryProvider 0.3.0 or later
 const verbose = "--verbose" in ARGS
 const prefix = Prefix(get([a for a in ARGS if a != "--verbose"], 1, joinpath(@__DIR__, "usr")))
 products = [
-    LibraryProduct(["libfftw3"], :libfftw3),
-    LibraryProduct(["libfftw3f"], :libfftw3f),
+    LibraryProduct(prefix, ["libfftw3"], :libfftw3),
+    LibraryProduct(prefix, ["libfftw3f"], :libfftw3f),
 ]
 
 # Download binaries from hosted location
