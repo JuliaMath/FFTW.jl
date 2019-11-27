@@ -3,9 +3,6 @@ using LinearAlgebra
 import Libdl
 const depsfile = joinpath(@__DIR__, "deps.jl")
 
-# If BLAS was compiled with MKL and the user wants MKL-based FFTs, we'll oblige.
-# In that case, we have to do this little dance to get around having to use BinDeps
-# for a library that's already linked to Julia.
 settings = joinpath(first(DEPOT_PATH), "prefs", "FFTW")
 mkpath(dirname(settings))
 if haskey(ENV, "JULIA_FFTW_PROVIDER")
@@ -17,7 +14,9 @@ else
     provider = "FFTW"
     open(f -> println(f, provider), settings, "w")
 end
+
 if provider == "MKL"
+    # If BLAS was compiled with MKL and the user wants MKL-based FFTs, we'll oblige.
     if BLAS.vendor() === :mkl
         mklpath = Libdl.dlpath("libmkl_rt")
     else
@@ -41,10 +40,15 @@ if provider == "MKL"
             end
         """)
     end
-elseif provider != "FFTW"
+elseif provider == "FFTW"
+    open(depsfile, "w") do io
+        println(io, """
+            using FFTW_jll
+            check_deps() = nothing
+        """)
+    end
+else
     error("Unrecognized JULIA_FFTW_PROVIDER \"$provider\".\n",
           "To fix this, set ENV[\"JULIA_FFTW_PROVIDER\"] to \"FFTW\" or \"MKL\"\n",
           "and rerun Pkg.build(\"FFTW\").")
-else
-    include("build_fftw.jl")
 end
