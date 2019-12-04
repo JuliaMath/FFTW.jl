@@ -19,7 +19,7 @@ if provider == "MKL"
     # If BLAS was compiled with MKL and the user wants MKL-based FFTs, we'll oblige.
     open(depsfile, "w") do io
         println(io, """
-            using MKL_jll
+            using IntelOpenMP_jll, MKL_jll
             check_deps() = nothing
             const libfftw3 = MKL_jll.libmkl_rt_path
             const libfftw3f = libfftw3
