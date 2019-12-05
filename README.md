@@ -33,9 +33,7 @@ The documentation of generic FFT functionality can be found in the [AbstractFFTs
 
 Alternatively, the FFTs in Intel's Math Kernel Library (MKL) can be used
 by setting an environment variable `JULIA_FFTW_PROVIDER` to `MKL` and running
-`Pkg.build("FFTW")`.   If Julia was built with MKL, then Julia's MKL will be
-used for FFTs; otherwise the [Conda.jl package](https://github.com/JuliaPy/Conda.jl)
-will be used to download MKL via the [mkl_fft Anaconda package](https://github.com/IntelPython/mkl_fft).
+`Pkg.build("FFTW")`. MKL will be provided through `MKL_jll`.
 Setting this environment variable only needs to be done for the first build of the package;
 after that, the package will remember to use MKL when building and updating.
 Note however that MKL provides only a subset of the functionality provided by FFTW. See
