@@ -18,27 +18,12 @@ end
 if provider == "MKL"
     const mkllib = Sys.iswindows() ? "mkl_rt" : "libmkl_rt"
     # If BLAS was compiled with MKL and the user wants MKL-based FFTs, we'll oblige.
-    if BLAS.vendor() === :mkl
-        mklpath = Libdl.dlpath(mkllib)
-    else
-        using Conda
-        Conda.add("mkl_fft")
-        mklpath = joinpath(Conda.lib_dir(Conda.ROOTENV), mkllib)
-    end
-    mklpath = escape_string(mklpath)
-    isfile(depsfile) && rm(depsfile, force=true)
-    open(depsfile, "w") do f
-        println(f, """
-            # This is an auto-generated file, do not edit
-            import Libdl
-            const libfftw3 = "$mklpath"
+    open(depsfile, "w") do io
+        println(io, """
+            using IntelOpenMP_jll, MKL_jll
+            check_deps() = nothing
+            const libfftw3 = MKL_jll.libmkl_rt_path
             const libfftw3f = libfftw3
-            function check_deps()
-                if Libdl.dlopen_e(libfftw3) == C_NULL
-                    error("Unable to load MKL from '$mklpath'.\\n",
-                          "Please rerun Pkg.build(\\"FFTW\\") and restart Julia.")
-                end
-            end
         """)
     end
 elseif provider == "FFTW"
