@@ -16,6 +16,7 @@ else
 end
 
 if provider == "MKL"
+    const mkllib = Sys.iswindows() ? "mkl_rt" : "libmkl_rt"
     # If BLAS was compiled with MKL and the user wants MKL-based FFTs, we'll oblige.
     open(depsfile, "w") do io
         println(io, """
