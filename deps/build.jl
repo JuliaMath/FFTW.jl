@@ -16,13 +16,14 @@ else
 end
 
 if provider == "MKL"
+    const mkllib = Sys.iswindows() ? "mkl_rt" : "libmkl_rt"
     # If BLAS was compiled with MKL and the user wants MKL-based FFTs, we'll oblige.
     if BLAS.vendor() === :mkl
-        mklpath = Libdl.dlpath("libmkl_rt")
+        mklpath = Libdl.dlpath(mkllib)
     else
         using Conda
         Conda.add("mkl_fft")
-        mklpath = joinpath(Conda.lib_dir(Conda.ROOTENV), "libmkl_rt")
+        mklpath = joinpath(Conda.lib_dir(Conda.ROOTENV), mkllib)
     end
     mklpath = escape_string(mklpath)
     isfile(depsfile) && rm(depsfile, force=true)
