@@ -50,13 +50,15 @@ function __init__()
     if stat == 0 || statf == 0
         error("could not initialize FFTW threads")
     end
-    @static if fftw_vendor == :fftw && nthreads() > 1
-        ccall((:fftw_make_planner_thread_safe,  libfftw3),  Cvoid, ())
-        ccall((:fftwf_make_planner_thread_safe, libfftw3f), Cvoid, ())
-        cspawnloop = @cfunction(spawnloop, Cvoid, (Ptr{Cvoid}, Ptr{Cvoid}, Csize_t, Cint, Ptr{Cvoid}))
-        ccall((:fftw_threads_set_callback,  libfftw3),  Cvoid, (Ptr{Cvoid}, Ptr{Cvoid}), cspawnloop, C_NULL)
-        ccall((:fftwf_threads_set_callback, libfftw3f), Cvoid, (Ptr{Cvoid}, Ptr{Cvoid}), cspawnloop, C_NULL)
-        set_num_threads(nthreads() * 4) # spawn more tasks than threads to help load-balancing
+    @static if fftw_vendor == :fftw
+        if nthreads() > 1
+            ccall((:fftw_make_planner_thread_safe,  libfftw3),  Cvoid, ())
+            ccall((:fftwf_make_planner_thread_safe, libfftw3f), Cvoid, ())
+            cspawnloop = @cfunction(spawnloop, Cvoid, (Ptr{Cvoid}, Ptr{Cvoid}, Csize_t, Cint, Ptr{Cvoid}))
+            ccall((:fftw_threads_set_callback,  libfftw3),  Cvoid, (Ptr{Cvoid}, Ptr{Cvoid}), cspawnloop, C_NULL)
+            ccall((:fftwf_threads_set_callback, libfftw3f), Cvoid, (Ptr{Cvoid}, Ptr{Cvoid}), cspawnloop, C_NULL)
+            set_num_threads(nthreads() * 4) # spawn more tasks than threads to help load-balancing
+        end
     end
 end
 
