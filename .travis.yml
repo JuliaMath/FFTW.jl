@@ -2,16 +2,16 @@
 language: julia
 os:
   - linux
+  - freebsd
   - osx
   - windows
 julia:
   - 1.3
   - nightly
 env:
-  matrix:
-    - JULIA_FFTW_PROVIDER=FFTW
-    - JULIA_FFTW_PROVIDER=MKL
-    - JULIA_NUM_THREADS=2
+  - JULIA_FFTW_PROVIDER=FFTW
+  - JULIA_FFTW_PROVIDER=MKL
+  - JULIA_NUM_THREADS=2
 notifications:
   email: false
 # uncomment the following lines to override the default test script
@@ -21,7 +21,22 @@ notifications:
 after_success:
   - julia -e 'using Pkg; Pkg.add("Coverage"); Pkg.dir("FFTW"); using Coverage; Coveralls.submit(Coveralls.process_folder())'
 
+branches:
+  only:
+  - master
+  - gh-pages # For building documentation
+  - /^testing-.*$/ # testing branches
+  - /^v[0-9]+\.[0-9]+\.[0-9]+$/ # version tags
+
+cache:
+  directories:
+    - $HOME/.julia/artifacts
+
 jobs:
+  exclude:
+    - os: freebsd
+      env:
+        - JULIA_FFTW_PROVIDER=MKL
   include:
     - stage: "Documentation"
       julia: 1.3
