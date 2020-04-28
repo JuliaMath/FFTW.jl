@@ -35,8 +35,7 @@ cache:
 jobs:
   exclude:
     - os: freebsd
-      env:
-        - JULIA_FFTW_PROVIDER=MKL
+      env: JULIA_FFTW_PROVIDER=MKL
   include:
     - stage: "Documentation"
       julia: 1.3
