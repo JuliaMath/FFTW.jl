@@ -226,7 +226,7 @@ end
 abstract type FFTWPlan{T<:fftwNumber,K,inplace} <: Plan{T} end
 for P in (:cFFTWPlan, :rFFTWPlan, :r2rFFTWPlan) # complex, r2c/c2r, and r2r
     @eval begin
-        mutable struct $P{T<:fftwNumber,K,inplace,N} <: FFTWPlan{T,K,inplace}
+        mutable struct $P{T<:fftwNumber,K,inplace,N,G} <: FFTWPlan{T,K,inplace}
             plan::PlanPtr
             sz::NTuple{N,Int} # size of array on which plan operates (Int tuple)
             osz::NTuple{N,Int} # size of output array (Int tuple)
@@ -235,15 +235,21 @@ for P in (:cFFTWPlan, :rFFTWPlan, :r2rFFTWPlan) # complex, r2c/c2r, and r2r
             ialign::Int32 # alignment mod 16 of input
             oalign::Int32 # alignment mod 16 of input
             flags::UInt32 # planner flags
-            region::Any # region (iterable) of dims that are transormed
+            region::G # region (iterable) of dims that are transormed
             pinv::ScaledPlan
-            function $P{T,K,inplace,N}(plan::PlanPtr, flags::Integer, R::Any,
-                                       X::StridedArray{T,N}, Y::StridedArray) where {T<:fftwNumber,K,inplace,N}
+            function $P{T,K,inplace,N,G}(plan::PlanPtr, flags::Integer, R::G,
+                                         X::StridedArray{T,N}, Y::StridedArray) where {T<:fftwNumber,K,inplace,N,G}
                 p = new(plan, size(X), size(Y), strides(X), strides(Y),
                         alignment_of(X), alignment_of(Y), flags, R)
                 finalizer(destroy_plan, p)
                 p
             end
+        end
+
+        function $P{T,K,inplace,N}(plan::PlanPtr, flags::Integer, R::G,
+                                   X::StridedArray{T,N},
+                                   Y::StridedArray) where {T<:fftwNumber,K,inplace,N,G}
+            $P{T,K,inplace,N,G}(plan, flags, R, X, Y)
         end
     end
 end
