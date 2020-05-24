@@ -517,3 +517,8 @@ let a = randn(10^5,1)
         @test occursin("dft-thr", string(p2))
     end
 end
+
+FFTW.set_num_threads(1)
+@test FFTW.get_num_threads() == 1
+FFTW.set_num_threads(2)
+@test FFTW.get_num_threads() == 2

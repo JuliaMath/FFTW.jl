@@ -108,6 +108,11 @@ const fftwSingle = Union{Float32,Complex{Float32}}
 const fftwTypeDouble = Union{Type{Float64},Type{Complex{Float64}}}
 const fftwTypeSingle = Union{Type{Float32},Type{Complex{Float32}}}
 
+# cached argument to set_num_threads
+
+# Default of 1 because set_num_threads is only called if Threads.nthreads() > 1
+const PLAN_NUM_THREADS = Ref(Int32(1))
+
 # For ESTIMATE plans, FFTW allows one to pass NULL for the array pointer,
 # since it is not written to.  Hence, it is convenient to create an
 # array-like type that carries a size and a stride like a "real" array
@@ -172,9 +177,12 @@ end
 # Threads
 
 function set_num_threads(nthreads::Integer)
+    PLAN_NUM_THREADS[] = nthreads # cache this argument for later access
     ccall((:fftw_plan_with_nthreads,libfftw3), Cvoid, (Int32,), nthreads)
     ccall((:fftwf_plan_with_nthreads,libfftw3f), Cvoid, (Int32,), nthreads)
 end
+
+get_num_threads() = PLAN_NUM_THREADS[]
 
 # pointer type for fftw_plan (opaque pointer)
 
