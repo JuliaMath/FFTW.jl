@@ -1,6 +1,6 @@
 name = "FFTW"
 uuid = "7a1cc6ca-52ef-59f5-83cd-3a7055c09341"
-version = "1.2.1"
+version = "1.2.2"
 
 [deps]
 AbstractFFTs = "621f4979-c628-5d54-868e-fcf4e3e8185c"
@@ -15,7 +15,7 @@ Reexport = "189a3867-3050-52da-a836-e630ba90ab69"
 AbstractFFTs = "0.5"
 FFTW_jll = "3.3"
 IntelOpenMP_jll = "2018.0.3"
-MKL_jll = "2019.0.117"
+MKL_jll = "2019.0.117, 2020"
 Reexport = "0.2"
 julia = "1.3"
 
