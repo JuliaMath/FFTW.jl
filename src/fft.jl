@@ -258,8 +258,7 @@ const DESTROY_QUEUE = Vector{FFTWPlan}(undef, 0)
 
 function destroy_queued_plans(t)
     while length(DESTROY_QUEUE) > 0
-        p = popfirst!(DESTROY_QUEUE)
-        destroy_plan(p)
+        destroy_plan(popfirst!(DESTROY_QUEUE)) # start with oldest
     end
     return nothing
 end
@@ -268,7 +267,7 @@ const DESTROY_QUEUE_TIMER = Ref{Timer}(Timer(destroy_queued_plans, 0))
 
 function queue_destroy_plan(p::FFTWPlan)
     push!(DESTROY_QUEUE, p) # add plan to destroy queue
-    close(DESTROY_QUEUE_TIMER[])
+    close(DESTROY_QUEUE_TIMER[]) # stop the existing timer
     DESTROY_QUEUE_TIMER[] = Timer(destroy_queued_plans, 5) # delay destroying plans by another 5 seconds
 end
 
