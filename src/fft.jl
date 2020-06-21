@@ -255,12 +255,26 @@ for P in (:cFFTWPlan, :rFFTWPlan, :r2rFFTWPlan) # complex, r2c/c2r, and r2r
 end
 
 const DESTROY_QUEUE = Vector{FFTWPlan}(undef, 0)
-const DESTROY_QUEUE_TIMER = Timer((t) -> destroy_plan.(DESTROY_QUEUE), 0)
+
+function destroy_queued_plans(t)
+    while length(DESTROY_QUEUE) > 0
+        p = popfirst!(DESTROY_QUEUE)
+        destroy_plan(p)
+    end
+    return nothing
+end
+
+const DESTROY_QUEUE_TIMER = Ref{Timer}(Timer(destroy_queued_plans, 0))
 
 function queue_destroy_plan(p::FFTWPlan)
     push!(DESTROY_QUEUE, p) # add plan to destroy queue
-    DESTROY_QUEUE_TIMER = Timer((t) -> destroy_plan.(DESTROY_QUEUE), 5) # delay destroying plans by another 5 seconds
+    close(DESTROY_QUEUE_TIMER[])
+    DESTROY_QUEUE_TIMER[] = Timer(destroy_queued_plans, 5) # delay destroying plans by another 5 seconds
 end
+
+
+    
+
 
 size(p::FFTWPlan) = p.sz
 
