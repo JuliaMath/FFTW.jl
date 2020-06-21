@@ -272,10 +272,6 @@ function queue_destroy_plan(p::FFTWPlan)
     DESTROY_QUEUE_TIMER[] = Timer(destroy_queued_plans, 5) # delay destroying plans by another 5 seconds
 end
 
-
-    
-
-
 size(p::FFTWPlan) = p.sz
 
 unsafe_convert(::Type{PlanPtr}, p::FFTWPlan) = p.plan
