@@ -241,7 +241,7 @@ for P in (:cFFTWPlan, :rFFTWPlan, :r2rFFTWPlan) # complex, r2c/c2r, and r2r
                                          X::StridedArray{T,N}, Y::StridedArray) where {T<:fftwNumber,K,inplace,N,G}
                 p = new(plan, size(X), size(Y), strides(X), strides(Y),
                         alignment_of(X), alignment_of(Y), flags, R)
-                finalizer(destroy_plan, p)
+                finalizer(queue_destroy_plan, p)
                 p
             end
         end
@@ -252,6 +252,14 @@ for P in (:cFFTWPlan, :rFFTWPlan, :r2rFFTWPlan) # complex, r2c/c2r, and r2r
             $P{T,K,inplace,N,G}(plan, flags, R, X, Y)
         end
     end
+end
+
+const DESTROY_QUEUE = Vector{FFTWPlan}(undef, 0)
+const DESTROY_QUEUE_TIMER = Timer((t) -> destroy_plan.(DESTROY_QUEUE), 0)
+
+function queue_destroy_plan(p::FFTWPlan)
+    push!(DESTROY_QUEUE, p) # add plan to destroy queue
+    DESTROY_QUEUE_TIMER = Timer((t) -> destroy_plan.(DESTROY_QUEUE), 5) # delay destroying plans by another 5 seconds
 end
 
 size(p::FFTWPlan) = p.sz
