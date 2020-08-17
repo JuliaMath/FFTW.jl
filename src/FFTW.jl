@@ -52,14 +52,40 @@ function __init__()
     end
     @static if fftw_vendor == :fftw
         if nthreads() > 1
-            ccall((:fftw_make_planner_thread_safe,  libfftw3),  Cvoid, ())
-            ccall((:fftwf_make_planner_thread_safe, libfftw3f), Cvoid, ())
             cspawnloop = @cfunction(spawnloop, Cvoid, (Ptr{Cvoid}, Ptr{Cvoid}, Csize_t, Cint, Ptr{Cvoid}))
             ccall((:fftw_threads_set_callback,  libfftw3),  Cvoid, (Ptr{Cvoid}, Ptr{Cvoid}), cspawnloop, C_NULL)
             ccall((:fftwf_threads_set_callback, libfftw3f), Cvoid, (Ptr{Cvoid}, Ptr{Cvoid}), cspawnloop, C_NULL)
         end
     end
 end
+
+# most FFTW calls other than fftw_execute should be protected by a lock to be thread-safe
+const fftwlock = ReentrantLock()
+
+# protect thread-safety of expressions or whole functions by fftwlock:
+macro exclusive(ex)
+    if Meta.isexpr(ex, :function) || (Meta.isexpr(ex, :(=)) && Meta.isexpr(ex.args[1], :call))
+        newbody = quote
+            try
+                lock(fftwlock)
+                $(esc(ex.args[2]))
+            finally
+                unlock(fftwlock)
+            end
+        end
+        Expr(:function, esc(ex.args[1]), newbody)
+    else
+        return quote
+            try
+                lock(fftwlock)
+                $(esc(ex))
+            finally
+                unlock(fftwlock)
+            end
+        end
+    end
+end
+
 
 include("fft.jl")
 include("dct.jl")
