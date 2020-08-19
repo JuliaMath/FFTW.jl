@@ -82,6 +82,7 @@ macro exclusive(ex)
                 $(esc(ex))
             finally
                 unlock(fftwlock)
+                destroy_deferred() # deallocate plans queued to be destroyed while we held the lock
             end
         end
     end
