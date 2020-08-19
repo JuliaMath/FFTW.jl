@@ -280,8 +280,8 @@ const deferred_destroy_plans = FFTWPlan[]
 trylock_nonreentrant(rl::ReentrantLock) = current_task() !== rl.locked_by && trylock(rl)
 
 function destroy_deferred()
+    lock(deferred_destroy_lock)
     try
-        lock(deferred_destroy_lock)
         # need trylock here to avoid potential deadlocks if another
         # @exclusive function has just grabbed the lock; in that case,
         # we'll do nothing (the other function will eventually run destroy_deferred).
@@ -301,11 +301,11 @@ end
 @exclusive destroy_plan(plan::FFTWPlan) = unsafe_destroy_plan(plan)
 
 function maybe_destroy_plan(plan::FFTWPlan)
+    # need to acquire deferred_destroy_lock before trylock to avoid a memory leak
+    # (race to avoid: trylock == false, other thread unlocks and calls destroy_deferred,
+    #                 then we push a deferred plan that may never get freed)
+    lock(deferred_destroy_lock)
     try
-        # need to acquire deferred_destroy_lock before trylock to avoid a memory leak
-        # (race to avoid: trylock == false, other thread unlocks and calls destroy_deferred,
-        #                 then we push a deferred plan that may never get freed)
-        lock(deferred_destroy_lock)
         if trylock_nonreentrant(fftwlock)
             try
                 unsafe_destroy_plan(plan)

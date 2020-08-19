@@ -66,8 +66,8 @@ const fftwlock = ReentrantLock()
 macro exclusive(ex)
     if Meta.isexpr(ex, :function) || (Meta.isexpr(ex, :(=)) && Meta.isexpr(ex.args[1], :call))
         newbody = quote
+            lock(fftwlock)
             try
-                lock(fftwlock)
                 $(esc(ex.args[2]))
             finally
                 unlock(fftwlock)
@@ -77,8 +77,8 @@ macro exclusive(ex)
         Expr(:function, esc(ex.args[1]), newbody)
     else
         return quote
+            lock(fftwlock)
             try
-                lock(fftwlock)
                 $(esc(ex))
             finally
                 unlock(fftwlock)
