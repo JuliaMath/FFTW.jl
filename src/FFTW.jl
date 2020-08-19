@@ -71,6 +71,7 @@ macro exclusive(ex)
                 $(esc(ex.args[2]))
             finally
                 unlock(fftwlock)
+                destroy_deferred() # deallocate plans queued to be destroyed while we held the lock
             end
         end
         Expr(:function, esc(ex.args[1]), newbody)
@@ -85,7 +86,6 @@ macro exclusive(ex)
         end
     end
 end
-
 
 include("fft.jl")
 include("dct.jl")

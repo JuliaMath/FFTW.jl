@@ -241,7 +241,7 @@ for P in (:cFFTWPlan, :rFFTWPlan, :r2rFFTWPlan) # complex, r2c/c2r, and r2r
                                          X::StridedArray{T,N}, Y::StridedArray) where {T<:fftwNumber,K,inplace,N,G}
                 p = new(plan, size(X), size(Y), strides(X), strides(Y),
                         alignment_of(X), alignment_of(Y), flags, R)
-                finalizer(destroy_plan, p)
+                finalizer(maybe_destroy_plan, p)
                 p
             end
         end
@@ -258,11 +258,63 @@ size(p::FFTWPlan) = p.sz
 
 unsafe_convert(::Type{PlanPtr}, p::FFTWPlan) = p.plan
 
-@exclusive destroy_plan(plan::FFTWPlan{<:fftwDouble}) =
-    ccall((:fftw_destroy_plan,libfftw3), Cvoid, (PlanPtr,), plan)
+#################################################################################################
+# We have to be careful about destroying plans in an FFTWPlan finalizer, because the
+# garbage-collector may run at unexpected times.  For example, it may run during the spawnloop
+# callback while the FFTW planner is executing.  Under these circumstances, the garbage collector
+# may deadlock if it needs to acquire the fftwlock (already held by the planning thread via @exclusive).
+# Instead, if islocked(fftwlock), we defer plan destruction until the fftwlock is released, by
+# pushing the plan to be destroyed to the deferred_destroy_plans (which itself is protected by a lock).
+# This is accomplished by the maybe_destroy_plan function, which is used as the plan finalizer.
 
-@exclusive destroy_plan(plan::FFTWPlan{<:fftwSingle}) =
+# these functions should only be called while the fftwlock is held
+unsafe_destroy_plan(plan::FFTWPlan{<:fftwDouble}) =
+    ccall((:fftw_destroy_plan,libfftw3), Cvoid, (PlanPtr,), plan)
+unsafe_destroy_plan(plan::FFTWPlan{<:fftwSingle}) =
     ccall((:fftwf_destroy_plan,libfftw3f), Cvoid, (PlanPtr,), plan)
+
+const deferred_destroy_lock = ReentrantLock() # lock protecting the deferred_destroy_plans list
+const deferred_destroy_plans = FFTWPlan[]
+
+function destroy_deferred()
+    try
+        lock(deferred_destroy_lock)
+        # need trylock here to avoid potential deadlocks if another
+        # @exclusive function has just grabbed the lock; in that case,
+        # we'll do nothing (the other function will eventually run destroy_deferred).
+        if !isempty(deferred_destroy_plans) && trylock(fftwlock)
+            try
+                foreach(unsafe_destroy_plan, deferred_destroy_plans)
+                empty!(deferred_destroy_plans)
+            finally
+                unlock(fftwlock)
+            end
+        end
+    finally
+        unlock(deferred_destroy_lock)
+    end
+end
+
+@exclusive destroy_plan(plan::FFTWPlan) = unsafe_destroy_plan(plan)
+
+function maybe_destroy_plan(plan::FFTWPlan)
+    if trylock(fftwlock)
+        try
+            unsafe_destroy_plan(plan)
+        finally
+            unlock(fftwlock)
+        end
+    else
+        try
+            lock(deferred_destroy_lock)
+            push!(deferred_destroy_plans, plan)
+        finally
+            unlock(deferred_destroy_lock)
+        end
+    end
+end
+
+#################################################################################################
 
 cost(plan::FFTWPlan{<:fftwDouble}) =
     ccall((:fftw_cost,libfftw3), Float64, (PlanPtr,), plan)
