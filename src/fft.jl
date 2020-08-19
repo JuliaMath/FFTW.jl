@@ -297,19 +297,22 @@ end
 @exclusive destroy_plan(plan::FFTWPlan) = unsafe_destroy_plan(plan)
 
 function maybe_destroy_plan(plan::FFTWPlan)
-    if trylock(fftwlock)
-        try
-            unsafe_destroy_plan(plan)
-        finally
-            unlock(fftwlock)
-        end
-    else
-        try
-            lock(deferred_destroy_lock)
+    try
+        # need to acquire deferred_destroy_lock before trylock to avoid a memory leak
+        # (race to avoid: trylock == false, other thread unlocks and calls destroy_deferred,
+        #                 then we push a deferred plan that may never get freed)
+        lock(deferred_destroy_lock)
+        if trylock(fftwlock)
+            try
+                unsafe_destroy_plan(plan)
+            finally
+                unlock(fftwlock)
+            end
+        else
             push!(deferred_destroy_plans, plan)
-        finally
-            unlock(deferred_destroy_lock)
         end
+    finally
+        unlock(deferred_destroy_lock)
     end
 end
 
