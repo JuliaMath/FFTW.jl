@@ -270,22 +270,16 @@ cost(plan::FFTWPlan{<:fftwSingle}) =
     ccall((:fftwf_cost,libfftw3f), Float64, (PlanPtr,), plan)
 
 function arithmetic_ops(plan::FFTWPlan{<:fftwDouble})
-    # Change to individual Ref after we can allocate them on stack
-    ref = Ref{NTuple{3,Float64}}()
-    ptr = Ptr{Float64}(Base.unsafe_convert(Ptr{NTuple{3,Float64}}, ref))
+    add, mul, fma = Ref(0.0), Ref(0.0), Ref(0.0)
     ccall((:fftw_flops,libfftw3), Cvoid,
-          (PlanPtr,Ptr{Float64},Ptr{Float64},Ptr{Float64}),
-          plan, ptr, ptr + 8, ptr + 16)
-    (round(Int64, ref[][1]), round(Int64, ref[][2]), round(Int64, ref[][3]))
+          (PlanPtr,Ref{Float64},Ref{Float64},Ref{Float64}), plan, add, mul, fma)
+    return (round(Int64, add[]), round(Int64, mul[]), round(Int64, fma[]))
 end
 function arithmetic_ops(plan::FFTWPlan{<:fftwSingle})
-    # Change to individual Ref after we can allocate them on stack
-    ref = Ref{NTuple{3,Float64}}()
-    ptr = Ptr{Float64}(Base.unsafe_convert(Ptr{NTuple{3,Float64}}, ref))
+    add, mul, fma = Ref(0.0), Ref(0.0), Ref(0.0)
     ccall((:fftwf_flops,libfftw3f), Cvoid,
-          (PlanPtr,Ptr{Float64},Ptr{Float64},Ptr{Float64}),
-          plan, ptr, ptr + 8, ptr + 16)
-    (round(Int64, ref[][1]), round(Int64, ref[][2]), round(Int64, ref[][3]))
+          (PlanPtr,Ref{Float64},Ref{Float64},Ref{Float64}), plan, add, mul, fma)
+    return (round(Int64, add[]), round(Int64, mul[]), round(Int64, fma[]))
 end
 flops(plan::FFTWPlan) = let ops = arithmetic_ops(plan)
     ops[1] + ops[2] + 2 * ops[3] # add + mul + 2*fma
