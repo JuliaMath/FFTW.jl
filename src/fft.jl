@@ -275,8 +275,8 @@ unsafe_destroy_plan(plan::FFTWPlan{<:fftwSingle}) =
 const deferred_destroy_lock = ReentrantLock() # lock protecting the deferred_destroy_plans list
 const deferred_destroy_plans = FFTWPlan[]
 
-# hack to get non-reentrant lock, which is necessary to prevent GC running in the
-# same task that acquired fftwlock to use deferred_destroy_plans in maybe_destroy_plan.
+# hack to get non-reentrant lock, which is necessary to ensure that GC running in the
+# same task that acquired fftwlock will use deferred_destroy_plans in maybe_destroy_plan.
 trylock_nonreentrant(rl::ReentrantLock) = current_task() !== rl.locked_by && trylock(rl)
 
 function destroy_deferred()
