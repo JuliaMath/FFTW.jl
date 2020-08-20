@@ -300,7 +300,11 @@ function maybe_destroy_plan(plan::FFTWPlan)
     # need to acquire deferred_destroy_lock before trylock to avoid a memory leak
     # (race to avoid: trylock == false, other thread unlocks and calls destroy_deferred,
     #                 then we push a deferred plan that may never get freed)
-    lock(deferred_destroy_lock)
+    # Also, we need to use a trylock spinloop rather than lock(deferred_destroy_lock),
+    # since task switches aren't permitted in finalizers.   This has suboptimal efficiency,
+    # but we shouldn't waste too many cycles since destroying plans is quick and contention
+    # should be rare.
+    while !trylock(deferred_destroy_lock); end
     try
         # note: fftwlock is re-entrant, so trylock will succeed here if we
         # are in the task that holds the planner lock.  That's okay — 
