@@ -138,7 +138,7 @@ alignment_of(A::FakeArray) = Int32(0)
 # around FFTW's internal file i/o buffering [see the BUFSZ constant in
 # FFTW's api/import-wisdom-from-file.c file].
 
-function export_wisdom(fname::AbstractString)
+@exclusive function export_wisdom(fname::AbstractString)
     f = ccall(:fopen, Ptr{Cvoid}, (Cstring,Cstring), fname, :w)
     systemerror("could not open wisdom file $fname for writing", f == C_NULL)
     ccall((:fftw_export_wisdom_to_file,libfftw3), Cvoid, (Ptr{Cvoid},), f)
@@ -147,7 +147,7 @@ function export_wisdom(fname::AbstractString)
     ccall(:fclose, Cvoid, (Ptr{Cvoid},), f)
 end
 
-function import_wisdom(fname::AbstractString)
+@exclusive function import_wisdom(fname::AbstractString)
     f = ccall(:fopen, Ptr{Cvoid}, (Cstring,Cstring), fname, :r)
     systemerror("could not open wisdom file $fname for reading", f == C_NULL)
     if ccall((:fftw_import_wisdom_from_file,libfftw3),Int32,(Ptr{Cvoid},),f)==0||
@@ -157,21 +157,21 @@ function import_wisdom(fname::AbstractString)
     ccall(:fclose, Cvoid, (Ptr{Cvoid},), f)
 end
 
-function import_system_wisdom()
+@exclusive function import_system_wisdom()
     if ccall((:fftw_import_system_wisdom,libfftw3), Int32, ()) == 0 ||
        ccall((:fftwf_import_system_wisdom,libfftw3f), Int32, ()) == 0
         error("failed to import system wisdom")
     end
 end
 
-function forget_wisdom()
+@exclusive function forget_wisdom()
     ccall((:fftw_forget_wisdom,libfftw3), Cvoid, ())
     ccall((:fftwf_forget_wisdom,libfftw3f), Cvoid, ())
 end
 
 # Threads
 
-function set_num_threads(nthreads::Integer)
+@exclusive function set_num_threads(nthreads::Integer)
     ccall((:fftw_plan_with_nthreads,libfftw3), Cvoid, (Int32,), nthreads)
     ccall((:fftwf_plan_with_nthreads,libfftw3f), Cvoid, (Int32,), nthreads)
 end
@@ -185,13 +185,12 @@ const PlanPtr = Ptr{fftw_plan_struct}
 
 const NO_TIMELIMIT = -1.0 # from fftw3.h
 
-function set_timelimit(precision::fftwTypeDouble,seconds)
+# only call these when fftwlock is held:
+unsafe_set_timelimit(precision::fftwTypeDouble,seconds) =
     ccall((:fftw_set_timelimit,libfftw3), Cvoid, (Float64,), seconds)
-end
-
-function set_timelimit(precision::fftwTypeSingle,seconds)
+unsafe_set_timelimit(precision::fftwTypeSingle,seconds) =
     ccall((:fftwf_set_timelimit,libfftw3f), Cvoid, (Float64,), seconds)
-end
+@exclusive set_timelimit(precision, seconds) = unsafe_set_timelimit(precision, seconds)
 
 # Array alignment mod 16:
 #   FFTW plans may depend on the alignment of the array mod 16 bytes,
@@ -241,7 +240,7 @@ for P in (:cFFTWPlan, :rFFTWPlan, :r2rFFTWPlan) # complex, r2c/c2r, and r2r
                                          X::StridedArray{T,N}, Y::StridedArray) where {T<:fftwNumber,K,inplace,N,G}
                 p = new(plan, size(X), size(Y), strides(X), strides(Y),
                         alignment_of(X), alignment_of(Y), flags, R)
-                finalizer(destroy_plan, p)
+                finalizer(maybe_destroy_plan, p)
                 p
             end
         end
@@ -258,24 +257,83 @@ size(p::FFTWPlan) = p.sz
 
 unsafe_convert(::Type{PlanPtr}, p::FFTWPlan) = p.plan
 
-destroy_plan(plan::FFTWPlan{<:fftwDouble}) =
-    ccall((:fftw_destroy_plan,libfftw3), Cvoid, (PlanPtr,), plan)
+#################################################################################################
+# We have to be careful about destroying plans in an FFTWPlan finalizer, because the
+# garbage-collector may run at unexpected times.  For example, it may run during the spawnloop
+# callback while the FFTW planner is executing.  Under these circumstances, the garbage collector
+# may deadlock if it needs to acquire the fftwlock (already held by the planning thread via @exclusive).
+# Instead, if islocked(fftwlock), we defer plan destruction until the fftwlock is released, by
+# pushing the plan to be destroyed to the deferred_destroy_plans (which itself is protected by a lock).
+# This is accomplished by the maybe_destroy_plan function, which is used as the plan finalizer.
 
-destroy_plan(plan::FFTWPlan{<:fftwSingle}) =
+# these functions should only be called while the fftwlock is held
+unsafe_destroy_plan(plan::FFTWPlan{<:fftwDouble}) =
+    ccall((:fftw_destroy_plan,libfftw3), Cvoid, (PlanPtr,), plan)
+unsafe_destroy_plan(plan::FFTWPlan{<:fftwSingle}) =
     ccall((:fftwf_destroy_plan,libfftw3f), Cvoid, (PlanPtr,), plan)
+
+const deferred_destroy_lock = ReentrantLock() # lock protecting the deferred_destroy_plans list
+const deferred_destroy_plans = FFTWPlan[]
+
+# hack to get non-reentrant lock, which is necessary to ensure that GC running in the
+# same task that acquired fftwlock will use deferred_destroy_plans in maybe_destroy_plan.
+trylock_nonreentrant(rl::ReentrantLock) = current_task() !== rl.locked_by && trylock(rl)
+
+function destroy_deferred()
+    lock(deferred_destroy_lock)
+    try
+        # need trylock here to avoid potential deadlocks if another
+        # @exclusive function has just grabbed the lock; in that case,
+        # we'll do nothing (the other function will eventually run destroy_deferred).
+        if !isempty(deferred_destroy_plans) && trylock(fftwlock)
+            try
+                foreach(unsafe_destroy_plan, deferred_destroy_plans)
+                empty!(deferred_destroy_plans)
+            finally
+                unlock(fftwlock)
+            end
+        end
+    finally
+        unlock(deferred_destroy_lock)
+    end
+end
+
+@exclusive destroy_plan(plan::FFTWPlan) = unsafe_destroy_plan(plan)
+
+function maybe_destroy_plan(plan::FFTWPlan)
+    # need to acquire deferred_destroy_lock before trylock to avoid a memory leak
+    # (race to avoid: trylock == false, other thread unlocks and calls destroy_deferred,
+    #                 then we push a deferred plan that may never get freed)
+    lock(deferred_destroy_lock)
+    try
+        if trylock_nonreentrant(fftwlock)
+            try
+                unsafe_destroy_plan(plan)
+            finally
+                unlock(fftwlock)
+            end
+        else
+            push!(deferred_destroy_plans, plan)
+        end
+    finally
+        unlock(deferred_destroy_lock)
+    end
+end
+
+#################################################################################################
 
 cost(plan::FFTWPlan{<:fftwDouble}) =
     ccall((:fftw_cost,libfftw3), Float64, (PlanPtr,), plan)
 cost(plan::FFTWPlan{<:fftwSingle}) =
     ccall((:fftwf_cost,libfftw3f), Float64, (PlanPtr,), plan)
 
-function arithmetic_ops(plan::FFTWPlan{<:fftwDouble})
+@exclusive function arithmetic_ops(plan::FFTWPlan{<:fftwDouble})
     add, mul, fma = Ref(0.0), Ref(0.0), Ref(0.0)
     ccall((:fftw_flops,libfftw3), Cvoid,
           (PlanPtr,Ref{Float64},Ref{Float64},Ref{Float64}), plan, add, mul, fma)
     return (round(Int64, add[]), round(Int64, mul[]), round(Int64, fma[]))
 end
-function arithmetic_ops(plan::FFTWPlan{<:fftwSingle})
+@exclusive function arithmetic_ops(plan::FFTWPlan{<:fftwSingle})
     add, mul, fma = Ref(0.0), Ref(0.0), Ref(0.0)
     ccall((:fftwf_flops,libfftw3f), Cvoid,
           (PlanPtr,Ref{Float64},Ref{Float64},Ref{Float64}), plan, add, mul, fma)
@@ -489,11 +547,11 @@ end
 
 for (Tr,Tc,fftw,lib) in ((:Float64,:(Complex{Float64}),"fftw",libfftw3),
                          (:Float32,:(Complex{Float32}),"fftwf",libfftw3f))
-    @eval function cFFTWPlan{$Tc,K,inplace,N}(X::StridedArray{$Tc,N},
+    @eval @exclusive function cFFTWPlan{$Tc,K,inplace,N}(X::StridedArray{$Tc,N},
                                               Y::StridedArray{$Tc,N},
                                               region, flags::Integer, timelimit::Real) where {K,inplace,N}
         direction = K
-        set_timelimit($Tr, timelimit)
+        unsafe_set_timelimit($Tr, timelimit)
         R = isa(region, Tuple) ? region : copy(region)
         dims, howmany = dims_howmany(X, Y, [size(X)...], R)
         plan = ccall(($(string(fftw,"_plan_guru64_dft")),$lib),
@@ -502,19 +560,19 @@ for (Tr,Tc,fftw,lib) in ((:Float64,:(Complex{Float64}),"fftw",libfftw3),
                       Ptr{$Tc}, Ptr{$Tc}, Int32, UInt32),
                      size(dims,2), dims, size(howmany,2), howmany,
                      X, Y, direction, flags)
-        set_timelimit($Tr, NO_TIMELIMIT)
+        unsafe_set_timelimit($Tr, NO_TIMELIMIT)
         if plan == C_NULL
             error("FFTW could not create plan") # shouldn't normally happen
         end
         return cFFTWPlan{$Tc,K,inplace,N}(plan, flags, R, X, Y)
     end
 
-    @eval function rFFTWPlan{$Tr,$FORWARD,inplace,N}(X::StridedArray{$Tr,N},
+    @eval @exclusive function rFFTWPlan{$Tr,$FORWARD,inplace,N}(X::StridedArray{$Tr,N},
                                                      Y::StridedArray{$Tc,N},
                                                      region, flags::Integer, timelimit::Real) where {inplace,N}
         R = isa(region, Tuple) ? region : copy(region)
         region = circshift([region...],-1) # FFTW halves last dim
-        set_timelimit($Tr, timelimit)
+        unsafe_set_timelimit($Tr, timelimit)
         dims, howmany = dims_howmany(X, Y, [size(X)...], region)
         plan = ccall(($(string(fftw,"_plan_guru64_dft_r2c")),$lib),
                      PlanPtr,
@@ -522,19 +580,19 @@ for (Tr,Tc,fftw,lib) in ((:Float64,:(Complex{Float64}),"fftw",libfftw3),
                       Ptr{$Tr}, Ptr{$Tc}, UInt32),
                      size(dims,2), dims, size(howmany,2), howmany,
                      X, Y, flags)
-        set_timelimit($Tr, NO_TIMELIMIT)
+        unsafe_set_timelimit($Tr, NO_TIMELIMIT)
         if plan == C_NULL
             error("FFTW could not create plan") # shouldn't normally happen
         end
         return rFFTWPlan{$Tr,$FORWARD,inplace,N}(plan, flags, R, X, Y)
     end
 
-    @eval function rFFTWPlan{$Tc,$BACKWARD,inplace,N}(X::StridedArray{$Tc,N},
+    @eval @exclusive function rFFTWPlan{$Tc,$BACKWARD,inplace,N}(X::StridedArray{$Tc,N},
                                                       Y::StridedArray{$Tr,N},
                                                       region, flags::Integer, timelimit::Real) where {inplace,N}
         R = isa(region, Tuple) ? region : copy(region)
         region = circshift([region...],-1) # FFTW halves last dim
-        set_timelimit($Tr, timelimit)
+        unsafe_set_timelimit($Tr, timelimit)
         dims, howmany = dims_howmany(X, Y, [size(Y)...], region)
         plan = ccall(($(string(fftw,"_plan_guru64_dft_c2r")),$lib),
                      PlanPtr,
@@ -542,20 +600,20 @@ for (Tr,Tc,fftw,lib) in ((:Float64,:(Complex{Float64}),"fftw",libfftw3),
                       Ptr{$Tc}, Ptr{$Tr}, UInt32),
                      size(dims,2), dims, size(howmany,2), howmany,
                      X, Y, flags)
-        set_timelimit($Tr, NO_TIMELIMIT)
+        unsafe_set_timelimit($Tr, NO_TIMELIMIT)
         if plan == C_NULL
             error("FFTW could not create plan") # shouldn't normally happen
         end
         return rFFTWPlan{$Tc,$BACKWARD,inplace,N}(plan, flags, R, X, Y)
     end
 
-    @eval function r2rFFTWPlan{$Tr,Any,inplace,N}(X::StridedArray{$Tr,N},
+    @eval @exclusive function r2rFFTWPlan{$Tr,Any,inplace,N}(X::StridedArray{$Tr,N},
                                                   Y::StridedArray{$Tr,N},
                                                   region, kinds, flags::Integer,
                                                   timelimit::Real) where {inplace,N}
         R = isa(region, Tuple) ? region : copy(region)
         knd = fix_kinds(region, kinds)
-        set_timelimit($Tr, timelimit)
+        unsafe_set_timelimit($Tr, timelimit)
         dims, howmany = dims_howmany(X, Y, [size(X)...], region)
         plan = ccall(($(string(fftw,"_plan_guru64_r2r")),$lib),
                      PlanPtr,
@@ -563,7 +621,7 @@ for (Tr,Tc,fftw,lib) in ((:Float64,:(Complex{Float64}),"fftw",libfftw3),
                       Ptr{$Tr}, Ptr{$Tr}, Ptr{Int32}, UInt32),
                      size(dims,2), dims, size(howmany,2), howmany,
                      X, Y, knd, flags)
-        set_timelimit($Tr, NO_TIMELIMIT)
+        unsafe_set_timelimit($Tr, NO_TIMELIMIT)
         if plan == C_NULL
             error("FFTW could not create plan") # shouldn't normally happen
         end
@@ -571,13 +629,13 @@ for (Tr,Tc,fftw,lib) in ((:Float64,:(Complex{Float64}),"fftw",libfftw3),
     end
 
     # support r2r transforms of complex = transforms of real & imag parts
-    @eval function r2rFFTWPlan{$Tc,Any,inplace,N}(X::StridedArray{$Tc,N},
+    @eval @exclusive function r2rFFTWPlan{$Tc,Any,inplace,N}(X::StridedArray{$Tc,N},
                                                   Y::StridedArray{$Tc,N},
                                                   region, kinds, flags::Integer,
                                                   timelimit::Real) where {inplace,N}
         R = isa(region, Tuple) ? region : copy(region)
         knd = fix_kinds(region, kinds)
-        set_timelimit($Tr, timelimit)
+        unsafe_set_timelimit($Tr, timelimit)
         dims, howmany = dims_howmany(X, Y, [size(X)...], region)
         dims[2:3, 1:size(dims,2)] *= 2
         howmany[2:3, 1:size(howmany,2)] *= 2
@@ -588,7 +646,7 @@ for (Tr,Tc,fftw,lib) in ((:Float64,:(Complex{Float64}),"fftw",libfftw3),
                       Ptr{$Tc}, Ptr{$Tc}, Ptr{Int32}, UInt32),
                      size(dims,2), dims, size(howmany,2), howmany,
                      X, Y, knd, flags)
-        set_timelimit($Tr, NO_TIMELIMIT)
+        unsafe_set_timelimit($Tr, NO_TIMELIMIT)
         if plan == C_NULL
             error("FFTW could not create plan") # shouldn't normally happen
         end
