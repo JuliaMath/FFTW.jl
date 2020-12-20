@@ -176,6 +176,10 @@ end
     ccall((:fftwf_plan_with_nthreads,libfftw3f), Cvoid, (Int32,), nthreads)
 end
 
+function get_num_threads()
+    ccall((:fftw_planner_nthreads,libfftw3), Cint, ())
+end
+
 # pointer type for fftw_plan (opaque pointer)
 
 struct fftw_plan_struct end

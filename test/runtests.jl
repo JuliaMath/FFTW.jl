@@ -511,8 +511,10 @@ end
 @testset "Base Julia issue #19892" begin
     a = randn(10^5,1)
     FFTW.set_num_threads(1)
+    @test FFTW.get_num_threads() == 1
     p1 = plan_rfft(a, flags=FFTW.ESTIMATE)
     FFTW.set_num_threads(2)
+    @test FFTW.get_num_threads() == 2
     p2 = plan_rfft(a, flags=FFTW.ESTIMATE)
     @test p1*a ≈ p2*a
     # make sure threads are actually being used for p2
