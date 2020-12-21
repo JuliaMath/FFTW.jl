@@ -13,7 +13,7 @@ Reexport = "189a3867-3050-52da-a836-e630ba90ab69"
 
 [compat]
 AbstractFFTs = "0.5"
-FFTW_jll = "3.3"
+FFTW_jll = "3.3.9"
 IntelOpenMP_jll = "2018.0.3"
 MKL_jll = "2019.0.117, 2020"
 Reexport = "0.2"
