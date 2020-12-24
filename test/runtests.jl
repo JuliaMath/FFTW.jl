@@ -5,6 +5,10 @@ using AbstractFFTs: Plan, plan_inv
 using Test
 using LinearAlgebra
 
+@testset "colmajorstrides" begin
+    @test @inferred(FFTW.colmajorstrides((3, 5, 7))) == (1, 3, 15)
+end
+
 m4 = [16.    2     3    13;
       5    11    10     8;
       9     7     6    12;
