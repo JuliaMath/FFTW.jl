@@ -523,7 +523,7 @@ end
     end
 end
 
-@testet "Setting and getting planner nthreads" begin
+@testset "Setting and getting planner nthreads" begin
     if fftw_vendor != :mkl
         FFTW.set_num_threads(1)
         @test FFTW.get_num_threads == 1
