@@ -511,10 +511,8 @@ end
 @testset "Base Julia issue #19892" begin
     a = randn(10^5,1)
     FFTW.set_num_threads(1)
-    @test FFTW.get_num_threads() == 1
     p1 = plan_rfft(a, flags=FFTW.ESTIMATE)
     FFTW.set_num_threads(2)
-    @test FFTW.get_num_threads() == 2
     p2 = plan_rfft(a, flags=FFTW.ESTIMATE)
     @test p1*a ≈ p2*a
     # make sure threads are actually being used for p2
@@ -522,5 +520,14 @@ end
     if FFTW.has_sprint_plan
         @test !occursin("dft-thr", string(p1))
         @test occursin("dft-thr", string(p2))
+    end
+end
+
+@testet "Setting and getting planner nthreads" begin
+    if fftw_vendor != :mkl
+        FFTW.set_num_threads(1)
+        @test FFTW.get_num_threads == 1
+        FFTW.set_num_threads(2)
+        @test FFTW.get_num_threads == 2
     end
 end
