@@ -1,7 +1,6 @@
 # FFTW.jl
 
-[![Travis](https://travis-ci.org/JuliaMath/FFTW.jl.svg?branch=master)](https://travis-ci.org/JuliaMath/FFTW.jl)
-[![AppVeyor](https://ci.appveyor.com/api/projects/status/w2bow83kn8ej7g0g?svg=true)](https://ci.appveyor.com/project/StevenGJohnson/fftw-jl)
+[![CI](https://github.com/JuliaMath/FFTW.jl/workflows/CI/badge.svg)](https://github.com/JuliaMath/FFTW.jl/actions?query=workflow%3ACI)
 [![Coveralls](https://coveralls.io/repos/github/JuliaMath/FFTW.jl/badge.svg?branch=master)](https://coveralls.io/github/JuliaMath/FFTW.jl?branch=master)
 
 [![](https://img.shields.io/badge/docs-stable-blue.svg)](https://JuliaMath.github.io/FFTW.jl/stable)
