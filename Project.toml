@@ -12,7 +12,7 @@ MKL_jll = "856f044c-d86e-5d09-b602-aeab76dc8ba7"
 Reexport = "189a3867-3050-52da-a836-e630ba90ab69"
 
 [compat]
-AbstractFFTs = "0.5"
+AbstractFFTs = "0.5, 1.0"
 FFTW_jll = "3.3"
 IntelOpenMP_jll = "2018.0.3"
 MKL_jll = "2019.0.117, 2020"
