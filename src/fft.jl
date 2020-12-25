@@ -177,7 +177,11 @@ end
 end
 
 function get_num_threads()
-    ccall((:fftw_planner_nthreads,libfftw3), Cint, ())
+    @static if fftw_vendor == :fftw
+        ccall((:fftw_planner_nthreads,libfftw3), Cint, ())
+    else
+        error("This function is not currently supported by mkl")
+    end
 end
 
 # pointer type for fftw_plan (opaque pointer)
