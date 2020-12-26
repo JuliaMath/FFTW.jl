@@ -16,7 +16,7 @@ AbstractFFTs = "0.5"
 FFTW_jll = "3.3"
 IntelOpenMP_jll = "2018.0.3"
 MKL_jll = "2019.0.117, 2020"
-Reexport = "0.2"
+Reexport = "0.2, 1.0"
 julia = "1.3"
 
 [extras]
