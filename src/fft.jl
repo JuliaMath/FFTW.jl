@@ -198,7 +198,7 @@ end
     try
         f()
     finally
-        _set_num_threads(nthreads, orig_nthreads)
+        _set_num_threads(orig_nthreads)
     end
 end
 
