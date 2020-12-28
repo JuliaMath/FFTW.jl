@@ -180,9 +180,7 @@ function _set_num_threads(num_threads::Integer)
     ccall((:fftwf_plan_with_nthreads,libfftw3f), Cvoid, (Int32,), num_threads)
 end
 
-@exclusive function set_num_threads(num_threads::Integer)
-    _set_num_threads(num_threads)
-end
+@exclusive set_num_threads(num_threads::Integer) = _set_num_threads(num_threads)
 
 function get_num_threads()
     @static if fftw_vendor == :fftw
