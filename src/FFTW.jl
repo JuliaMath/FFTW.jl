@@ -25,6 +25,7 @@ end
 
 # MKL provides its own FFTW
 const fftw_vendor = occursin("mkl_rt", libfftw3) ? :mkl : :fftw
+const fftw_last_num_threads = Ref(Cint(1))
 
 # Use Julia partr threading backend if present
 @static if fftw_vendor == :fftw

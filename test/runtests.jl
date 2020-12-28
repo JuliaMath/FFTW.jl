@@ -524,12 +524,8 @@ end
 end
 
 @testset "Setting and getting planner nthreads" begin
-    if fftw_vendor == :fftw
-        FFTW.set_num_threads(1)
-        @test FFTW.get_num_threads() == 1
-        FFTW.set_num_threads(2)
-        @test FFTW.get_num_threads() == 2
-    else
-        @test_throws ErrorException FFTW.get_num_threads()
-    end
+    FFTW.set_num_threads(1)
+    @test FFTW.get_num_threads() == 1
+    FFTW.set_num_threads(2)
+    @test FFTW.get_num_threads() == 2
 end
