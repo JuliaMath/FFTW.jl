@@ -528,4 +528,8 @@ end
     @test FFTW.get_num_threads() == 1
     FFTW.set_num_threads(2)
     @test FFTW.get_num_threads() == 2
+    plan = FFTW.set_num_threads(1) do # Should leave get_num_threads unchanged
+        plan_rfft(m4, 1)
+    end
+    @test FFTW.get_num_threads() == 2 # Unchanged
 end
