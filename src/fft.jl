@@ -172,16 +172,16 @@ end
 # Threads
 
 # Must only be called after acquiring fftwlock
-function _set_num_threads(nthreads::Integer)
+function _set_num_threads(num_threads::Integer)
     @static if fftw_vendor == :mkl
-        _last_num_threads[] = nthreads
+        _last_num_threads[] = num_threads
     end
-    ccall((:fftw_plan_with_nthreads,libfftw3), Cvoid, (Int32,), nthreads)
-    ccall((:fftwf_plan_with_nthreads,libfftw3f), Cvoid, (Int32,), nthreads)
+    ccall((:fftw_plan_with_nthreads,libfftw3), Cvoid, (Int32,), num_threads)
+    ccall((:fftwf_plan_with_nthreads,libfftw3f), Cvoid, (Int32,), num_threads)
 end
 
-@exclusive function set_num_threads(nthreads::Integer)
-    _set_num_threads(nthreads)
+@exclusive function set_num_threads(num_threads::Integer)
+    _set_num_threads(num_threads)
 end
 
 function get_num_threads()
@@ -192,13 +192,13 @@ function get_num_threads()
     end
 end
 
-@exclusive function set_num_threads(f::Function, nthreads::Integer)
-    orig_nthreads = get_num_threads()
-    _set_num_threads(nthreads)
+@exclusive function set_num_threads(f::Function, num_threads::Integer)
+    orig_num_threads = get_num_threads()
+    _set_num_threads(num_threads)
     try
         f()
     finally
-        _set_num_threads(orig_nthreads)
+        _set_num_threads(orig_num_threads)
     end
 end
 
