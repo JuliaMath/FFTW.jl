@@ -171,9 +171,14 @@ end
 
 # Threads
 
-@exclusive function set_num_threads(nthreads::Integer)
+# Must only be called after acquiring fftwlock
+function _set_num_threads(nthreads::Integer)
     ccall((:fftw_plan_with_nthreads,libfftw3), Cvoid, (Int32,), nthreads)
     ccall((:fftwf_plan_with_nthreads,libfftw3f), Cvoid, (Int32,), nthreads)
+end
+
+@exclusive function set_num_threads(nthreads::Integer)
+    _set_num_threads(nthreads)
 end
 
 function get_num_threads()
@@ -181,6 +186,14 @@ function get_num_threads()
         ccall((:fftw_planner_nthreads,libfftw3), Cint, ())
     else
         error("This function is not currently supported by mkl")
+
+@exclusive function set_num_threads(f, nthreads::Integer)
+    orig_nthreads = get_num_threads()
+    _set_num_threads(nthreads)
+    try
+        f()
+    finally
+        _set_num_threads(nthreads, orig_nthreads)
     end
 end
 
