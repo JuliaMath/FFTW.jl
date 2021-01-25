@@ -91,4 +91,9 @@ end
 include("fft.jl")
 include("dct.jl")
 
+if Base.VERSION >= v"1.4.2"     # avoid potential segfaults, see https://github.com/JuliaLang/julia/pull/35378
+    include("precompile.jl")
+    _precompile_()
+end
+
 end # module
