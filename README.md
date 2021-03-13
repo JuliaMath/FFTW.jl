@@ -4,7 +4,7 @@
 [![Coveralls](https://coveralls.io/repos/github/JuliaMath/FFTW.jl/badge.svg?branch=master)](https://coveralls.io/github/JuliaMath/FFTW.jl?branch=master)
 
 [![](https://img.shields.io/badge/docs-stable-blue.svg)](https://JuliaMath.github.io/FFTW.jl/stable)
-[![](https://img.shields.io/badge/docs-latest-blue.svg)](https://JuliaMath.github.io/FFTW.jl/latest)
+[![](https://img.shields.io/badge/docs-dev-blue.svg)](https://JuliaMath.github.io/FFTW.jl/dev)
 
 This package provides Julia bindings to the [FFTW](http://www.fftw.org/) library for
 fast Fourier transforms (FFTs), as well as functionality useful for signal processing.
