@@ -12,8 +12,5 @@ makedocs(
 
 deploydocs(
     repo = "github.com/JuliaMath/FFTW.jl.git",
-    versions = ["stable" => "v^", "v#.#.#", "dev" => "dev"],
-    target = "build",
-    deps = nothing,
-    make = nothing,
+    versions = ["stable" => "v^", "v#.#.#", "dev" => "dev"]
 )
