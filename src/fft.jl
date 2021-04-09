@@ -203,7 +203,7 @@ unsafe_set_timelimit(precision::fftwTypeSingle,seconds) =
 #   function will be documented in FFTW 3.3.4.
 
 
-@static if fftw_vendor == :mkl
+@static if fftw_provider == "mkl"
     alignment_of(A::StridedArray{<:fftwDouble}) =
         convert(Int32, convert(Int64, pointer(A)) % 16)
     alignment_of(A::StridedArray{<:fftwSingle}) =
@@ -366,7 +366,7 @@ end
 
 # The sprint_plan function was released in FFTW 3.3.4, but MKL versions
 # claiming to be FFTW 3.3.4 still don't seem to have this function.
-const has_sprint_plan = version >= v"3.3.4" && fftw_vendor == :fftw
+const has_sprint_plan = version >= v"3.3.4" && fftw_provider == "fftw"
 
 @static if has_sprint_plan
     sprint_plan_(plan::FFTWPlan{<:fftwDouble}) =

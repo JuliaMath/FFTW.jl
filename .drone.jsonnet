@@ -10,7 +10,7 @@ local Pipeline(os, arch, version) = {
 	    name: "build",
 	    image: "julia:"+version,
 	    commands: [
-		"julia --project=. --check-bounds=yes --color=yes -e 'using InteractiveUtils; versioninfo(verbose=true); using Pkg; Pkg.build(); Pkg.test(coverage=true)'"
+		"julia --project=. --check-bounds=yes --color=yes -e 'using InteractiveUtils; versioninfo(verbose=true); using Pkg; Pkg.test(coverage=true)'"
 	    ]
 	}
     ],
@@ -20,7 +20,7 @@ local Pipeline(os, arch, version) = {
 };
 
 [
-    Pipeline("linux", "arm",   "1.3"),
-    Pipeline("linux", "arm64", "1.3"),
-    Pipeline("linux", "arm64", "1.5")
+    # Commenting this out because we don't have an official armv7l build yet
+    #Pipeline("linux", "arm",   "1.6"),
+    Pipeline("linux", "arm64", "1.6")
 ]

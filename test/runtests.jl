@@ -1,6 +1,6 @@
 # This file was formerly a part of Julia. License is MIT: https://julialang.org/license
 using FFTW
-using FFTW: fftw_vendor
+using FFTW: fftw_provider
 using AbstractFFTs: Plan, plan_inv
 using Test
 using LinearAlgebra
@@ -134,7 +134,7 @@ true_fftd3_m3d[:,:,2] .= -15
 
         # The following capabilities are FFTW only.
         # They are not available in MKL, and hence do not test them.
-        if fftw_vendor != :mkl
+        if fftw_provider == "fftw"
             @testset "FFTW-specific" begin
                 ifft3_fft3_m3d = fi(f(m3d))
 
@@ -173,7 +173,7 @@ true_fftd3_m3d[:,:,2] .= -15
                     @test pifft!d3_fftd3_m3d[i] ≈ m3d[i]
                 end
             end
-        end  # if fftw_vendor != :mkl
+        end  # if fftw_provider == "fftw"
 
     end
 end
@@ -251,7 +251,7 @@ end
         end
     end
 
-    if fftw_vendor != :mkl
+    if fftw_provider == "fftw"
         @testset "FFTW-specific" begin
             rfftn_m3d = rfft(m3d)
             rfftd3_m3d = rfft(m3d,3)
@@ -392,7 +392,7 @@ end
     @test rfft(a16) == rfft(view(a16,:)) == rfft(view(a16, 1:5)) == rfft(view(a16, [1:5;]))
 end
 
-if fftw_vendor != :mkl
+if fftw_provider == "fftw"
     @testset "Discrete cosine transform (DCT) tests" begin
         a = rand(8,11) + im*rand(8,11)
         @test norm(idct(dct(a)) - a) < 1e-8
@@ -477,7 +477,7 @@ if fftw_vendor != :mkl
             @test psXdct![i] ≈ true_Xdct[i]
         end
     end
-end # fftw_vendor != :mkl
+end # fftw_provider == "fftw"
 
 @testset "UNALIGNED flag" begin
     A = rand(Float32, 35)
@@ -505,7 +505,7 @@ end # fftw_vendor != :mkl
     end
 
     # check whether FFTW on this architecture has nontrivial alignment requirements
-    nontrivial_alignment = FFTW.fftw_vendor == :fftw && ccall((:fftwf_alignment_of, FFTW.libfftw3f), Int32, (Int,), 8) != 0
+    nontrivial_alignment = FFTW.fftw_provider == "fftw" && ccall((:fftwf_alignment_of, FFTW.libfftw3f), Int32, (Int,), 8) != 0
     if nontrivial_alignment
         @test_throws ArgumentError plan_rfft(Array{Float32}(undef, 32)) * view(A, 2:33)
         @test_throws ArgumentError plan_fft(Array{Complex{Float32}}(undef, 32)) * view(Ac, 2:33)
