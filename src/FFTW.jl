@@ -1,7 +1,6 @@
 module FFTW
 
 using LinearAlgebra, Reexport, Preferences
-import Libdl
 @reexport using AbstractFFTs
 using Base.Threads
 

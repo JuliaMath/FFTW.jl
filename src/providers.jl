@@ -74,7 +74,7 @@ end
 
 # If we're using MKL, load it in and set library paths appropriately.
 @static if fftw_provider == "mkl"
-    using IntelOpenMP_jll, MKL_jll
+    using MKL_jll
     const libfftw3 = MKL_jll.libmkl_rt_path
     const libfftw3f = libfftw3
 end
