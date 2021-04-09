@@ -1,6 +1,6 @@
 module FFTW
 
-using LinearAlgebra, Reexport
+using LinearAlgebra, Reexport, Preferences
 import Libdl
 @reexport using AbstractFFTs
 using Base.Threads
@@ -15,47 +15,18 @@ import AbstractFFTs: Plan, ScaledPlan,
 
 export dct, idct, dct!, idct!, plan_dct, plan_idct, plan_dct!, plan_idct!
 
-const depsfile = joinpath(dirname(@__DIR__), "deps", "deps.jl")
-if isfile(depsfile)
-    include(depsfile)
-else
-    error("FFTW is not properly installed. Please run Pkg.build(\"FFTW\") ",
-          "and restart Julia.")
-end
+include("providers.jl")
 
-# MKL provides its own FFTW
-const fftw_vendor = occursin("mkl_rt", libfftw3) ? :mkl : :fftw
-
-# Use Julia partr threading backend if present
-@static if fftw_vendor == :fftw
-    # callback function that FFTW uses to launch `num` parallel
-    # tasks (FFTW/fftw3#175):
-    function spawnloop(f::Ptr{Cvoid}, fdata::Ptr{Cvoid}, elsize::Csize_t, num::Cint, callback_data::Ptr{Cvoid})
-        @sync for i = 0:num-1
-            Threads.@spawn ccall(f, Ptr{Cvoid}, (Ptr{Cvoid},), fdata + elsize*i)
-        end
-    end
-end
-
-# If FFTW was built with threads, then they must be initialized before any FFTW planning routine.
-#   -- This initializes FFTW's threads support (defaulting to 1 thread).
-#      If this isn't called before the FFTW planner is created, then
-#      FFTW's threads algorithms won't be registered or used at all.
-#      (Previously, we called fftw_cleanup, but this invalidated existing
-#       plans, causing Base Julia issue #19892.)
 function __init__()
-    check_deps()
-    stat =  ccall((:fftw_init_threads,   libfftw3), Int32, ())
-    statf = ccall((:fftwf_init_threads, libfftw3f), Int32, ())
-    if stat == 0 || statf == 0
-        error("could not initialize FFTW threads")
+    # If someone is trying to set the provider via the old environment variable, warn them that they
+    # should instead use `set_provider!()` instead.
+    if haskey(ENV, "JULIA_FFTW_PROVIDER")
+        Base.depwarn("JULIA_FFTW_PROVIDER is deprecated; use FFTW.set_provider!() instead", :JULIA_FFTW_PROVIDER)
     end
-    @static if fftw_vendor == :fftw
-        if nthreads() > 1
-            cspawnloop = @cfunction(spawnloop, Cvoid, (Ptr{Cvoid}, Ptr{Cvoid}, Csize_t, Cint, Ptr{Cvoid}))
-            ccall((:fftw_threads_set_callback,  libfftw3),  Cvoid, (Ptr{Cvoid}, Ptr{Cvoid}), cspawnloop, C_NULL)
-            ccall((:fftwf_threads_set_callback, libfftw3f), Cvoid, (Ptr{Cvoid}, Ptr{Cvoid}), cspawnloop, C_NULL)
-        end
+
+    # Hook FFTW threads up to our partr runtime
+    @static if fftw_provider == "fftw"
+        fftw_init_threads()
     end
 end
 
@@ -91,9 +62,7 @@ end
 include("fft.jl")
 include("dct.jl")
 
-if Base.VERSION >= v"1.4.2"     # avoid potential segfaults, see https://github.com/JuliaLang/julia/pull/35378
-    include("precompile.jl")
-    _precompile_()
-end
+include("precompile.jl")
+_precompile_()
 
 end # module
