@@ -5,6 +5,8 @@ using AbstractFFTs: Plan, plan_inv
 using Test
 using LinearAlgebra
 
+@info "FFTW provider: $(fftw_provider)"
+
 @testset "colmajorstrides" begin
     @test @inferred(FFTW.colmajorstrides((3, 5, 7))) == (1, 3, 15)
 end
