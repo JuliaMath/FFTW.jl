@@ -7,10 +7,30 @@ platform:
   arch: arm64
 
 steps:
-- name: build
+- name: Run tests
   image: julia:1.6
   commands:
-  - "julia --project=. --check-bounds=yes --color=yes -e 'using InteractiveUtils; versioninfo(verbose=true); using Pkg; Pkg.test(coverage=true)'"
+  - "julia --project=. --check-bounds=yes --color=yes -e 'using InteractiveUtils; versioninfo(verbose=true)'"
+  - "julia --project=. --check-bounds=yes --color=yes -e 'using Pkg; Pkg.test(coverage=true)'"
+
+trigger:
+  branch:
+  - master
+
+---
+kind: pipeline
+name: linux - amd64 - Julia 1.6 (Alpine)
+
+platform:
+  os: linux
+  arch: amd64
+
+steps:
+- name: Run tests
+  image: julia:1.6-alpine
+  commands:
+  - "julia --project=. --check-bounds=yes --color=yes -e 'using InteractiveUtils; versioninfo(verbose=true)'"
+  - "julia --project=. --check-bounds=yes --color=yes -e 'using Pkg; Pkg.test(coverage=true)'"
 
 trigger:
   branch:
