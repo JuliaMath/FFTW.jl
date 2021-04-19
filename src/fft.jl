@@ -552,8 +552,8 @@ end
 
 # low-level FFTWPlan creation (for internal use in FFTW module)
 
-for (Tr,Tc,fftw,lib) in ((:Float64,:(Complex{Float64}),"fftw",libfftw3),
-                         (:Float32,:(Complex{Float32}),"fftwf",libfftw3f))
+for (Tr,Tc,fftw,lib) in ((:Float64,:(Complex{Float64}),"fftw",:libfftw3),
+                         (:Float32,:(Complex{Float32}),"fftwf",:libfftw3f))
     @eval @exclusive function cFFTWPlan{$Tc,K,inplace,N}(X::StridedArray{$Tc,N},
                                               Y::StridedArray{$Tc,N},
                                               region, flags::Integer, timelimit::Real) where {K,inplace,N}
