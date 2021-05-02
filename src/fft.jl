@@ -76,6 +76,11 @@ const ESTIMATE        = UInt32(1 << 6)
 const WISDOM_ONLY     = UInt32(1 << 21)
 const NO_SIMD = UInt32(1 << 17) # disable SIMD, useful for benchmarking
 
+@static if fftw_provider == "mkl"
+    addflags(flags) = UNALIGNED | flags
+else
+    addflags(flags) = flags
+end
 ## R2R transform kinds
 
 const R2HC    = 0
@@ -682,13 +687,13 @@ for (f,direction) in ((:fft,FORWARD), (:bfft,BACKWARD))
                          flags::Integer=ESTIMATE,
                          timelimit::Real=NO_TIMELIMIT) where {T<:fftwComplex,N}
             cFFTWPlan{T,$direction,false,N}(X, fakesimilar(flags, X, T),
-                                            region, flags, timelimit)
+                                            region, addflags(flags), timelimit)
         end
 
         function $plan_f!(X::StridedArray{T,N}, region;
                          flags::Integer=ESTIMATE,
                          timelimit::Real=NO_TIMELIMIT) where {T<:fftwComplex,N}
-            cFFTWPlan{T,$direction,true,N}(X, X, region, flags, timelimit)
+            cFFTWPlan{T,$direction,true,N}(X, X, region, addflags(flags), timelimit)
         end
         $plan_f(X::StridedArray{<:fftwComplex}; kws...) =
             $plan_f(X, 1:ndims(X); kws...)
@@ -699,7 +704,7 @@ for (f,direction) in ((:fft,FORWARD), (:bfft,BACKWARD))
             X = Array{T}(undef, p.sz)
             Y = inplace ? X : fakesimilar(p.flags, X, T)
             ScaledPlan(cFFTWPlan{T,$idirection,inplace,N}(X, Y, p.region,
-                                                          p.flags, NO_TIMELIMIT),
+                                                          addflags(p.flags), NO_TIMELIMIT),
                        normalization(X, p.region))
         end
     end
