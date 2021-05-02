@@ -31,7 +31,7 @@ function set_provider!(provider; export_prefs::Bool = false)
     if provider !== nothing && provider !== missing && provider ∉ ("fftw", "mkl")
         throw(ArgumentError("Invalid provider value '$(provider)'"))
     end
-    set_preferences!(@__MODULE__, "provider" => provider; export_prefs)
+    set_preferences!(@__MODULE__, "provider" => provider; export_prefs, force = true)
     if provider != fftw_provider
         # Re-fetch to get default values in the event that `nothing` or `missing` was passed in.
         provider = get_provider()
