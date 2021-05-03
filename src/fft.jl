@@ -417,7 +417,6 @@ end
 
 # Check whether a FFTWPlan is applicable to a given input array, and
 # throw an informative error if not:
-
 function assert_applicable(p::FFTWPlan{T}, X::StridedArray{T}) where T
     if size(X) != p.sz
         throw(ArgumentError("FFTW plan applied to wrong-size array"))
