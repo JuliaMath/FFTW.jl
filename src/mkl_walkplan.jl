@@ -24,8 +24,8 @@ mutable struct cWalkPlan{T,K,inplace,N,NW} <: FFTWPlan{T,K,inplace}
 end
 for (Tr,Tc,fftw,lib) in ((:Float64,:(Complex{Float64}),"fftw",:libfftw3),
                          (:Float32,:(Complex{Float32}),"fftwf",:libfftw3f))
-    @eval @exclusive function cWalkPlan{$Tc,direction,inplace}(X::StridedArray{$Tc,N},
-                                        Y::StridedArray{$Tc,N},region) where {direction,inplace,N}
+    @eval @exclusive function cWalkPlan{$Tc,K,inplace}(X::StridedArray{$Tc,N},
+                                        Y::StridedArray{$Tc,N},region) where {K,inplace,N}
         length(region) == length(unique(region)) ||
             throw(ArgumentError("each dimension can be transformed at most once"))
         plandims, walkdims = split_dim(X, region)
@@ -36,7 +36,7 @@ for (Tr,Tc,fftw,lib) in ((:Float64,:(Complex{Float64}),"fftw",:libfftw3),
                      (Int32, Ptr{Int}, Int32, Ptr{Int},
                       Ptr{$Tc}, Ptr{$Tc}, Int32, UInt32),
                      size(dims,2), dims, size(howmany,2), howmany,
-                     X, Y, direction, 0)
+                     X, Y, K, ESTIMATE) ## flags is useless
         if plan == C_NULL
             error("FFTW could not create plan") # shouldn't normally happen
         end
