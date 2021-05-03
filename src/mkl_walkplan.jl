@@ -25,8 +25,7 @@ end
 for (Tr,Tc,fftw,lib) in ((:Float64,:(Complex{Float64}),"fftw",:libfftw3),
                          (:Float32,:(Complex{Float32}),"fftwf",:libfftw3f))
     @eval @exclusive function cWalkPlan{$Tc,direction,inplace}(X::StridedArray{$Tc,N},
-                                              Y::StridedArray{$Tc,N},
-                                              region, timelimit::Real) where {direction,inplace,N}
+                                        Y::StridedArray{$Tc,N},region) where {direction,inplace,N}
         length(region) == length(unique(region)) ||
             throw(ArgumentError("each dimension can be transformed at most once"))
         plandims, walkdims = split_dim(X, region)
