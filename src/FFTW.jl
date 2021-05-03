@@ -60,9 +60,6 @@ end
 
 include("fft.jl")
 include("dct.jl")
-@static if fftw_provider == "mkl"
-    include("mkl_walkplan.jl")
-end
 
 include("precompile.jl")
 _precompile_()
