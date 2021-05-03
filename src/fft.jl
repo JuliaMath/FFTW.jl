@@ -417,55 +417,31 @@ end
 
 # Check whether a FFTWPlan is applicable to a given input array, and
 # throw an informative error if not:
-@static if fftw_provider == "fftw"
-    function assert_applicable(p::FFTWPlan{T}, X::StridedArray{T}) where T
-        if size(X) != p.sz
-            throw(ArgumentError("FFTW plan applied to wrong-size array"))
-        elseif strides(X) != p.istride
-            throw(ArgumentError("FFTW plan applied to wrong-strides array"))
-        elseif alignment_of(X) != p.ialign && p.flags & UNALIGNED == 0
-            throw(ArgumentError("FFTW plan applied to array with wrong memory alignment"))
-        end
-    end
 
-    function assert_applicable(p::FFTWPlan{T,K,inplace}, X::StridedArray{T}, Y::StridedArray) where {T,K,inplace}
-        assert_applicable(p, X)
-        if size(Y) != p.osz
-            throw(ArgumentError("FFTW plan applied to wrong-size output"))
-        elseif strides(Y) != p.ostride
-            throw(ArgumentError("FFTW plan applied to wrong-strides output"))
-        elseif alignment_of(Y) != p.oalign && p.flags & UNALIGNED == 0
-            throw(ArgumentError("FFTW plan applied to output with wrong memory alignment"))
-        elseif inplace != (pointer(X) == pointer(Y))
-            throw(ArgumentError(string("FFTW ",
-                                       inplace ? "in-place" : "out-of-place",
-                                       " plan applied to ",
-                                       inplace ? "out-of-place" : "in-place",
-                                       " data")))
-        end
+function assert_applicable(p::FFTWPlan{T}, X::StridedArray{T}) where T
+    if size(X) != p.sz
+        throw(ArgumentError("FFTW plan applied to wrong-size array"))
+    elseif strides(X) != p.istride
+        throw(ArgumentError("FFTW plan applied to wrong-strides array"))
+    elseif alignment_of(X) != p.ialign && p.flags & UNALIGNED == 0
+        throw(ArgumentError("FFTW plan applied to array with wrong memory alignment"))
     end
-else
-    function assert_applicable(p::FFTWPlan{T}, X::StridedArray{T}) where T
-        if size(X) != p.sz
-            throw(ArgumentError("FFTW plan applied to wrong-size array"))
-        elseif strides(X) != p.istride
-            throw(ArgumentError("FFTW plan applied to wrong-strides array"))
-        end
-    end
+end
 
-    function assert_applicable(p::FFTWPlan{T,K,inplace}, X::StridedArray{T}, Y::StridedArray) where {T,K,inplace}
-        assert_applicable(p, X)
-        if size(Y) != p.osz
-            throw(ArgumentError("FFTW plan applied to wrong-size output"))
-        elseif strides(Y) != p.ostride
-            throw(ArgumentError("FFTW plan applied to wrong-strides output"))
-        elseif inplace != (pointer(X) == pointer(Y))
-            throw(ArgumentError(string("FFTW ",
-                                       inplace ? "in-place" : "out-of-place",
-                                       " plan applied to ",
-                                       inplace ? "out-of-place" : "in-place",
-                                       " data")))
-        end
+function assert_applicable(p::FFTWPlan{T,K,inplace}, X::StridedArray{T}, Y::StridedArray) where {T,K,inplace}
+    assert_applicable(p, X)
+    if size(Y) != p.osz
+        throw(ArgumentError("FFTW plan applied to wrong-size output"))
+    elseif strides(Y) != p.ostride
+        throw(ArgumentError("FFTW plan applied to wrong-strides output"))
+    elseif alignment_of(Y) != p.oalign && p.flags & UNALIGNED == 0
+        throw(ArgumentError("FFTW plan applied to output with wrong memory alignment"))
+    elseif inplace != (pointer(X) == pointer(Y))
+        throw(ArgumentError(string("FFTW ",
+                                   inplace ? "in-place" : "out-of-place",
+                                   " plan applied to ",
+                                   inplace ? "out-of-place" : "in-place",
+                                   " data")))
     end
 end
 
