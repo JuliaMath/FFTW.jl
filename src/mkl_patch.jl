@@ -111,7 +111,7 @@ function unsafe_execute!(p::cLoopPlan{T}, x::StridedArray{T},
     sz = (p.loopsz...,)
     istride = (p.loopistride...,)
     ostride = (p.loopostride...,)
-    unsafe_nd_execute!(p, , sz, istride, ostride)
+    unsafe_nd_execute!(p, X, Y, sz, istride, ostride)
 end
 
 function mul!(y::StridedArray{T,N}, p::cLoopPlan{T}, x::StridedArray{T,N}) where {T,N}
