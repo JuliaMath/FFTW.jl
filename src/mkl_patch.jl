@@ -1,16 +1,40 @@
-dims_howmany_for_loopplan(X::StridedArray, Y::StridedArray, plandims::Tuple{Vararg{Int}}) = begin
-    P = unique(plandims)
-    length(P) != length(plandims) &&
+might_reshape!(sz::Vector{Int}, st::Vector{Int}) = begin
+    for i in eachindex(sz), j in eachindex(sz)
+        if sz[i] > 1 && st[i] * sz[i] == st[j]
+            sz[i], sz[j] = sz[i] * sz[j], 0
+            return might_reshape!(sz, st)
+        end
+    end
+    p = sz .> 1
+    sz[p], st[p]
+end
+
+howmany_loopinfo(sz::Vector{Int}, ist::Vector{Int}, ost::Vector{Int}) = begin
+    pick = ist .== ost
+    szʳ, stʳ = might_reshape!(sz[pick], ist[pick]) # try to reshape to reduce loop dims
+    pick = .!(pick)
+    sz′, ist′, ost′ = [szʳ;sz[pick]], [stʳ;ist[pick]], [stʳ;ost[pick]]
+    ind = sortperm(tuple.(ist′,.-sz′))
+    szˢ, istˢ, ostˢ = sz′[ind], ist′[ind], ost′[ind]
+    id = istˢ[1] == 1 ? 1 : findfirst(i -> i > 10Threads.nthreads(), szˢ)
+    howmany = [szˢ[id], istˢ[id], ostˢ[id]]
+    loopinfo = szˢ[[1:id-1;id+1:end]], istˢ[[1:id-1;id+1:end]], ostˢ[[1:id-1;id+1:end]]
+    howmany, loopinfo
+end
+
+dims_howmany_loopinfo(X::StridedArray, Y::StridedArray, region) = begin
+    reg = unique(region)
+    length(reg) != length(region) &&
         throw(ArgumentError("each dimension can be transformed at most once"))
-    reg, oreg  = P[1:end-1], P[end]
+    oreg = filter(i -> !in(i, reg), 1:ndims(X))
     sz, ist, ost = collect.((size(X), strides(X), strides(Y)))
     dims = Matrix(transpose([sz[reg] ist[reg] ost[reg]]))
-    howmany = Matrix(transpose([sz[oreg] ist[oreg] ost[oreg]]))
-    dims, howmany
+    howmany, loopinfo = howmany_loopinfo(sz[oreg], ist[oreg], ost[oreg])
+    dims, howmany, loopinfo
 end
 # Although MKL's plan has no alignment limitation,
-# but the check is preseved here to keep similar behavior(throw the same error)
-mutable struct cLoopPlan{T,K,inplace,N,G,NW} <: FFTWPlan{T,K,inplace}
+# but the check is preseved here to throw the same error
+mutable struct cLoopPlan{T,K,inplace,N,G} <: FFTWPlan{T,K,inplace}
     plan::PlanPtr
     sz::NTuple{N,Int} # size of array on which plan operates (Int tuple)
     osz::NTuple{N,Int} # size of output array (Int tuple)
@@ -20,12 +44,16 @@ mutable struct cLoopPlan{T,K,inplace,N,G,NW} <: FFTWPlan{T,K,inplace}
     oalign::Int32 # alignment mod 16 of input
     flags::UInt32 # planner flags
     region::G # region (iterable) of dims that are transormed
-    loopdims::NTuple{NW,Int}
+    loopsz::Vector{Int} # keep the loop size if needed
+    loopistride::Vector{Int} # keep the loop information if needed
+    loopostride::Vector{Int} # keep the loop information if needed
     pinv::ScaledPlan
-    function cLoopPlan{T,K,inplace}(plan::PlanPtr, X, Y, region, flags, loopdims) where {T,K,inplace}
-        N, NW, G = ndims(X), length(loopdims), typeof(region)
-        p = new{T,K,inplace,N,G,NW}(plan, size(X), size(Y), strides(X), strides(Y),
-                                    alignment_of(X), alignment_of(Y), flags, region, loopdims)
+    function cLoopPlan{T,K,inplace}(plan::PlanPtr, X, Y, flags, region, loopinfo) where {T,K,inplace}
+        N, G = ndims(X), typeof(region)
+        loopsz, loopistride, loopostride = loopinfo
+        p = new{T,K,inplace,N,G}(plan, size(X), size(Y), strides(X), strides(Y),
+                                    alignment_of(X), alignment_of(Y), flags,
+                                    region, loopsz, loopistride, loopostride)
         finalizer(maybe_destroy_plan, p)
         p
     end
@@ -36,8 +64,7 @@ for (Tr,Tc,fftw,lib) in ((:Float64,:(Complex{Float64}),"fftw",:libfftw3),
     @eval @exclusive function cLoopPlan{$Tc,K,inplace}(X::StridedArray{$Tc,N},
                                         Y::StridedArray{$Tc,N}, region, flags, timelimit) where {K,inplace,N}
         unsafe_set_timelimit($Tr, timelimit)
-        plandims, loopdims = split_dim(X, region)
-        dims, howmany = dims_howmany_for_loopplan(X, Y, plandims)
+        dims, howmany, loopinfo = dims_howmany_loopinfo(X, Y, region)
         plan = ccall(($(string(fftw,"_plan_guru64_dft")),$lib),
                      PlanPtr,
                      (Int32, Ptr{Int}, Int32, Ptr{Int},
@@ -48,20 +75,8 @@ for (Tr,Tc,fftw,lib) in ((:Float64,:(Complex{Float64}),"fftw",:libfftw3),
         if plan == C_NULL
             error("FFTW could not create plan") # shouldn't normally happen
         end
-        return cLoopPlan{$Tc,K,inplace}(plan, X, Y, region, flags, loopdims)
+        return cLoopPlan{$Tc,K,inplace}(plan, X, Y, flags, region, loopinfo)
     end
-end
-
-function split_dim(X, region)
-    dims = filter(i -> !in(i, region), 1:ndims(X))
-    # Determine which dimension to be planned by MKL's Dfti
-    # I believe the first dimension shoule be selected anyhow for columnmajor layout.
-    # Other dimensions might be selected based on size for better thread performance.
-    id = !in(1,region) || size(X,dims[1]) > 10Threads.nthreads() ?
-         1 : argmax(map(i -> size(X,i), dims))
-    loopdims = dims[[1:id-1;id+1:end]] |> NTuple{ndims(X) - length(region) - 1, Int}
-    plandims = (region..., dims[id])
-    plandims, loopdims
 end
 show(io::IO, p::cLoopPlan{T,K,inplace}) where {T,K,inplace} = begin
     print(io, inplace ? "FFTW in-place " : "FFTW ",
@@ -70,25 +85,33 @@ show(io::IO, p::cLoopPlan{T,K,inplace}) where {T,K,inplace} = begin
     has_sprint_plan && print(io, "\n", sprint_plan(p))
 end
 
-unsafe_loop_execute!(plan::cLoopPlan{T}, X::Ptr{T}, Y::Ptr{T}) where {T<:fftwComplex} = begin
+unsafe_single_execute!(p::cLoopPlan{T}, X::Ptr{T}, Y::Ptr{T}) where {T<:fftwComplex} = begin
     if T <:fftwSingle
-        @ccall libfftw3f.fftwf_execute_dft(plan::PlanPtr, X::Ptr{T}, Y::Ptr{T})::Cvoid
+        @ccall libfftw3f.fftwf_execute_dft(p::PlanPtr, X::Ptr{T}, Y::Ptr{T})::Cvoid
     else
-        @ccall libfftw3.fftw_execute_dft(plan::PlanPtr, X::Ptr{T}, Y::Ptr{T})::Cvoid
+        @ccall libfftw3.fftw_execute_dft(p::PlanPtr, X::Ptr{T}, Y::Ptr{T})::Cvoid
+    end
+end
+
+function unsafe_nd_execute!(p::cLoopPlan{T}, X::Ptr{T}, Y::Ptr{T},
+                            sz::NTuple{N,Int}, ist::NTuple{N,Int},
+                            ost::NTuple{N,Int}) where {T,N}
+    Elsz = sizeof(T)
+    for ind in Iterators.product(map(sz -> (0:sz-1), sz)...)
+        X′ = X + Elsz * sum(ist .* ind)
+        Y′ = Y + Elsz * sum(ost .* ind)
+        unsafe_single_execute!(p, X′, Y′)
     end
 end
 
 function unsafe_execute!(p::cLoopPlan{T}, x::StridedArray{T},
                          y::StridedArray{T}) where {T <: fftwComplex}
-    loopistride = map(i -> p.istride[i], p.loopdims)
-    loopostride = map(i -> p.ostride[i], p.loopdims)
-    ax = map(i -> axes(x,i) .- first(axes(x,i)), p.loopdims)
-    Elsz, pointerˣ, pointerʸ = sizeof(T), pointer(x), pointer(y)
-    for ind in Iterators.product(ax...)
-        pointerˣ′ = pointerˣ + Elsz * sum(loopistride .* ind)
-        pointerʸ′ = pointerʸ + Elsz * sum(loopostride .* ind)
-        unsafe_loop_execute!(p, pointerˣ′, pointerʸ′)
-    end
+    X, Y = pointer(x), pointer(y)
+    length(p.loopsz) == 0 && return unsafe_single_execute!(p, X, Y)
+    sz = (p.loopsz...,)
+    istride = (p.loopistride...,)
+    ostride = (p.loopostride...,)
+    unsafe_nd_execute!(p, , sz, istride, ostride)
 end
 
 function mul!(y::StridedArray{T,N}, p::cLoopPlan{T}, x::StridedArray{T,N}) where {T,N}
@@ -108,10 +131,9 @@ MightNeedLoop{T} = Union{StridedArray{T,3}, StridedArray{T,4}, StridedArray{T,5}
 for inplace in (false,true)
     for (f,direction) in ((:fft,FORWARD), (:bfft,BACKWARD))
         plan_f = inplace ? Symbol("plan_",f,"!") : Symbol("plan_",f)
-        @eval $plan_f(X::MightNeedLoop{<:fftwComplex}, region; kws...) = $plan_f(X, Tuple(region); kws...)
-        # length information is needed for type stability, so I use ntuple here.
+        # length information is helpful for type stability, so I use ntuple here.
         @eval $plan_f(X::MightNeedLoop{<:fftwComplex}; kws...) = $plan_f(X, ntuple(identity, ndims(X)); kws...)
-        @eval $plan_f(X::MightNeedLoop{<:fftwComplex}, region::Union{Integer,Tuple};
+        @eval $plan_f(X::MightNeedLoop{<:fftwComplex}, region;
                     flags::Integer=ESTIMATE,
                     timelimit::Real=NO_TIMELIMIT) = begin
             T, N = eltype(X), ndims(X)
