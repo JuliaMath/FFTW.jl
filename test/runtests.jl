@@ -528,3 +528,19 @@ end
         @test occursin("dft-thr", string(p2))
     end
 end
+if fftw_provider == "mkl"
+    @testset "MKL's multidimensional vector fft" begin
+        a = randn(ComplexF32,125,125,125)
+        b = ifft(a, 1)
+        @test reshape(b, 125, :) ≈ ifft(reshape(a, 125, :), 1)
+        a = ifft!(a, 1)
+        @test a ≈ b
+        a′ = @view a[:,1,:]
+        b′ = @view b[:,1,:]
+        p = FFTW.cFFTWPlan{ComplexF32,-1,false,2}(a′, b′, 2, FFTW.UNALIGNED, FFTW.NO_TIMELIMIT)
+        for i in 1:125
+          @views mul!(b[:,i,:],p,a[:,i,:])
+        end
+        @test fft(a, 3) ≈ b
+    end
+end
