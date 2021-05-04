@@ -60,7 +60,7 @@ end
 
 include("fft.jl")
 include("dct.jl")
-if fftw_provider == "mkl"
+@static if fftw_provider == "mkl"
     include("mkl_patch.jl")
 end
 
