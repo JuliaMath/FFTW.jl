@@ -1,7 +1,7 @@
 might_reshape!(sz::Vector{Int}, st::Vector{Int}) = begin
     for i in eachindex(sz), j in eachindex(sz)
-        if sz[i] > 1 && st[i] * sz[i] == st[j]
-            sz[i], sz[j] = sz[i] * sz[j], 0
+        if sz[i] > 1 && sz[j] > 1 && st[i] * sz[i] == st[j]
+            sz[i], sz[j] = sz[i] * sz[j], 1
             return might_reshape!(sz, st)
         end
     end
@@ -26,10 +26,20 @@ dims_howmany_loopinfo(X::StridedArray, Y::StridedArray, region) = begin
     reg = unique(region)
     length(reg) != length(region) &&
         throw(ArgumentError("each dimension can be transformed at most once"))
-    oreg = filter(i -> !in(i, reg), 1:ndims(X))
+    oreg = filter(!in(reg), 1:ndims(X))
     sz, ist, ost = collect.((size(X), strides(X), strides(Y)))
+    # remove dimension with size == 1
+    sz₁dim = findall(==(1), sz)
+    if length(sz₁dim) > 0
+        filter!(!in(sz₁dim), reg)
+        filter!(!in(sz₁dim), oreg)
+    end
     dims = Matrix(transpose([sz[reg] ist[reg] ost[reg]]))
-    howmany, loopinfo = howmany_loopinfo(sz[oreg], ist[oreg], ost[oreg])
+    howmany, loopinfo = if length(oreg) < 2
+        Vector([sz[oreg];ist[oreg];ost[oreg]]), (Int[], Int[], Int[])
+    else
+        howmany_loopinfo(sz[oreg], ist[oreg], ost[oreg])
+    end
     dims, howmany, loopinfo
 end
 # Although MKL's plan has no alignment limitation,
@@ -51,6 +61,8 @@ mutable struct cLoopPlan{T,K,inplace,N,G} <: FFTWPlan{T,K,inplace}
     function cLoopPlan{T,K,inplace}(plan::PlanPtr, X, Y, flags, region, loopinfo) where {T,K,inplace}
         N, G = ndims(X), typeof(region)
         loopsz, loopistride, loopostride = loopinfo
+        loopistride .*= sizeof(T)
+        loopostride .*= sizeof(T)
         p = new{T,K,inplace,N,G}(plan, size(X), size(Y), strides(X), strides(Y),
                                     alignment_of(X), alignment_of(Y), flags,
                                     region, loopsz, loopistride, loopostride)
@@ -78,6 +90,7 @@ for (Tr,Tc,fftw,lib) in ((:Float64,:(Complex{Float64}),"fftw",:libfftw3),
         return cLoopPlan{$Tc,K,inplace}(plan, X, Y, flags, region, loopinfo)
     end
 end
+
 show(io::IO, p::cLoopPlan{T,K,inplace}) where {T,K,inplace} = begin
     print(io, inplace ? "FFTW in-place " : "FFTW ",
           K < 0 ? "forward" : "backward", " plan for ")
@@ -94,12 +107,12 @@ unsafe_single_execute!(p::cLoopPlan{T}, X::Ptr{T}, Y::Ptr{T}) where {T<:fftwComp
 end
 
 function unsafe_nd_execute!(p::cLoopPlan{T}, X::Ptr{T}, Y::Ptr{T},
-                            sz::NTuple{N,Int}, ist::NTuple{N,Int},
-                            ost::NTuple{N,Int}) where {T,N}
-    Elsz = sizeof(T)
+                            sz, ist, ost) where T
+    offset(x, y) = length(x) > 1 ? x[1] * y[1] + offset(Base.tail(x), Base.tail(y)) :
+                                   x[1] * y[1]
     for ind in Iterators.product(map(sz -> (0:sz-1), sz)...)
-        X′ = X + Elsz * sum(ist .* ind)
-        Y′ = Y + Elsz * sum(ost .* ind)
+        X′ = X + offset(ist, ind)
+        Y′ = Y + offset(ost, ind)
         unsafe_single_execute!(p, X′, Y′)
     end
 end
@@ -107,11 +120,11 @@ end
 function unsafe_execute!(p::cLoopPlan{T}, x::StridedArray{T},
                          y::StridedArray{T}) where {T <: fftwComplex}
     X, Y = pointer(x), pointer(y)
-    length(p.loopsz) == 0 && return unsafe_single_execute!(p, X, Y)
-    sz = (p.loopsz...,)
-    istride = (p.loopistride...,)
-    ostride = (p.loopostride...,)
-    unsafe_nd_execute!(p, X, Y, sz, istride, ostride)
+    sz = p.loopsz
+    length(sz) == 0 && return unsafe_single_execute!(p, X, Y)
+    ist, ost = p.loopistride, p.loopostride
+    length(sz) == 1 && return unsafe_nd_execute!(p, X, Y, (sz[1],), (ist[1],), (ost[1],))
+    unsafe_nd_execute!(p, X, Y, (sz...,), (ist...,), (ost...,))
 end
 
 function mul!(y::StridedArray{T,N}, p::cLoopPlan{T}, x::StridedArray{T,N}) where {T,N}
@@ -131,14 +144,11 @@ MightNeedLoop{T} = Union{StridedArray{T,3}, StridedArray{T,4}, StridedArray{T,5}
 for inplace in (false,true)
     for (f,direction) in ((:fft,FORWARD), (:bfft,BACKWARD))
         plan_f = inplace ? Symbol("plan_",f,"!") : Symbol("plan_",f)
-        # length information is helpful for type stability, so I use ntuple here.
-        @eval $plan_f(X::MightNeedLoop{<:fftwComplex}; kws...) = $plan_f(X, ntuple(identity, ndims(X)); kws...)
         @eval $plan_f(X::MightNeedLoop{<:fftwComplex}, region;
                     flags::Integer=ESTIMATE,
                     timelimit::Real=NO_TIMELIMIT) = begin
             T, N = eltype(X), ndims(X)
             Y = $inplace ? X : FakeArray{T}(size(X))
-            N <= length(region) + 1 && return cFFTWPlan{T,$direction,$inplace,N}(X, Y, region, flags, timelimit)
             cLoopPlan{T,$direction,$inplace}(X, Y, region, flags, timelimit)
         end
         idirection = -direction
