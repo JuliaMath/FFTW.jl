@@ -4,7 +4,7 @@ might_reshape!(sz::Vector{Int}, ist::Vector{Int}, ost::Vector{Int}) = begin
         # fix for sz = (10,10) ist = (2,20) ost = (1,10)
         if sz[i] > 1 && sz[j] > 1 && (ist[i], ost[i]) .* sz[i] == (ist[j], ost[j])
             sz[i], sz[j] = sz[i] * sz[j], 1
-            return might_reshape!(sz, st)
+            return might_reshape!(sz, ist, ost)
         end
     end
     p = sz .> 1
@@ -12,7 +12,7 @@ might_reshape!(sz::Vector{Int}, ist::Vector{Int}, ost::Vector{Int}) = begin
 end
 
 howmany_loopinfo(sz::Vector{Int}, ist::Vector{Int}, ost::Vector{Int}) = begin
-    szʳ, istʳ, ostʳ = might_reshape!(sz[pick], ist[pick]) # try to reshape to reduce loop dims
+    szʳ, istʳ, ostʳ = might_reshape!(sz, ist, ost) # try to reshape to reduce loop dims
     ind = sortperm(tuple.(istʳ, ostʳ, .-szʳ))
     szˢ, istˢ, ostˢ = szʳ[ind], istʳ[ind], ostʳ[ind]
     pick = first(istˢ) == 1 ? 1 : findfirst(>(10Threads.nthreads()), szˢ) #how to improve?
