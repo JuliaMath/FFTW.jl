@@ -1,24 +1,24 @@
-might_reshape!(sz::Vector{Int}, st::Vector{Int}) = begin
-    for i in eachindex(sz), j in eachindex(sz)
-        if sz[i] > 1 && sz[j] > 1 && st[i] * sz[i] == st[j]
+might_reshape!(sz::Vector{Int}, ist::Vector{Int}, ost::Vector{Int}) = begin
+    ax = eachindex(sz)
+    @inbounds for i in ax, j in ax
+        # fix for sz = (10,10) ist = (2,20) ost = (1,10)
+        if sz[i] > 1 && sz[j] > 1 && (ist[i], ost[i]) .* sz[i] == (ist[j], ost[j])
             sz[i], sz[j] = sz[i] * sz[j], 1
             return might_reshape!(sz, st)
         end
     end
     p = sz .> 1
-    sz[p], st[p]
+    sz[p], ist[p], ost[p]
 end
 
 howmany_loopinfo(sz::Vector{Int}, ist::Vector{Int}, ost::Vector{Int}) = begin
-    pick = ist .== ost
-    szʳ, stʳ = might_reshape!(sz[pick], ist[pick]) # try to reshape to reduce loop dims
-    pick = .!(pick)
-    sz′, ist′, ost′ = [szʳ;sz[pick]], [stʳ;ist[pick]], [stʳ;ost[pick]]
-    ind = sortperm(tuple.(ist′,.-sz′))
-    szˢ, istˢ, ostˢ = sz′[ind], ist′[ind], ost′[ind]
-    id = istˢ[1] == 1 ? 1 : findfirst(i -> i > 10Threads.nthreads(), szˢ)
-    howmany = [szˢ[id], istˢ[id], ostˢ[id]]
-    loopinfo = szˢ[[1:id-1;id+1:end]], istˢ[[1:id-1;id+1:end]], ostˢ[[1:id-1;id+1:end]]
+    szʳ, istʳ, ostʳ = might_reshape!(sz[pick], ist[pick]) # try to reshape to reduce loop dims
+    ind = sortperm(tuple.(istʳ, ostʳ, .-szʳ))
+    szˢ, istˢ, ostˢ = szʳ[ind], istʳ[ind], ostʳ[ind]
+    pick = first(istˢ) == 1 ? 1 : findfirst(>(10Threads.nthreads()), szˢ) #how to improve?
+    howmany = [szˢ[pick], istˢ[pick], ostˢ[pick]]
+    rest = [1:pick-1; pick+1:length(szˢ)]
+    loopinfo = szˢ[rest], istˢ[rest], ostˢ[rest]
     howmany, loopinfo
 end
 
@@ -55,8 +55,8 @@ mutable struct cLoopPlan{T,K,inplace,N,G} <: FFTWPlan{T,K,inplace}
     flags::UInt32 # planner flags
     region::G # region (iterable) of dims that are transormed
     loopsz::Vector{Int} # keep the loop size if needed
-    loopistride::Vector{Int} # keep the loop information if needed
-    loopostride::Vector{Int} # keep the loop information if needed
+    loopistride::Vector{Int} # keep the loop istride if needed
+    loopostride::Vector{Int} # keep the loop ostride if needed
     pinv::ScaledPlan
     function cLoopPlan{T,K,inplace}(plan::PlanPtr, X, Y, flags, region, loopinfo) where {T,K,inplace}
         N, G = ndims(X), typeof(region)
