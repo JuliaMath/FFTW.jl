@@ -1,14 +1,16 @@
 might_reshape!(sz::Vector{Int}, ist::Vector{Int}, ost::Vector{Int}) = begin
-    ax = eachindex(sz)
-    @inbounds for i in ax, j in ax
-        # fix for sz = (10,10) ist = (2,20) ost = (1,10)
-        if sz[i] > 1 && sz[j] > 1 && (ist[i], ost[i]) .* sz[i] == (ist[j], ost[j])
-            sz[i], sz[j] = sz[i] * sz[j], 1
+    _reduce!(a, i) = begin
+        a[i] = a[end]
+        resize!(a, length(a) - 1)
+    end
+    @inbounds for i in eachindex(sz), j in eachindex(sz)
+        if (ist[i], ost[i]) .* sz[i] == (ist[j], ost[j])
+            sz[i]= sz[i] * sz[j]
+            _reduce!.(tuple(sz, ist, ost), j)
             return might_reshape!(sz, ist, ost)
         end
     end
-    p = sz .> 1
-    sz[p], ist[p], ost[p]
+    sz, ist, ost
 end
 
 howmany_loopinfo(sz::Vector{Int}, ist::Vector{Int}, ost::Vector{Int}) = begin
@@ -35,8 +37,8 @@ dims_howmany_loopinfo(X::StridedArray, Y::StridedArray, region) = begin
         filter!(!in(sz₁dim), oreg)
     end
     dims = Matrix(transpose([sz[reg] ist[reg] ost[reg]]))
-    howmany, loopinfo = if length(oreg) < 2
-        Vector([sz[oreg];ist[oreg];ost[oreg]]), (Int[], Int[], Int[])
+    howmany, loopinfo = if length(oreg) == 0
+        Matrix(transpose([sz[oreg] ist[oreg] ost[oreg]])), (Int[], Int[], Int[])
     else
         howmany_loopinfo(sz[oreg], ist[oreg], ost[oreg])
     end
@@ -77,6 +79,9 @@ for (Tr,Tc,fftw,lib) in ((:Float64,:(Complex{Float64}),"fftw",:libfftw3),
                                         Y::StridedArray{$Tc,N}, region, flags, timelimit) where {K,inplace,N}
         unsafe_set_timelimit($Tr, timelimit)
         dims, howmany, loopinfo = dims_howmany_loopinfo(X, Y, region)
+        println(dims)
+        println(howmany)
+        println(loopinfo)
         plan = ccall(($(string(fftw,"_plan_guru64_dft")),$lib),
                      PlanPtr,
                      (Int32, Ptr{Int}, Int32, Ptr{Int},
