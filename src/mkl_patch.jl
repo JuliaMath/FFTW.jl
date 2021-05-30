@@ -1,12 +1,10 @@
 might_reshape!(sz::Vector{Int}, ist::Vector{Int}, ost::Vector{Int}) = begin
-    _reduce!(a, i) = begin
-        a[i] = a[end]
-        resize!(a, length(a) - 1)
-    end
+    move!(a, i) = @inbounds a[i] = a[end]
     @inbounds for i in eachindex(sz), j in eachindex(sz)
         if (ist[i], ost[i]) .* sz[i] == (ist[j], ost[j])
-            sz[i]= sz[i] * sz[j]
-            _reduce!.(tuple(sz, ist, ost), j)
+            sz[i] = sz[i] * sz[j]
+            move!.(tuple(sz, ist, ost), j)
+            resize!.(tuple(sz, ist, ost), length(sz) - 1)
             return might_reshape!(sz, ist, ost)
         end
     end
@@ -29,7 +27,7 @@ dims_howmany_loopinfo(X::StridedArray, Y::StridedArray, region) = begin
     length(reg) != length(region) &&
         throw(ArgumentError("each dimension can be transformed at most once"))
     oreg = filter(!in(reg), 1:ndims(X))
-    sz, ist, ost = collect.((size(X), strides(X), strides(Y)))
+    sz, ist, ost = (size(X), strides(X), strides(Y)) .|> collect
     # remove dimension with size == 1
     sz₁dim = findall(==(1), sz)
     if length(sz₁dim) > 0
@@ -37,7 +35,7 @@ dims_howmany_loopinfo(X::StridedArray, Y::StridedArray, region) = begin
         filter!(!in(sz₁dim), oreg)
     end
     dims = Matrix(transpose([sz[reg] ist[reg] ost[reg]]))
-    howmany, loopinfo = if length(oreg) < 2
+    howmany, loopinfo = if length(oreg) <= 1
         Matrix(transpose([sz[oreg] ist[oreg] ost[oreg]])), (Int[], Int[], Int[])
     else
         howmany_loopinfo(sz[oreg], ist[oreg], ost[oreg])
@@ -79,7 +77,7 @@ for (Tr,Tc,fftw,lib) in ((:Float64,:(Complex{Float64}),"fftw",:libfftw3),
                                         Y::StridedArray{$Tc,N}, region, flags, timelimit) where {K,inplace,N}
         unsafe_set_timelimit($Tr, timelimit)
         dims, howmany, loopinfo = dims_howmany_loopinfo(X, Y, region)
-        plan = ccall(($(string(fftw,"_plan_guru64_dft")),$lib),
+        plan = ccall(($(string(fftw,"fftw_plan_guru_split_dft")),$lib),
                      PlanPtr,
                      (Int32, Ptr{Int}, Int32, Ptr{Int},
                       Ptr{$Tc}, Ptr{$Tc}, Int32, UInt32),
@@ -101,7 +99,7 @@ show(io::IO, p::cLoopPlan{T,K,inplace}) where {T,K,inplace} = begin
 end
 
 unsafe_single_execute!(p::cLoopPlan{T}, X::Ptr{T}, Y::Ptr{T}) where {T<:fftwComplex} = begin
-    if T <:fftwSingle
+    if T <: fftwSingle
         @ccall libfftw3f.fftwf_execute_dft(p::PlanPtr, X::Ptr{T}, Y::Ptr{T})::Cvoid
     else
         @ccall libfftw3.fftw_execute_dft(p::PlanPtr, X::Ptr{T}, Y::Ptr{T})::Cvoid
@@ -110,11 +108,9 @@ end
 
 function unsafe_nd_execute!(p::cLoopPlan{T}, X::Ptr{T}, Y::Ptr{T},
                             sz, ist, ost) where T
-    offset(x, y) = length(x) > 1 ? x[1] * y[1] + offset(Base.tail(x), Base.tail(y)) :
-                                   x[1] * y[1]
     for ind in Iterators.product(map(sz -> (0:sz-1), sz)...)
-        X′ = X + offset(ist, ind)
-        Y′ = Y + offset(ost, ind)
+        X′ = X + mapreduce(*, +, ist, ind)
+        Y′ = Y + mapreduce(*, +, ost, ind)
         unsafe_single_execute!(p, X′, Y′)
     end
 end
