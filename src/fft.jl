@@ -304,7 +304,11 @@ function maybe_destroy_plan(plan::FFTWPlan)
     # since task switches aren't permitted in finalizers.   This has suboptimal efficiency,
     # but we shouldn't waste too many cycles since destroying plans is quick and contention
     # should be rare.
-    while !trylock(deferred_destroy_lock); end
+    while !trylock(deferred_destroy_lock)
+        # Need a safepoint in here because without it, this loop block forward progress in the GC and can deadlock
+        # the program.
+        GC.safepoint()
+    end
     try
         # note: fftwlock is re-entrant, so trylock will succeed here if we
         # are in the task that holds the planner lock.  That's okay — 
