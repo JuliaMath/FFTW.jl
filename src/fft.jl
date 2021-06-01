@@ -305,7 +305,7 @@ function maybe_destroy_plan(plan::FFTWPlan)
     # but we shouldn't waste too many cycles since destroying plans is quick and contention
     # should be rare.
     while !trylock(deferred_destroy_lock)
-        # Need a safepoint in here because without it, this loop block forward progress in the GC and can deadlock
+        # Need a safepoint in here because without it, this loop blocks forward progress in the GC and can deadlock
         # the program.
         GC.safepoint()
     end
