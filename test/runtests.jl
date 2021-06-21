@@ -507,7 +507,7 @@ end # fftw_provider == "fftw"
     end
 
     # check whether FFTW on this architecture has nontrivial alignment requirements
-    nontrivial_alignment = FFTW.fftw_provider == "fftw" && ccall((:fftwf_alignment_of, FFTW.libfftw3f), Int32, (Int,), 8) != 0
+    nontrivial_alignment = FFTW.fftw_provider == "fftw" && ccall((:fftwf_alignment_of, FFTW.libfftw3f[]), Int32, (Int,), 8) != 0
     if nontrivial_alignment
         @test_throws ArgumentError plan_rfft(Array{Float32}(undef, 32)) * view(A, 2:33)
         @test_throws ArgumentError plan_fft(Array{Complex{Float32}}(undef, 32)) * view(Ac, 2:33)

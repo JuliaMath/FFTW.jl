@@ -20,6 +20,12 @@ end
 # Read in preferences, see if any users have requested a particular backend
 const fftw_provider = get_provider()
 
+# We'll initialize `libfftw3` here (in the conditionals below), and
+# it will get overwritten again in `__init__()`.  This allows us to
+# `ccall` at build time, and also be relocatable for PackageCompiler.
+const libfftw3 = Ref{String}()
+const libfftw3f = Ref{String}()
+
 """
     set_provider!(provider; export_prefs::Bool = false)
 
@@ -41,7 +47,9 @@ end
 
 # If we're using fftw_jll, load it in
 @static if fftw_provider == "fftw"
-    using FFTW_jll
+    import FFTW_jll
+    libfftw3[] = FFTW_jll.libfftw3_path
+    libfftw3f[] = FFTW_jll.libfftw3f_path
 
     # callback function that FFTW uses to launch `num` parallel
     # tasks (FFTW/fftw3#175):
@@ -58,23 +66,23 @@ end
     #      (Previously, we called fftw_cleanup, but this invalidated existing
     #       plans, causing Base Julia issue #19892.)
     function fftw_init_threads()
-        stat =  ccall((:fftw_init_threads,   libfftw3), Int32, ())
-        statf = ccall((:fftwf_init_threads, libfftw3f), Int32, ())
+        stat =  ccall((:fftw_init_threads,   libfftw3[]), Int32, ())
+        statf = ccall((:fftwf_init_threads, libfftw3f[]), Int32, ())
         if stat == 0 || statf == 0
             error("could not initialize FFTW threads")
         end
 
         if nthreads() > 1
             cspawnloop = @cfunction(spawnloop, Cvoid, (Ptr{Cvoid}, Ptr{Cvoid}, Csize_t, Cint, Ptr{Cvoid}))
-            ccall((:fftw_threads_set_callback,  libfftw3),  Cvoid, (Ptr{Cvoid}, Ptr{Cvoid}), cspawnloop, C_NULL)
-            ccall((:fftwf_threads_set_callback, libfftw3f), Cvoid, (Ptr{Cvoid}, Ptr{Cvoid}), cspawnloop, C_NULL)
+            ccall((:fftw_threads_set_callback,  libfftw3[]),  Cvoid, (Ptr{Cvoid}, Ptr{Cvoid}), cspawnloop, C_NULL)
+            ccall((:fftwf_threads_set_callback, libfftw3f[]), Cvoid, (Ptr{Cvoid}, Ptr{Cvoid}), cspawnloop, C_NULL)
         end
     end
 end
 
 # If we're using MKL, load it in and set library paths appropriately.
 @static if fftw_provider == "mkl"
-    using MKL_jll
-    const libfftw3 = MKL_jll.libmkl_rt_path
-    const libfftw3f = libfftw3
+    import MKL_jll
+    libfftw3[] = MKL_jll.libmkl_rt_path
+    libfftw3f[] = MKL_jll.libmkl_rt_path
 end

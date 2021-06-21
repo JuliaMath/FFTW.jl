@@ -56,7 +56,7 @@ function plan_r2r end
 ## FFT: Implement fft by calling fftw.
 
 const version = VersionNumber(split(unsafe_string(cglobal(
-    (:fftw_version,libfftw3), UInt8)), ['-', ' '])[2])
+    (:fftw_version,libfftw3[]), UInt8)), ['-', ' '])[2])
 
 ## Direction of FFT
 
@@ -141,39 +141,39 @@ alignment_of(A::FakeArray) = Int32(0)
 @exclusive function export_wisdom(fname::AbstractString)
     f = ccall(:fopen, Ptr{Cvoid}, (Cstring,Cstring), fname, :w)
     systemerror("could not open wisdom file $fname for writing", f == C_NULL)
-    ccall((:fftw_export_wisdom_to_file,libfftw3), Cvoid, (Ptr{Cvoid},), f)
+    ccall((:fftw_export_wisdom_to_file,libfftw3[]), Cvoid, (Ptr{Cvoid},), f)
     ccall(:fputs, Int32, (Ptr{UInt8},Ptr{Cvoid}), " "^256, f) # no NUL, hence no Cstring
-    ccall((:fftwf_export_wisdom_to_file,libfftw3f), Cvoid, (Ptr{Cvoid},), f)
+    ccall((:fftwf_export_wisdom_to_file,libfftw3f[]), Cvoid, (Ptr{Cvoid},), f)
     ccall(:fclose, Cvoid, (Ptr{Cvoid},), f)
 end
 
 @exclusive function import_wisdom(fname::AbstractString)
     f = ccall(:fopen, Ptr{Cvoid}, (Cstring,Cstring), fname, :r)
     systemerror("could not open wisdom file $fname for reading", f == C_NULL)
-    if ccall((:fftw_import_wisdom_from_file,libfftw3),Int32,(Ptr{Cvoid},),f)==0||
-       ccall((:fftwf_import_wisdom_from_file,libfftw3f),Int32,(Ptr{Cvoid},),f)==0
+    if ccall((:fftw_import_wisdom_from_file,libfftw3[]),Int32,(Ptr{Cvoid},),f)==0||
+       ccall((:fftwf_import_wisdom_from_file,libfftw3f[]),Int32,(Ptr{Cvoid},),f)==0
         error("failed to import wisdom from $fname")
     end
     ccall(:fclose, Cvoid, (Ptr{Cvoid},), f)
 end
 
 @exclusive function import_system_wisdom()
-    if ccall((:fftw_import_system_wisdom,libfftw3), Int32, ()) == 0 ||
-       ccall((:fftwf_import_system_wisdom,libfftw3f), Int32, ()) == 0
+    if ccall((:fftw_import_system_wisdom,libfftw3[]), Int32, ()) == 0 ||
+       ccall((:fftwf_import_system_wisdom,libfftw3f[]), Int32, ()) == 0
         error("failed to import system wisdom")
     end
 end
 
 @exclusive function forget_wisdom()
-    ccall((:fftw_forget_wisdom,libfftw3), Cvoid, ())
-    ccall((:fftwf_forget_wisdom,libfftw3f), Cvoid, ())
+    ccall((:fftw_forget_wisdom,libfftw3[]), Cvoid, ())
+    ccall((:fftwf_forget_wisdom,libfftw3f[]), Cvoid, ())
 end
 
 # Threads
 
 @exclusive function set_num_threads(nthreads::Integer)
-    ccall((:fftw_plan_with_nthreads,libfftw3), Cvoid, (Int32,), nthreads)
-    ccall((:fftwf_plan_with_nthreads,libfftw3f), Cvoid, (Int32,), nthreads)
+    ccall((:fftw_plan_with_nthreads,libfftw3[]), Cvoid, (Int32,), nthreads)
+    ccall((:fftwf_plan_with_nthreads,libfftw3f[]), Cvoid, (Int32,), nthreads)
 end
 
 # pointer type for fftw_plan (opaque pointer)
@@ -187,9 +187,9 @@ const NO_TIMELIMIT = -1.0 # from fftw3.h
 
 # only call these when fftwlock is held:
 unsafe_set_timelimit(precision::fftwTypeDouble,seconds) =
-    ccall((:fftw_set_timelimit,libfftw3), Cvoid, (Float64,), seconds)
+    ccall((:fftw_set_timelimit,libfftw3[]), Cvoid, (Float64,), seconds)
 unsafe_set_timelimit(precision::fftwTypeSingle,seconds) =
-    ccall((:fftwf_set_timelimit,libfftw3f), Cvoid, (Float64,), seconds)
+    ccall((:fftwf_set_timelimit,libfftw3f[]), Cvoid, (Float64,), seconds)
 @exclusive set_timelimit(precision, seconds) = unsafe_set_timelimit(precision, seconds)
 
 # Array alignment mod 16:
@@ -210,9 +210,9 @@ unsafe_set_timelimit(precision::fftwTypeSingle,seconds) =
         convert(Int32, convert(Int64, pointer(A)) % 16)
 else
     alignment_of(A::StridedArray{T}) where {T<:fftwDouble} =
-        ccall((:fftw_alignment_of, libfftw3), Int32, (Ptr{T},), A)
+        ccall((:fftw_alignment_of, libfftw3[]), Int32, (Ptr{T},), A)
     alignment_of(A::StridedArray{T}) where {T<:fftwSingle} =
-        ccall((:fftwf_alignment_of, libfftw3f), Int32, (Ptr{T},), A)
+        ccall((:fftwf_alignment_of, libfftw3f[]), Int32, (Ptr{T},), A)
 end
 
 # FFTWPlan (low-level)
@@ -268,9 +268,9 @@ unsafe_convert(::Type{PlanPtr}, p::FFTWPlan) = p.plan
 
 # these functions should only be called while the fftwlock is held
 unsafe_destroy_plan(plan::FFTWPlan{<:fftwDouble}) =
-    ccall((:fftw_destroy_plan,libfftw3), Cvoid, (PlanPtr,), plan)
+    ccall((:fftw_destroy_plan,libfftw3[]), Cvoid, (PlanPtr,), plan)
 unsafe_destroy_plan(plan::FFTWPlan{<:fftwSingle}) =
-    ccall((:fftwf_destroy_plan,libfftw3f), Cvoid, (PlanPtr,), plan)
+    ccall((:fftwf_destroy_plan,libfftw3f[]), Cvoid, (PlanPtr,), plan)
 
 const deferred_destroy_lock = ReentrantLock() # lock protecting the deferred_destroy_plans list
 const deferred_destroy_plans = FFTWPlan[]
@@ -331,19 +331,19 @@ end
 #################################################################################################
 
 cost(plan::FFTWPlan{<:fftwDouble}) =
-    ccall((:fftw_cost,libfftw3), Float64, (PlanPtr,), plan)
+    ccall((:fftw_cost,libfftw3[]), Float64, (PlanPtr,), plan)
 cost(plan::FFTWPlan{<:fftwSingle}) =
-    ccall((:fftwf_cost,libfftw3f), Float64, (PlanPtr,), plan)
+    ccall((:fftwf_cost,libfftw3f[]), Float64, (PlanPtr,), plan)
 
 @exclusive function arithmetic_ops(plan::FFTWPlan{<:fftwDouble})
     add, mul, fma = Ref(0.0), Ref(0.0), Ref(0.0)
-    ccall((:fftw_flops,libfftw3), Cvoid,
+    ccall((:fftw_flops,libfftw3[]), Cvoid,
           (PlanPtr,Ref{Float64},Ref{Float64},Ref{Float64}), plan, add, mul, fma)
     return (round(Int64, add[]), round(Int64, mul[]), round(Int64, fma[]))
 end
 @exclusive function arithmetic_ops(plan::FFTWPlan{<:fftwSingle})
     add, mul, fma = Ref(0.0), Ref(0.0), Ref(0.0)
-    ccall((:fftwf_flops,libfftw3f), Cvoid,
+    ccall((:fftwf_flops,libfftw3f[]), Cvoid,
           (PlanPtr,Ref{Float64},Ref{Float64},Ref{Float64}), plan, add, mul, fma)
     return (round(Int64, add[]), round(Int64, mul[]), round(Int64, fma[]))
 end
@@ -374,9 +374,9 @@ const has_sprint_plan = version >= v"3.3.4" && fftw_provider == "fftw"
 
 @static if has_sprint_plan
     sprint_plan_(plan::FFTWPlan{<:fftwDouble}) =
-        ccall((:fftw_sprint_plan,libfftw3), Ptr{UInt8}, (PlanPtr,), plan)
+        ccall((:fftw_sprint_plan,libfftw3[]), Ptr{UInt8}, (PlanPtr,), plan)
     sprint_plan_(plan::FFTWPlan{<:fftwSingle}) =
-        ccall((:fftwf_sprint_plan,libfftw3f), Ptr{UInt8}, (PlanPtr,), plan)
+        ccall((:fftwf_sprint_plan,libfftw3f[]), Ptr{UInt8}, (PlanPtr,), plan)
     function sprint_plan(plan::FFTWPlan)
         p = sprint_plan_(plan)
         str = unsafe_string(p)
@@ -457,49 +457,49 @@ _colmajorstrides(p) = ()
 # Execute
 
 unsafe_execute!(plan::FFTWPlan{<:fftwDouble}) =
-    ccall((:fftw_execute,libfftw3), Cvoid, (PlanPtr,), plan)
+    ccall((:fftw_execute,libfftw3[]), Cvoid, (PlanPtr,), plan)
 
 unsafe_execute!(plan::FFTWPlan{<:fftwSingle}) =
-    ccall((:fftwf_execute,libfftw3f), Cvoid, (PlanPtr,), plan)
+    ccall((:fftwf_execute,libfftw3f[]), Cvoid, (PlanPtr,), plan)
 
 unsafe_execute!(plan::cFFTWPlan{T},
                 X::StridedArray{T}, Y::StridedArray{T}) where {T<:fftwDouble} =
-    ccall((:fftw_execute_dft,libfftw3), Cvoid,
+    ccall((:fftw_execute_dft,libfftw3[]), Cvoid,
           (PlanPtr,Ptr{T},Ptr{T}), plan, X, Y)
 
 unsafe_execute!(plan::cFFTWPlan{T},
                 X::StridedArray{T}, Y::StridedArray{T}) where {T<:fftwSingle} =
-    ccall((:fftwf_execute_dft,libfftw3f), Cvoid,
+    ccall((:fftwf_execute_dft,libfftw3f[]), Cvoid,
           (PlanPtr,Ptr{T},Ptr{T}), plan, X, Y)
 
 unsafe_execute!(plan::rFFTWPlan{Float64,FORWARD},
                 X::StridedArray{Float64}, Y::StridedArray{Complex{Float64}}) =
-    ccall((:fftw_execute_dft_r2c,libfftw3), Cvoid,
+    ccall((:fftw_execute_dft_r2c,libfftw3[]), Cvoid,
           (PlanPtr,Ptr{Float64},Ptr{Complex{Float64}}), plan, X, Y)
 
 unsafe_execute!(plan::rFFTWPlan{Float32,FORWARD},
                 X::StridedArray{Float32}, Y::StridedArray{Complex{Float32}}) =
-    ccall((:fftwf_execute_dft_r2c,libfftw3f), Cvoid,
+    ccall((:fftwf_execute_dft_r2c,libfftw3f[]), Cvoid,
           (PlanPtr,Ptr{Float32},Ptr{Complex{Float32}}), plan, X, Y)
 
 unsafe_execute!(plan::rFFTWPlan{Complex{Float64},BACKWARD},
                 X::StridedArray{Complex{Float64}}, Y::StridedArray{Float64}) =
-    ccall((:fftw_execute_dft_c2r,libfftw3), Cvoid,
+    ccall((:fftw_execute_dft_c2r,libfftw3[]), Cvoid,
           (PlanPtr,Ptr{Complex{Float64}},Ptr{Float64}), plan, X, Y)
 
 unsafe_execute!(plan::rFFTWPlan{Complex{Float32},BACKWARD},
                 X::StridedArray{Complex{Float32}}, Y::StridedArray{Float32}) =
-    ccall((:fftwf_execute_dft_c2r,libfftw3f), Cvoid,
+    ccall((:fftwf_execute_dft_c2r,libfftw3f[]), Cvoid,
           (PlanPtr,Ptr{Complex{Float32}},Ptr{Float32}), plan, X, Y)
 
 unsafe_execute!(plan::r2rFFTWPlan{T},
                 X::StridedArray{T}, Y::StridedArray{T}) where {T<:fftwDouble} =
-    ccall((:fftw_execute_r2r,libfftw3), Cvoid,
+    ccall((:fftw_execute_r2r,libfftw3[]), Cvoid,
           (PlanPtr,Ptr{T},Ptr{T}), plan, X, Y)
 
 unsafe_execute!(plan::r2rFFTWPlan{T},
                 X::StridedArray{T}, Y::StridedArray{T}) where {T<:fftwSingle} =
-    ccall((:fftwf_execute_r2r,libfftw3f), Cvoid,
+    ccall((:fftwf_execute_r2r,libfftw3f[]), Cvoid,
           (PlanPtr,Ptr{T},Ptr{T}), plan, X, Y)
 
 # NOTE ON GC (garbage collection):
@@ -565,7 +565,7 @@ for (Tr,Tc,fftw,lib) in ((:Float64,:(Complex{Float64}),"fftw",:libfftw3),
         unsafe_set_timelimit($Tr, timelimit)
         R = isa(region, Tuple) ? region : copy(region)
         dims, howmany = dims_howmany(X, Y, [size(X)...], R)
-        plan = ccall(($(string(fftw,"_plan_guru64_dft")),$lib),
+        plan = ccall(($(string(fftw,"_plan_guru64_dft")),$lib[]),
                      PlanPtr,
                      (Int32, Ptr{Int}, Int32, Ptr{Int},
                       Ptr{$Tc}, Ptr{$Tc}, Int32, UInt32),
@@ -585,7 +585,7 @@ for (Tr,Tc,fftw,lib) in ((:Float64,:(Complex{Float64}),"fftw",:libfftw3),
         region = circshift(Int[region...],-1) # FFTW halves last dim
         unsafe_set_timelimit($Tr, timelimit)
         dims, howmany = dims_howmany(X, Y, [size(X)...], region)
-        plan = ccall(($(string(fftw,"_plan_guru64_dft_r2c")),$lib),
+        plan = ccall(($(string(fftw,"_plan_guru64_dft_r2c")),$lib[]),
                      PlanPtr,
                      (Int32, Ptr{Int}, Int32, Ptr{Int},
                       Ptr{$Tr}, Ptr{$Tc}, UInt32),
@@ -605,7 +605,7 @@ for (Tr,Tc,fftw,lib) in ((:Float64,:(Complex{Float64}),"fftw",:libfftw3),
         region = circshift(Int[region...],-1) # FFTW halves last dim
         unsafe_set_timelimit($Tr, timelimit)
         dims, howmany = dims_howmany(X, Y, [size(Y)...], region)
-        plan = ccall(($(string(fftw,"_plan_guru64_dft_c2r")),$lib),
+        plan = ccall(($(string(fftw,"_plan_guru64_dft_c2r")),$lib[]),
                      PlanPtr,
                      (Int32, Ptr{Int}, Int32, Ptr{Int},
                       Ptr{$Tc}, Ptr{$Tr}, UInt32),
@@ -626,7 +626,7 @@ for (Tr,Tc,fftw,lib) in ((:Float64,:(Complex{Float64}),"fftw",:libfftw3),
         knd = fix_kinds(region, kinds)
         unsafe_set_timelimit($Tr, timelimit)
         dims, howmany = dims_howmany(X, Y, [size(X)...], region)
-        plan = ccall(($(string(fftw,"_plan_guru64_r2r")),$lib),
+        plan = ccall(($(string(fftw,"_plan_guru64_r2r")),$lib[]),
                      PlanPtr,
                      (Int32, Ptr{Int}, Int32, Ptr{Int},
                       Ptr{$Tr}, Ptr{$Tr}, Ptr{Int32}, UInt32),
@@ -651,7 +651,7 @@ for (Tr,Tc,fftw,lib) in ((:Float64,:(Complex{Float64}),"fftw",:libfftw3),
         dims[2:3, 1:size(dims,2)] *= 2
         howmany[2:3, 1:size(howmany,2)] *= 2
         howmany = [howmany [2,1,1]] # append loop over real/imag parts
-        plan = ccall(($(string(fftw,"_plan_guru64_r2r")),$lib),
+        plan = ccall(($(string(fftw,"_plan_guru64_r2r")),$lib[]),
                      PlanPtr,
                      (Int32, Ptr{Int}, Int32, Ptr{Int},
                       Ptr{$Tc}, Ptr{$Tc}, Ptr{Int32}, UInt32),
