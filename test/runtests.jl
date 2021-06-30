@@ -528,3 +528,5 @@ end
         @test occursin("dft-thr", string(p2))
     end
 end
+
+include("test_rfft!.jl")
