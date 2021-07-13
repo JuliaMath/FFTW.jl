@@ -23,9 +23,17 @@ function __init__()
         Base.depwarn("JULIA_FFTW_PROVIDER is deprecated; use FFTW.set_provider!() instead", :JULIA_FFTW_PROVIDER)
     end
 
-    # Hook FFTW threads up to our partr runtime
+    # Hook FFTW threads up to our partr runtime, and re-assign the
+    # libfftw3{,f} refs at runtime, since we may have relocated and
+    # changed the path to the library since the last time we precompiled.
     @static if fftw_provider == "fftw"
         fftw_init_threads()
+        libfftw3[] = FFTW_jll.libfftw3_path
+        libfftw3f[] = FFTW_jll.libfftw3f_path
+    end
+    @static if fftw_provider == "mkl"
+        libfftw3[] = MKL_jll.libmkl_rt_path
+        libfftw3f[] = MKL_jll.libmkl_rt_path
     end
 end
 
