@@ -1,47 +1,49 @@
-might_reshape!(sz::Vector{Int}, ist::Vector{Int}, ost::Vector{Int}) = begin
-    move!(a, i) = @inbounds a[i] = a[end]
-    @inbounds for i in eachindex(sz), j in eachindex(sz)
-        if (ist[i], ost[i]) .* sz[i] == (ist[j], ost[j])
-            sz[i] = sz[i] * sz[j]
-            move!.(tuple(sz, ist, ost), j)
-            resize!.(tuple(sz, ist, ost), length(sz) - 1)
-            return might_reshape!(sz, ist, ost)
+const IODIM = Tuple{Int,Tuple{Int,Int}}
+might_reshape!(iodims::Vector{IODIM}) = begin
+    len = 1
+    @inbounds for j in 2:length(iodims)
+        szʲ, stsʲ = iodims[j]
+        i = len
+        while i > 0
+            szⁱ, stsⁱ = iodims[i]
+            if stsⁱ .* szⁱ == stsʲ # able to reshape
+                iodims[i] = szⁱ * szʲ, stsⁱ
+                break
+            end
+            i -= 1
         end
+        i > 0 && continue
+        iodims[len+=1] = szʲ, stsʲ # fail to reshape
     end
-    sz, ist, ost
+    resize!(iodims, len)
 end
 
-howmany_loopinfo(sz::Vector{Int}, ist::Vector{Int}, ost::Vector{Int}) = begin
-    szʳ, istʳ, ostʳ = might_reshape!(sz, ist, ost) # try to reshape to reduce loop dims
-    ind = sortperm(tuple.(istʳ, ostʳ, .-szʳ))
-    szˢ, istˢ, ostˢ = szʳ[ind], istʳ[ind], ostʳ[ind]
-    pick = first(istˢ) == 1 ? 1 : findfirst(>(10Threads.nthreads()), szˢ) #how to improve?
-    howmany = [szˢ[pick], istˢ[pick], ostˢ[pick]]
-    rest = [1:pick-1; pick+1:length(szˢ)]
-    loopinfo = szˢ[rest], istˢ[rest], ostˢ[rest]
-    howmany, loopinfo
+howmany_loop(iodims::Vector{IODIM}) = begin
+    length(iodims) <= 1 && return iodims, IODIM[]
+    iodims = sort!(iodims, by = x -> x[2][1]) |> might_reshape!
+    sort!(iodims, by = x -> (x[2], -x[1]))
+    howmany, loop = [popfirst!(iodims)], iodims
+    @inbounds for i in length(loop):-1:2
+        (szʲ, stsʲ), (szⁱ, stsⁱ) = loop[i-1], loop[i]
+        loop[i] = szⁱ, stsⁱ .- szʲ .* stsʲ
+    end
+    howmany, loop
 end
 
-dims_howmany_loopinfo(X::StridedArray, Y::StridedArray, region) = begin
+dims_howmany_loop(X::StridedArray, Y::StridedArray, sz, region) = begin
     reg = unique(region)
     length(reg) != length(region) &&
         throw(ArgumentError("each dimension can be transformed at most once"))
-    oreg = filter(!in(reg), 1:ndims(X))
-    sz, ist, ost = (size(X), strides(X), strides(Y)) .|> collect
-    # remove dimension with size == 1
-    sz₁dim = findall(==(1), sz)
-    if length(sz₁dim) > 0
-        filter!(!in(sz₁dim), reg)
-        filter!(!in(sz₁dim), oreg)
-    end
-    dims = Matrix(transpose([sz[reg] ist[reg] ost[reg]]))
-    howmany, loopinfo = if length(oreg) <= 1
-        Matrix(transpose([sz[oreg] ist[oreg] ost[oreg]])), (Int[], Int[], Int[])
-    else
-        howmany_loopinfo(sz[oreg], ist[oreg], ost[oreg])
-    end
-    dims, howmany, loopinfo
+    iodims = [(x,(y,z)) for (x,y,z) in zip(sz, strides(X), strides(Y))]
+    oreg = [1:ndims(X)...]
+    oreg[reg] .= 0
+    oreg .*= sz .> 1
+    oreg = findall(>(0), oreg)
+    dims = iodims[reg]
+    howmany, loop = howmany_loop(iodims[oreg])
+    dims, howmany, loop
 end
+
 # Although MKL's plan has no alignment limitation,
 # but the check is preseved here to throw the same error
 mutable struct cLoopPlan{T,K,inplace,N,G} <: FFTWPlan{T,K,inplace}
@@ -54,18 +56,13 @@ mutable struct cLoopPlan{T,K,inplace,N,G} <: FFTWPlan{T,K,inplace}
     oalign::Int32 # alignment mod 16 of input
     flags::UInt32 # planner flags
     region::G # region (iterable) of dims that are transormed
-    loopsz::Vector{Int} # keep the loop size if needed
-    loopistride::Vector{Int} # keep the loop istride if needed
-    loopostride::Vector{Int} # keep the loop ostride if needed
+    loop::Vector{IODIM} # keep the loop size if needed
     pinv::ScaledPlan
-    function cLoopPlan{T,K,inplace}(plan::PlanPtr, X, Y, flags, region, loopinfo) where {T,K,inplace}
+    function cLoopPlan{T,K,inplace}(plan::PlanPtr, X, Y, flags, region, loop) where {T,K,inplace}
         N, G = ndims(X), typeof(region)
-        loopsz, loopistride, loopostride = loopinfo
-        loopistride .*= sizeof(T)
-        loopostride .*= sizeof(T)
         p = new{T,K,inplace,N,G}(plan, size(X), size(Y), strides(X), strides(Y),
                                     alignment_of(X), alignment_of(Y), flags,
-                                    region, loopsz, loopistride, loopostride)
+                                    region, loop)
         finalizer(maybe_destroy_plan, p)
         p
     end
@@ -76,18 +73,18 @@ for (Tr,Tc,fftw,lib) in ((:Float64,:(Complex{Float64}),"fftw",:libfftw3),
     @eval @exclusive function cLoopPlan{$Tc,K,inplace}(X::StridedArray{$Tc,N},
                                         Y::StridedArray{$Tc,N}, region, flags, timelimit) where {K,inplace,N}
         unsafe_set_timelimit($Tr, timelimit)
-        dims, howmany, loopinfo = dims_howmany_loopinfo(X, Y, region)
-        plan = ccall(($(string(fftw,"fftw_plan_guru_split_dft")),$lib),
+        dims, howmany, loop = dims_howmany_loop(X, Y, size(X), region)
+        plan = ccall(($(string(fftw,"_plan_guru64_dft")),$lib),
                      PlanPtr,
                      (Int32, Ptr{Int}, Int32, Ptr{Int},
                       Ptr{$Tc}, Ptr{$Tc}, Int32, UInt32),
-                     size(dims,2), dims, size(howmany,2), howmany,
+                     length(dims), dims, length(howmany), howmany,
                      X, Y, K, UNALIGNED) ## flags is useless
         unsafe_set_timelimit($Tr, NO_TIMELIMIT)
         if plan == C_NULL
             error("FFTW could not create plan") # shouldn't normally happen
         end
-        return cLoopPlan{$Tc,K,inplace}(plan, X, Y, flags, region, loopinfo)
+        return cLoopPlan{$Tc,K,inplace}(plan, X, Y, flags, region, loop)
     end
 end
 
@@ -98,31 +95,39 @@ show(io::IO, p::cLoopPlan{T,K,inplace}) where {T,K,inplace} = begin
     has_sprint_plan && print(io, "\n", sprint_plan(p))
 end
 
-unsafe_single_execute!(p::cLoopPlan{T}, X::Ptr{T}, Y::Ptr{T}) where {T<:fftwComplex} = begin
-    if T <: fftwSingle
-        @ccall libfftw3f.fftwf_execute_dft(p::PlanPtr, X::Ptr{T}, Y::Ptr{T})::Cvoid
-    else
-        @ccall libfftw3.fftw_execute_dft(p::PlanPtr, X::Ptr{T}, Y::Ptr{T})::Cvoid
+@generated function unsafe_nd_execute!(p::cLoopPlan{T}, X::Ptr{T}, Y::Ptr{T}, ::Val{N}) where {T,N}
+    lib = T <: fftwSingle ? :libfftw3f : :libfftw3
+    fun = T <: fftwSingle ? :fftwf_execute_dft : :fftw_execute_dft
+    ker = :(@ccall $lib.$fun(p::PlanPtr, X::Ptr{T}, Y::Ptr{T})::Cvoid)
+    for i in Base.OneTo(N)
+        itr, sz, sts = Symbol(:i,i), Symbol(:sz,i), Symbol(:sts,i)
+        ker = :(for $itr in Base.OneTo($sz)
+                $ker
+                X, Y = (X, Y) .+ $sts
+            end
+        )
     end
-end
-
-function unsafe_nd_execute!(p::cLoopPlan{T}, X::Ptr{T}, Y::Ptr{T},
-                            sz, ist, ost) where T
-    for ind in Iterators.product(map(sz -> (0:sz-1), sz)...)
-        X′ = X + mapreduce(*, +, ist, ind)
-        Y′ = Y + mapreduce(*, +, ost, ind)
-        unsafe_single_execute!(p, X′, Y′)
+    ex = Expr(:block)
+    for i in Base.OneTo(N)
+        sz, sts = Symbol(:sz,i), Symbol(:sts,i)
+        push!(ex.args, :(@inbounds $sz, $sts = p.loop[$i]))
+        push!(ex.args, :($sts = $sts .* $(sizeof(T))))
     end
+    push!(ex.args, ker)
+    return ex
 end
 
 function unsafe_execute!(p::cLoopPlan{T}, x::StridedArray{T},
                          y::StridedArray{T}) where {T <: fftwComplex}
     X, Y = pointer(x), pointer(y)
-    sz = p.loopsz
-    length(sz) == 0 && return unsafe_single_execute!(p, X, Y)
-    ist, ost = p.loopistride, p.loopostride
-    length(sz) == 1 && return unsafe_nd_execute!(p, X, Y, (sz[1],), (ist[1],), (ost[1],))
-    unsafe_nd_execute!(p, X, Y, (sz...,), (ist...,), (ost...,))
+    loop = p.loop
+    length(loop) == 0 && return unsafe_nd_execute!(p, X, Y, Val(0))
+    length(loop) == 1 && return unsafe_nd_execute!(p, X, Y, Val(1))
+    length(loop) == 2 && return unsafe_nd_execute!(p, X, Y, Val(2))
+    length(loop) == 3 && return unsafe_nd_execute!(p, X, Y, Val(3))
+    length(loop) == 4 && return unsafe_nd_execute!(p, X, Y, Val(4))
+    length(loop) == 5 && return unsafe_nd_execute!(p, X, Y, Val(5))
+    unsafe_nd_execute!(p, X, Y, Val(length(loop)))
 end
 
 function mul!(y::StridedArray{T,N}, p::cLoopPlan{T}, x::StridedArray{T,N}) where {T,N}
