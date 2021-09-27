@@ -515,17 +515,23 @@ unsafe_execute!(plan::r2rFFTWPlan{T},
 # Compute dims and howmany for FFTW guru planner
 function dims_howmany(X::StridedArray, Y::StridedArray,
                       sz::Array{Int,1}, region)
-    reg = Int[region...]
+    reg = if isa(region, Int)
+        region:region
+    elseif isa(region, Tuple)
+        Int[region...]
+    else
+        Int.(region)
+    end
     if length(unique(reg)) < length(reg)
         throw(ArgumentError("each dimension can be transformed at most once"))
     end
     ist = [strides(X)...]
     ost = [strides(Y)...]
-    dims = Matrix(transpose([sz[reg] ist[reg] ost[reg]]))
+    dims = @views Matrix(transpose([sz[reg] ist[reg] ost[reg]]))
     oreg = [1:ndims(X);]
     oreg[reg] .= 0
-    oreg = filter(d -> d > 0, oreg)
-    howmany = Matrix(transpose([sz[oreg] ist[oreg] ost[oreg]]))
+    oreg = filter!(d -> d > 0, oreg)
+    howmany = @views Matrix(transpose([sz[oreg] ist[oreg] ost[oreg]]))
     return (dims, howmany)
 end
 
@@ -564,7 +570,7 @@ for (Tr,Tc,fftw,lib) in ((:Float64,:(Complex{Float64}),"fftw",:libfftw3),
         direction = K
         unsafe_set_timelimit($Tr, timelimit)
         R = isa(region, Tuple) ? region : copy(region)
-        dims, howmany = dims_howmany(X, Y, [size(X)...], R)
+        dims, howmany = dims_howmany(X, Y, [size(X)...], region)
         plan = ccall(($(string(fftw,"_plan_guru64_dft")),$lib[]),
                      PlanPtr,
                      (Int32, Ptr{Int}, Int32, Ptr{Int},
@@ -582,7 +588,7 @@ for (Tr,Tc,fftw,lib) in ((:Float64,:(Complex{Float64}),"fftw",:libfftw3),
                                                      Y::StridedArray{$Tc,N},
                                                      region, flags::Integer, timelimit::Real) where {inplace,N}
         R = isa(region, Tuple) ? region : copy(region)
-        region = circshift(Int[region...],-1) # FFTW halves last dim
+        region = isa(region, AbstractArray) ? circshift(region, -1) : region # FFTW halves last dim
         unsafe_set_timelimit($Tr, timelimit)
         dims, howmany = dims_howmany(X, Y, [size(X)...], region)
         plan = ccall(($(string(fftw,"_plan_guru64_dft_r2c")),$lib[]),
@@ -602,7 +608,7 @@ for (Tr,Tc,fftw,lib) in ((:Float64,:(Complex{Float64}),"fftw",:libfftw3),
                                                       Y::StridedArray{$Tr,N},
                                                       region, flags::Integer, timelimit::Real) where {inplace,N}
         R = isa(region, Tuple) ? region : copy(region)
-        region = circshift(Int[region...],-1) # FFTW halves last dim
+        region = isa(region, AbstractArray) ? circshift(region, -1) : region
         unsafe_set_timelimit($Tr, timelimit)
         dims, howmany = dims_howmany(X, Y, [size(Y)...], region)
         plan = ccall(($(string(fftw,"_plan_guru64_dft_c2r")),$lib[]),
