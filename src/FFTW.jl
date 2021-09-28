@@ -12,7 +12,7 @@ import AbstractFFTs: Plan, ScaledPlan,
                      rfft_output_size, brfft_output_size,
                      plan_inv, normalization
 
-export dct, idct, dct!, idct!, plan_dct, plan_idct, plan_dct!, plan_idct!
+export dct, idct, dct!, idct!, plan_dct, plan_idct, plan_dct!, plan_idct!, brfft!, irfft!, plan_brfft!, plan_irfft!
 
 include("providers.jl")
 
