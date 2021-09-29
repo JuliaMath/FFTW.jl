@@ -1,6 +1,6 @@
 # This file was formerly a part of Julia. License is MIT: https://julialang.org/license
 
-import Base: show, *, convert, unsafe_convert, size, strides, ndims, pointer, copy, similar, eltype, \, getindex
+import Base: show, *, convert, unsafe_convert, size, strides, ndims, pointer, copy, getindex
 import LinearAlgebra: mul!
 
 
@@ -110,57 +110,31 @@ const fftwSingle = Union{Float32,Complex{Float32}}
 const fftwTypeDouble = Union{Type{Float64},Type{Complex{Float64}}}
 const fftwTypeSingle = Union{Type{Float32},Type{Complex{Float32}}}
 
-struct PaddedRFFTArray{T, N, A, Ar, Ac} <: AbstractArray{T, N} where {A <: Union{AbstractArray{T, N}, AbstractArray{Complex{T}, N}}, Ar <: AbstractArray{T, N}, Ac <: AbstractArray{Complex{T}, N}}
-    parent::A
+# padded array type to support RFFT in-place operations
+struct PaddedRFFTArray{T, N, Ac, Ar} <: AbstractArray{T, N} where {Ac <: AbstractArray{Complex{T}, N}, Ar <: AbstractArray{T, N}}
+    c::Ac # complex view / underlying array
     r::Ar # real view
-    c::Ac # complex view
 
     # wrap existing complex array
-    function PaddedRFFTArray(data::StridedArray{Tc, N}) where {Tc <: fftwComplex, N}
-        fsize = 2 * (size(data, 1) - 1)
-        r = view(reinterpret(real(Tc), data), Base.OneTo(fsize), ntuple(i -> Colon(), Val(ndims(data) - 1))...)
-        new{real(Tc), N, typeof(data), typeof(r), typeof(data)}(data, r, data)
-    end
-
-    # wrap existing padded reals array
-    function PaddedRFFTArray(data::StridedArray{T, N}, nx) where {T <: fftwReal, N}
-        fsize = size(data, 1)
-        iseven(fsize) || throw(
-            ArgumentError("First dimension of allocated array must have even number of elements"))
-        (nx == fsize - 2 || nx == fsize - 1) || throw(
-            ArgumentError("Number of elements on the first dimension of array must be either 1 or 2 less than the number of elements on the first dimension of the allocated array"))
-        c = reinterpret(Complex{T}, data)
-        r = view(data, Base.OneTo(nx), ntuple(i->Colon(), Val(ndims(data) - 1))...)
-        new{T, N, typeof(data), typeof(r), typeof(c)}(data, r, c)
-    end
-
-    # copy reals array to padded array
-    function PaddedRFFTArray(reals::StridedArray{T, N}) where {T <: fftwReal, N}
-        fsize = (size(reals, 1) ÷ 2 + 1) * 2
-        data = Array{T, N}(undef, (fsize, size(reals)[2:end]...))
-        c = reinterpret(Complex{T}, data)
-        r = view(data, Base.OneTo(size(reals, 1)), ntuple(i->Colon(), Val(ndims(reals) - 1))...)
-        @inbounds copyto!(r, reals)
-        new{T, N, typeof(data), typeof(r), typeof(c)}(data, r, c)
+    function PaddedRFFTArray(a::StridedArray{Complex{T}, N}) where {T, N}
+        fsize = 2 * (size(a, 1) - 1)
+        r = view(reinterpret(T, a), Base.OneTo(fsize), ntuple(i -> Colon(), Val(ndims(a) - 1))...)
+        new{T, N, typeof(a), typeof(r)}(a, r)
     end
 
     # copy existing padded array
-    function PaddedRFFTArray(a::PaddedRFFTArray{T, N, A, Ar, Ac}) where {T, N, A, Ar, Ac}
-        data = copy(parent(a))
-        c = reinterpret(Complex{T}, data)
-        r = view(data, Base.OneTo(size(real_view(a), 1)), ntuple(i->Colon(), Val(ndims(data) - 1))...)
-        new{T, N, A, Ar, Ac}(data, r, c)
+    function PaddedRFFTArray(a::PaddedRFFTArray{T, N, Ac, Ar}) where {T, N, Ac, Ar}
+        c = copy(complex_view(a))
+        r = view(reinterpret(T, c), Base.OneTo(size(real_view(a), 1)), ntuple(i -> Colon(), Val(ndims(a) - 1))...)
+        new{T, N, Ac, Ar}(c, r)
     end
 end
 
 @inline real_view(S::PaddedRFFTArray) = S.r
-
 @inline complex_view(S::PaddedRFFTArray) = S.c
-
 size(a::PaddedRFFTArray) = size(complex_view(a))
 getindex(a::PaddedRFFTArray, args...) = getindex(complex_view(a), args...)
 copy(a::PaddedRFFTArray) = PaddedRFFTArray(a)
-parent(a::PaddedRFFTArray) = a.parent
 
 # For ESTIMATE plans, FFTW allows one to pass NULL for the array pointer,
 # since it is not written to.  Hence, it is convenient to create an
@@ -569,13 +543,7 @@ unsafe_execute!(plan::r2rFFTWPlan{T},
 # Compute dims and howmany for FFTW guru planner
 function dims_howmany(X::StridedArray, Y::StridedArray,
                       sz::Array{Int,1}, region)
-    reg = if isa(region, Int)
-        region:region
-    elseif isa(region, Tuple)
-        Int[region...]
-    else
-        Int.(region)
-    end
+    reg = Int[region...]
     if length(unique(reg)) < length(reg)
         throw(ArgumentError("each dimension can be transformed at most once"))
     end
@@ -788,27 +756,16 @@ function *(p::cFFTWPlan{T,K,true}, x::StridedArray{T}) where {T,K}
     return x
 end
 
-# rfft/brfft and planned variants.  No in-place version for now.
-
-for f in (:rfft!,)
-    pf = Symbol("plan_", f)
-    @eval begin
-        $f(x::AbstractArray) = (x = PaddedRFFTArray(x); $pf(x) * x)
-        $f(x::AbstractArray, region) = (x = PaddedRFFTArray(x); $pf(x, region) * x)
-        $f(x::PaddedRFFTArray) = $pf(x) * x
-        $f(x::PaddedRFFTArray, region) = $pf(x, region) * x
-        $pf(x::PaddedRFFTArray; kws...) = $pf(x, 1:ndims(x); kws...)
-    end
-end
+# rfft/brfft and planned variants.  No in-place version of rfft for now.
 
 for f in (:brfft!, :irfft!)
     pf = Symbol("plan_", f)
     @eval begin
-        $f(x::AbstractArray, d::Integer) = $f(PaddedRFFTArray(x),d)
+        $f(x::AbstractArray, d::Integer) = $f(PaddedRFFTArray(x), d)
         $f(x::AbstractArray, d::Integer, region) = $f(PaddedRFFTArray(x), d, region)
         $f(x::PaddedRFFTArray, d::Integer) = $pf(x, d) * x
         $f(x::PaddedRFFTArray, d::Integer, region) = $pf(x, d, region) * x
-        $pf(x::PaddedRFFTArray, d::Integer; kws...) = $pf(x, d, 1:ndims(x);kws...)
+        $pf(x::PaddedRFFTArray, d::Integer; kws...) = $pf(x, d, 1:ndims(x); kws...)
     end
 end
 
@@ -845,12 +802,6 @@ for (Tr,Tc) in ((:Float32,:(Complex{Float32})),(:Float64,:(Complex{Float64})))
         plan_rfft(X::StridedArray{$Tr};kws...)=plan_rfft(X,1:ndims(X);kws...)
         plan_brfft(X::StridedArray{$Tr};kws...)=plan_brfft(X,1:ndims(X);kws...)
 
-        function plan_rfft!(X::PaddedRFFTArray{$Tr,N}, region;
-                            flags::Integer=ESTIMATE,
-                            timelimit::Real=NO_TIMELIMIT) where N
-            rFFTWPlan{$Tr,$FORWARD,true,N}(real_view(X), complex_view(X), region, flags, timelimit)
-        end
-
         function plan_brfft!(X::PaddedRFFTArray{$Tr,N}, d::Integer, region;
             flags::Integer=ESTIMATE,
             timelimit::Real=NO_TIMELIMIT) where N
@@ -858,7 +809,6 @@ for (Tr,Tc) in ((:Float32,:(Complex{Float32})),(:Float64,:(Complex{Float64})))
             return rFFTWPlan{$Tc,$BACKWARD,true,N}(complex_view(X), real_view(X), region, flags, timelimit)
         end
 
-        plan_rfft!(X::PaddedRFFTArray{$Tr};kws...)=plan_rfft!(X,1:ndims(X);kws...)
         plan_brfft!(X::PaddedRFFTArray{$Tr};kws...)=plan_brfft!(X,1:ndims(X);kws...)
 
         function plan_irfft!(x::PaddedRFFTArray{$Tr,N}, d::Integer, region; kws...) where N
@@ -915,14 +865,6 @@ for (Tr,Tc) in ((:Float32,:(Complex{Float32})),(:Float64,:(Complex{Float64})))
                 unsafe_execute!(p, xc, y)
             end
             return y
-        end
-
-        *(p::rFFTWPlan{$Tr,$FORWARD,true,N}, f::PaddedRFFTArray{$Tr,N}) where N = 
-            (mul!(complex_view(f), p, real_view(f)); complex_view(f))
-
-        function \(p::rFFTWPlan{$Tr,$FORWARD,true,N}, f::PaddedRFFTArray{$Tr,N}) where N
-            isdefined(p, :pinv) || (p.pinv = plan_irfft!(f, p.region))
-            return p.pinv * f
         end
 
         *(p::rFFTWPlan{$Tc,$BACKWARD,true,N}, f::PaddedRFFTArray{$Tr,N}) where N = 

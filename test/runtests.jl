@@ -529,50 +529,32 @@ end
     end
 end
 
-let a = rand(Float64,(8,4,4)), b = PaddedRFFTArray(a), c = copy(b)
+begin
     @testset "PaddedRFFTArray creation" begin
-      @test a == FFTW.real_view(b)
-      @test c == b
-      @test c.r == b.r
+        a = rand(Complex{Float64}, (8, 4, 4))
+        b = FFTW.PaddedRFFTArray(a)
+        c = copy(b)
+        @test a == FFTW.complex_view(b)
+        @test c == b
+        @test FFTW.real_view(c) == FFTW.real_view(b)
+        @test FFTW.complex_view(c) == FFTW.complex_view(b)
     end
     
-    @testset "rfft! and irfft!" begin
-      @test rfft(a) ≈ rfft!(b) 
-      @test a ≈ irfft!(b, size(a, 1))
-      @test rfft(a, 1:2) ≈ rfft!(b, 1:2) 
-      @test a ≈ irfft!(b, size(a, 1), 1:2)
-      # @test rfft(a, (1,3)) ≈ rfft!(b, (1,3)) fails 
-      # @test a ≈ irfft!(b, size(a, 1), (1,3))
-      
-      p = plan_rfft!(c)
-      @test p*c ≈ rfft!(b)
-      @test p\c ≈ irfft!(b, size(a, 1))
-    
-      a = rand(Float64, (9,4,4))
-      b = PaddedRFFTArray(a)
-      @test a == FFTW.real_view(b)
-      @test rfft(a) ≈ rfft!(b) 
-      @test a ≈ irfft!(b, size(a, 1))
-      @test rfft(a, 1:2) ≈ rfft!(b, 1:2) 
-      @test a ≈ irfft!(b, size(a, 1), 1:2)
-      # @test rfft(a, (1,3)) ≈ rfft!(b, (1,3)) # fails?
-      # @test a ≈ irfft!(b, size(a, 1), (1,3))
+    @testset "irfft!" begin
+        a = rand(Float64, (8, 4, 4))
+        c = rfft(a)
+        d = copy(c)
+        e = irfft!(d, size(a, 1))
+        @test a ≈ e
+        @test irfft(c, size(a, 1)) ≈ e
+        @test d === parent(parent(e))
+        @test d != c
+        @test irfft(c, size(a, 1), 1:2) ≈ irfft!(copy(c), size(a, 1), 1:2)
     end
     
     @testset "brfft!" begin
       a = rand(Float64,(4,4))
-      b = PaddedRFFTArray(a)
-      rfft!(b)
-      @test (brfft!(b) ./ 16) ≈ a
+      b = rfft(a)
+      @test (brfft!(b, size(a, 1)) ./ 16) ≈ a
     end
-    
-    @testset "FFTW MEASURE flag" begin
-      c = similar(b)
-      p = plan_rfft!(c,flags=FFTW.MEASURE)
-      p.pinv = plan_irfft!(c,flags=FFTW.MEASURE)
-      c .= b 
-      @test c == b
-      @test p*c ≈ rfft!(b)
-      @test p\c ≈ irfft!(b)
-    end
-end #let block
+end
