@@ -610,7 +610,7 @@ for (Tr,Tc,fftw,lib) in ((:Float64,:(Complex{Float64}),"fftw",:libfftw3),
                                                      Y::StridedArray{$Tc,N},
                                                      region, flags::Integer, timelimit::Real) where {inplace,N}
         R = isa(region, Tuple) ? region : copy(region)
-        region = isa(region, AbstractArray) ? circshift(region, -1) : region # FFTW halves last dim
+        region = circshift(Int[region...],-1) # FFTW halves last dim
         unsafe_set_timelimit($Tr, timelimit)
         dims, howmany = dims_howmany(X, Y, [size(X)...], region)
         plan = ccall(($(string(fftw,"_plan_guru64_dft_r2c")),$lib[]),
@@ -630,7 +630,7 @@ for (Tr,Tc,fftw,lib) in ((:Float64,:(Complex{Float64}),"fftw",:libfftw3),
                                                       Y::StridedArray{$Tr,N},
                                                       region, flags::Integer, timelimit::Real) where {inplace,N}
         R = isa(region, Tuple) ? region : copy(region)
-        region = isa(region, AbstractArray) ? circshift(region, -1) : region # FFTW halves last dim
+        region = circshift(Int[region...],-1) # FFTW halves last dim
         unsafe_set_timelimit($Tr, timelimit)
         dims, howmany = dims_howmany(X, Y, [size(Y)...], region)
         plan = ccall(($(string(fftw,"_plan_guru64_dft_c2r")),$lib[]),
