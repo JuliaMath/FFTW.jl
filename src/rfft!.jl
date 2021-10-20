@@ -225,7 +225,13 @@ plan_brfft!(f::PaddedRFFTArray;kws...) = plan_brfft!(f,1:ndims(f);kws...)
 
 brfft!(f::PaddedRFFTArray, region=1:ndims(f)) = plan_brfft!(f, region) * f
 
-brfft!(f::PaddedRFFTArray, ::Integer) = brfft!(f,1:ndims(f))
+function brfft!(f::PaddedRFFTArray, i::Integer) 
+    if i == size(f.r,1) # Assume `i` is the same as `d` in the brfft!(c::DenseArray{<:fftComplex}, d::Integer, region) defined below
+        return brfft!(f,1:ndims(f))
+    else # Assume `i` is specifying the region. `plan_brfft!` will throw an error if i != 1
+        return brfft!(f,(i,))
+    end
+end
 
 function brfft!(c::DenseArray{<:fftwComplex}, d::Integer, region=1:ndims(c))
     f = PaddedRFFTArray(c,d)
@@ -246,7 +252,13 @@ end
 
 irfft!(f::PaddedRFFTArray, region=1:ndims(f)) = plan_irfft!(f,region) * f
 
-irfft!(f::PaddedRFFTArray, ::Integer) = irfft!(f,1:ndims(f))
+function irfft!(f::PaddedRFFTArray, i::Integer) 
+    if i == size(f.r,1) # Assume `i` is the same as `d` in the irfft!(c::DenseArray{<:fftComplex}, d::Integer, region) defined below
+        return irfft!(f,1:ndims(f))
+    else # Assume `i` is specifying the region. `plan_irfft!` will throw an error if i != 1
+        return irfft!(f,(i,))
+    end
+end
 
 function irfft!(c::DenseArray{<:fftwComplex}, d::Integer, region=1:ndims(c))
     f = PaddedRFFTArray(c,d)
