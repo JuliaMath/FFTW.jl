@@ -528,3 +528,77 @@ end
         @test occursin("dft-thr", string(p2))
     end
 end
+
+let a = rand(Float64,(8,4,4)), b = PaddedRFFTArray(a), c = copy(b)
+
+    @testset "PaddedRFFTArray creation" begin
+        @test a == b.r
+        @test c == b
+        @test c.r == b.r
+        @test typeof(similar(b)) === typeof(b)
+        @test size(similar(b,Float32)) === size(b)
+        @test size(similar(b,Float32).r) === size(b.r)
+        @test size(similar(b,(4,4,4)).r) === (4,4,4)
+        @test size(similar(b,Float32,(4,4,4)).r) === (4,4,4) 
+    end
+    
+    @testset "rfft! and irfft!" begin
+        @test rfft(a) ≈ rfft!(b) 
+        @test a ≈ irfft!(b)
+        @test rfft(a,1:2) ≈ rfft!(b,1:2) 
+        @test a ≈ irfft!(b,1:2)
+        @test rfft(a,(1,3)) ≈ rfft!(b,(1,3)) 
+        @test a ≈ irfft!(b,(1,3))
+      
+        p = plan_rfft!(c)
+        @test p*c ≈ rfft!(b)
+        @test p\c ≈ irfft!(b)
+    
+        aa = rand(Float64,(9,4,4))
+        bb = PaddedRFFTArray(aa)
+        @test aa == bb.r
+        @test rfft(aa) ≈ rfft!(bb) 
+        @test aa ≈ irfft!(bb)
+        @test rfft(aa,1:2) ≈ rfft!(bb,1:2) 
+        @test aa ≈ irfft!(bb,1:2)
+        @test rfft(aa,(1,3)) ≈ rfft!(bb,(1,3)) 
+        @test aa ≈ irfft!(bb,(1,3))
+    end
+    
+    @testset "Read binary file to PaddedRFFTArray" begin
+        for s in ((8,4,4),(9,4,4),(8,),(9,))
+            aa = rand(Float64,s)
+            f = IOBuffer()
+            write(f,aa)
+            @test aa == (PaddedRFFTArray(seekstart(f),s)).r
+            aa = rand(Float32,s)
+            f = IOBuffer()
+            write(f,aa)
+            @test aa == PaddedRFFTArray{Float32}(seekstart(f),s).r
+        end
+    end
+    
+    @testset "brfft!" begin
+        a = rand(Float64,(4,4))
+        b = PaddedRFFTArray(a)
+        rfft!(b)
+        @test (brfft!(b) ./ 16) ≈ a
+    end
+    
+    @testset "FFTW MEASURE flag" begin
+        c = similar(b)
+        p = plan_rfft!(c,flags=FFTW.MEASURE)
+        p.pinv = plan_irfft!(c,flags=FFTW.MEASURE)
+        c .= b 
+        @test c == b
+        @test p*c ≈ rfft!(b)
+        @test p\c ≈ irfft!(b)
+    end
+
+    @testset "irfft! and brfft! of complex Array and rfft! of SubArray" begin
+        r = rand(8,6)
+        @test brfft!(rfft!(irfft!(rfft(r),8)),8)./48 ≈ r
+        r2 = rand(Float32,9,3,2)
+        @test brfft!(rfft!(irfft!(rfft(r2,(1,3)),9,(1,3))),9)./54 ≈ r2
+    end
+end #let block
