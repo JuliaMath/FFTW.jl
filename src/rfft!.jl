@@ -197,11 +197,6 @@ function rfft!(r::SubArray{<:fftwReal}, region=1:ndims(r))
     plan_rfft!(f, region) * f
 end
 
-function rfft!(r::DenseArray{<:fftwReal}, region=1:ndims(r)) 
-    f = PaddedRFFTArray(r)
-    plan_rfft!(f, region) * f
-end
-
 function \(p::rFFTWPlan{T,FORWARD,true,N},f::PaddedRFFTArray{T,N}) where {T<:fftwReal,N}
     isdefined(p,:pinv) || (p.pinv = plan_irfft!(f,p.region))
     return p.pinv * f
