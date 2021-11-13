@@ -33,14 +33,14 @@ IndexStyle(::Type{T}) where {T<:ComplexOrRealReinterpretArray} = IndexLinear()
 Base.size(a::ComplexOrRealReinterpretArray) = 
     ntuple(i->(i == 1 ? size_convertion(a,size(a.data)[i]) : size(a.data)[i]),Val(ndims(a.data)))
 
-@inline function getindex(a::ComplexOrRealReinterpretArray,i::Integer)
+Base.@propagate_inbounds function getindex(a::ComplexOrRealReinterpretArray,i::Integer)
     data = a.data
     @boundscheck checkbounds(a,i)
     GC.@preserve data r = unsafe_load(a._unsafe_pointer, i)
     return r
 end
 
-@inline function setindex!(a::ComplexOrRealReinterpretArray,v,i::Integer)
+Base.@propagate_inbounds function setindex!(a::ComplexOrRealReinterpretArray,v,i::Integer)
     data = a.data
     @boundscheck checkbounds(a,i)
     GC.@preserve data unsafe_store!(a._unsafe_pointer,v, i)
