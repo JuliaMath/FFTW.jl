@@ -2,28 +2,33 @@ import Base: IndexStyle, getindex, setindex!, eltype, \, similar, copy, real, re
 
 export PaddedRFFTArray, plan_rfft!, rfft!, plan_irfft!, plan_brfft!, brfft!, irfft!
 
+_check_valid_strides(a::AbstractArray) = strides(a) == colmajorstrides(size(a))
 
 # This struct reinterprets the `data` array to a Complex or Float array, depending on `eltype(data)`
 # It is used internally with the PaddedRFFTArray in place of `Base.ReinterpretArray` 
 # ReinterpretArray has some performance issues when reinterprreting a Complex array to Real
-struct ComplexOrRealReinterpretArray{T<:fftwNumber,N,A<:DenseArray{<:fftwNumber,N},B<:Ptr} <: DenseArray{T,N}
+struct ComplexOrRealReinterpretArray{T<:fftwNumber,N,A<:AbstractArray{<:fftwNumber,N},B<:Ptr} <: DenseArray{T,N}
     data::A # Either a real or complex array
     _unsafe_pointer::B # Pointer to the `data` array, but converted to a different type representation.
 
-    function ComplexOrRealReinterpretArray(rarray::DenseArray{T,N}) where {T<:fftwReal,N}
+    function ComplexOrRealReinterpretArray(rarray::AbstractArray{T,N}) where {T<:fftwReal,N}
+        _check_valid_strides(rarray) || throw(
+            ArgumentError("Only contiguous strided arrays are supported"))
         ptr = unsafe_convert(Ptr{Complex{T}}, pointer(rarray))
         return new{Complex{T},N,typeof(rarray),typeof(ptr)}(rarray,ptr)
     end
 
-    function ComplexOrRealReinterpretArray(carray::DenseArray{T,N}) where {T<:fftwComplex,N}
+    function ComplexOrRealReinterpretArray(carray::AbstractArray{T,N}) where {T<:fftwComplex,N}
+        _check_valid_strides(carray) || throw(
+            ArgumentError("Only contiguous strided arrays are supported"))
         FT = T === ComplexF64 ? Float64 : Float32
         ptr = unsafe_convert(Ptr{FT}, pointer(carray))
         return new{FT,N,typeof(carray),typeof(ptr)}(carray,ptr)
     end
 end
 
-const RealReinterpretArray{N} = ComplexOrRealReinterpretArray{<:fftwReal,N,<:DenseArray{<:fftwComplex,N}}
-const ComplexReinterpretArray{N} = ComplexOrRealReinterpretArray{<:fftwComplex,N,<:DenseArray{<:fftwReal,N}}
+const RealReinterpretArray{N} = ComplexOrRealReinterpretArray{<:fftwReal,N,<:AbstractArray{<:fftwComplex,N}}
+const ComplexReinterpretArray{N} = ComplexOrRealReinterpretArray{<:fftwComplex,N,<:AbstractArray{<:fftwReal,N}}
 
 @inline size_convertion(::RealReinterpretArray,i::Integer) = 2i
 @inline size_convertion(::ComplexReinterpretArray,i::Integer) = i÷2
@@ -52,7 +57,7 @@ Base.unsafe_convert(p::Type{Ptr{T}}, a::ComplexOrRealReinterpretArray{T,N}) wher
 Base.elsize(::Type{<:ComplexOrRealReinterpretArray{T,N}}) where {T,N} = sizeof(T)
 
 complex_or_real_reinterpret(a::AbstractArray) = ComplexOrRealReinterpretArray(a)
-complex_or_real_reinterpret(a::ComplexOrRealReinterpretArray) = a.data
+complex_or_real_reinterpret(a::ComplexOrRealReinterpretArray) = a.data # Avoid nesting of ComplexOrRealReinterpretArrays
 
 # At the time this code was written the new `ReinterpretArray` in Base had some performace issues.
 # Those issues were bypassed with the usage of our simplified version of ReinterpretArray above. 
@@ -64,35 +69,35 @@ struct PaddedRFFTArray{T<:fftwReal,N,R,C,L,Nm1} <: DenseArray{Complex{T},N}
     r::SubArray{T,N,R,Tuple{Base.OneTo{Int},Vararg{Base.Slice{Base.OneTo{Int}},Nm1}},L} # Real view skipping padding
     c::C
 
-    function PaddedRFFTArray{T,N}(rr::DenseArray{T,N},nx::Int) where {T<:fftwReal,N}
+    function PaddedRFFTArray{T}(rr::AbstractArray{T,N},d::Int) where {T<:fftwReal,N}
         fsize = size(rr)[1]
         iseven(fsize) || throw(
             ArgumentError("First dimension of allocated array must have even number of elements"))
-        (nx == fsize-2 || nx == fsize-1) || throw(
+        (d == fsize-2 || d == fsize-1) || throw(
             ArgumentError("Number of elements on the first dimension of array must be either 1 or 2 less than the number of elements on the first dimension of the allocated array"))
         c = complex_or_real_reinterpret(rr)
-        r = view(rr, Base.OneTo(nx), ntuple(i->Colon(),Val(N-1))...)
+        r = view(rr, Base.OneTo(d), ntuple(i->Colon(),Val(N-1))...)
         return  new{T, N, typeof(rr), typeof(c), N===1, N-1}(rr,r,c)
     end # function
 
-    function PaddedRFFTArray{T,N}(c::DenseArray{Complex{T},N},nx::Int) where {T<:fftwReal,N}
+    function PaddedRFFTArray{T}(c::AbstractArray{Complex{T},N},d::Int) where {T<:fftwReal,N}
         rr = complex_or_real_reinterpret(c)
         fsize = size(rr)[1]
-        (nx == fsize-2 || nx == fsize-1) || throw(
-            ArgumentError("Number of elements on the first dimension of array must be either 1 or 2 less than the number of elements on the first dimension of the allocated array"))
-        r = view(rr, Base.OneTo(nx), ntuple(i->Colon(),Val(N-1))...)
+        (d == fsize-2 || d == fsize-1) || throw(
+            ArgumentError("Given first dimension of real array d=$d incompatible with size of complex array $(size(c)). Valid values are d=$(fsize-2) or d=$(fsize-1)"))
+        r = view(rr, Base.OneTo(d), ntuple(i->Colon(),Val(N-1))...)
         return  new{T, N, typeof(rr), typeof(c), N===1, N-1}(rr,r,c)
     end # function
 
 end # struct
 
-PaddedRFFTArray(a::DenseArray{<:Union{T,Complex{T}},N},nx::Int) where {T<:fftwReal,N} =
-    PaddedRFFTArray{T,N}(a,nx)
+PaddedRFFTArray(a::AbstractArray{<:Union{T,Complex{T}},N},d::Int) where {T<:fftwReal,N} =
+    PaddedRFFTArray{T}(a,d)
 
-function PaddedRFFTArray{T}(ndims::Vararg{Integer,N}) where {T,N}
+function PaddedRFFTArray{T}(ndims::Vararg{Integer}) where {T}
     fsize = (ndims[1]÷2 + 1)*2
     a = zeros(T,(fsize, ndims[2:end]...))
-    PaddedRFFTArray{T,N}(a, ndims[1])
+    PaddedRFFTArray{T}(a, ndims[1])
 end
 
 PaddedRFFTArray{T}(ndims::NTuple{N,Integer}) where {T,N} =
@@ -121,8 +126,8 @@ similar(f::PaddedRFFTArray{T,N,L},dims::NTuple{N2,Int}) where {T,N,L,N2} =
 similar(f::PaddedRFFTArray,::Type{T}) where {T} =
     PaddedRFFTArray{T}(size(f.r)) 
 
-similar(f::PaddedRFFTArray{T,N}) where {T,N} = 
-    PaddedRFFTArray{T,N}(similar(f.data), size(f.r,1)) 
+similar(f::PaddedRFFTArray{T}) where {T} = 
+    PaddedRFFTArray{T}(similar(f.data), size(f.r,1)) 
 
 size(S::PaddedRFFTArray) =
     size(S.c)
@@ -159,16 +164,16 @@ end
 
 # Read a binary file of an unpaded array directly to a PaddedRFFT array, without the need
 # of the creation of a intermediary Array. If the data is already padded then the user
-# should just use PaddedRFFTArray{T}(read("file",unpaddeddim),nx)
+# should just use PaddedRFFTArray{T}(read("file",unpaddeddim),d)
 function read!(stream::IO, field::PaddedRFFTArray{T,N,L}) where {T,N,L}
     rr = field.data
     dims = size(field.r)
-    nx = dims[1]
-    nb = sizeof(T)*nx
-    npencils = prod(dims)÷nx
-    npad = iseven(nx) ? 2 : 1
+    d = dims[1]
+    nb = sizeof(T)*d
+    npencils = prod(dims)÷d
+    npad = iseven(d) ? 2 : 1
     for i=0:(npencils-1)
-        unsafe_read(stream,Ref(rr,Int((nx+npad)*i+1)),nb)
+        unsafe_read(stream,Ref(rr,Int((d+npad)*i+1)),nb)
     end
     return field
 end
@@ -228,7 +233,7 @@ function brfft!(f::PaddedRFFTArray, i::Integer)
     end
 end
 
-function brfft!(c::DenseArray{<:fftwComplex}, d::Integer, region=1:ndims(c))
+function brfft!(c::AbstractArray{<:fftwComplex}, d::Integer, region=1:ndims(c))
     f = PaddedRFFTArray(c,d)
     plan_brfft!(f, region) * f
 end
@@ -248,14 +253,14 @@ end
 irfft!(f::PaddedRFFTArray, region=1:ndims(f)) = plan_irfft!(f,region) * f
 
 function irfft!(f::PaddedRFFTArray, i::Integer) 
-    if i == size(f.r,1) # Assume `i` is the same as `d` in the irfft!(c::DenseArray{<:fftComplex}, d::Integer, region) defined below
+    if i == size(f.r,1) # Assume `i` is the same as `d` in the irfft!(c::AbstractArray{<:fftComplex}, d::Integer, region) defined below
         return irfft!(f,1:ndims(f))
     else # Assume `i` is specifying the region. `plan_irfft!` will throw an error if i != 1
         return irfft!(f,(i,))
     end
 end
 
-function irfft!(c::DenseArray{<:fftwComplex}, d::Integer, region=1:ndims(c))
+function irfft!(c::AbstractArray{<:fftwComplex}, d::Integer, region=1:ndims(c))
     f = PaddedRFFTArray(c,d)
     plan_irfft!(f, region) * f
 end
