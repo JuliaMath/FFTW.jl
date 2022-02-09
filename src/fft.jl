@@ -514,8 +514,8 @@ unsafe_execute!(plan::r2rFFTWPlan{T},
 
 # Compute dims and howmany for FFTW guru planner
 function dims_howmany(X::StridedArray, Y::StridedArray,
-                      sz::Array{Int,1}, region)
-    reg = Int[region...]
+                      sz::Vector{Int}, region)
+    reg = Int[region...]::Vector{Int}
     if length(unique(reg)) < length(reg)
         throw(ArgumentError("each dimension can be transformed at most once"))
     end
