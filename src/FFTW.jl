@@ -68,6 +68,7 @@ end
 
 include("fft.jl")
 include("dct.jl")
+include("rfft!.jl")
 
 include("precompile.jl")
 _precompile_()
