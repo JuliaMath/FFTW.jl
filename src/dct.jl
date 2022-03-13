@@ -63,7 +63,7 @@ function idct end
 """
     dct!(A [, dims])
 
-Same as [`dct!`](@ref), except that it operates in-place on `A`, which must be an
+Same as [`dct`](@ref), except that it operates in-place on `A`, which must be an
 array of real or complex floating-point values.
 """
 function dct! end
@@ -71,7 +71,7 @@ function dct! end
 """
     idct!(A [, dims])
 
-Same as [`idct!`](@ref), but operates in-place on `A`.
+Same as [`idct`](@ref), but operates in-place on `A`.
 """
 function idct! end
 

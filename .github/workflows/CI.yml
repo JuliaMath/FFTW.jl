@@ -1,0 +1,92 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - master
+    tags: '*'
+
+jobs:
+  test:
+    timeout-minutes: 10
+    name: Julia ${{ matrix.version }} - ${{ matrix.os }} - ${{ matrix.arch }} - provider ${{ matrix.provider }} - ${{ matrix.threads }} thread(s)
+    runs-on: ${{ matrix.os }}
+    env:
+      JULIA_NUM_THREADS: ${{ matrix.threads }}
+    strategy:
+      fail-fast: false
+      matrix:
+        provider:
+          - 'fftw'
+          - 'mkl'
+        version:
+          - '1.6'
+          - 'nightly'
+        os:
+          - ubuntu-latest
+          - macOS-latest
+          - windows-latest
+        threads:
+          - '1'
+          - '2'
+        arch:
+          - x64
+          - x86
+        exclude:
+          # 32-bit Julia binaries are not available on macOS
+          - os: macOS-latest
+            arch: x86
+          # 32-bit Linux binary for MKL isn't always available, let's ignore it
+          - os: ubuntu-latest
+            provider: 'mkl'
+            arch: x86
+          - provider: 'mkl'
+            threads: '2'
+
+    steps:
+      - uses: actions/checkout@v2
+      - uses: julia-actions/setup-julia@v1
+        with:
+          version: ${{ matrix.version }}
+          arch: ${{ matrix.arch }}
+      - uses: actions/cache@v2
+        env:
+          cache-name: cache-artifacts
+        with:
+          path: ~/.julia/artifacts
+          key: ${{ runner.os }}-test-${{ env.cache-name }}-${{ hashFiles('**/Project.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-test-${{ env.cache-name }}-
+            ${{ runner.os }}-test-
+            ${{ runner.os }}-
+      - name: Set Preferences
+        run: julia --project .github/set_ci_preferences.jl "${{ matrix.provider }}"
+      - uses: julia-actions/julia-runtest@v1
+      - uses: julia-actions/julia-processcoverage@v1
+      - uses: codecov/codecov-action@v1
+        with:
+          file: lcov.info
+
+  Documentation:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: julia-actions/setup-julia@latest
+        with:
+          version: 1
+      - name: Cache artifacts
+        uses: actions/cache@v2
+        env:
+          cache-name: cache-artifacts
+        with:
+          path: ~/.julia/artifacts
+          key: ${{ runner.os }}-test-${{ env.cache-name }}-${{ hashFiles('**/docs/Project.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-test-${{ env.cache-name }}-
+            ${{ runner.os }}-test-
+            ${{ runner.os }}-
+      - uses: julia-actions/julia-buildpkg@v1
+      - uses: julia-actions/julia-docdeploy@releases/v1
+        env:
+          DOCUMENTER_KEY: ${{ secrets.DOCUMENTER_KEY }}
