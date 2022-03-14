@@ -3,14 +3,14 @@
 # (This is part of the FFTW module.)
 
 """
-    plan_dct!(A [, dims [, flags [, timelimit]]])
+    plan_dct!(A [, dims [, flags [, timelimit [, num_threads]]]])
 
 Same as [`plan_dct`](@ref), but operates in-place on `A`.
 """
 function plan_dct! end
 
 """
-    plan_idct(A [, dims [, flags [, timelimit]]])
+    plan_idct(A [, dims [, flags [, timelimit [, num_threads]]]])
 
 Pre-plan an optimized inverse discrete cosine transform (DCT), similar to
 [`plan_fft`](@ref) except producing a function that computes
@@ -20,7 +20,7 @@ Pre-plan an optimized inverse discrete cosine transform (DCT), similar to
 function plan_idct end
 
 """
-    plan_dct(A [, dims [, flags [, timelimit]]])
+    plan_dct(A [, dims [, flags [, timelimit [, num_threads]]]])
 
 Pre-plan an optimized discrete cosine transform (DCT), similar to
 [`plan_fft`](@ref) except producing a function that computes
@@ -30,7 +30,7 @@ Pre-plan an optimized discrete cosine transform (DCT), similar to
 function plan_dct end
 
 """
-    plan_idct!(A [, dims [, flags [, timelimit]]])
+    plan_idct!(A [, dims [, flags [, timelimit [, num_threads]]]])
 
 Same as [`plan_idct`](@ref), but operates in-place on `A`.
 """

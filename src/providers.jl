@@ -85,4 +85,5 @@ end
     import MKL_jll
     libfftw3[] = MKL_jll.libmkl_rt_path
     libfftw3f[] = MKL_jll.libmkl_rt_path
+    const _last_num_threads = Ref(Cint(1))
 end
