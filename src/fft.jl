@@ -768,6 +768,10 @@ function *(p::cFFTWPlan{T,K,false}, x::StridedArray{T,N}) where {T,K,N}
 end
 
 function *(p::cFFTWPlan{T,K,true}, x::StridedArray{T}) where {T,K}
+    lmul!(p, x)
+end
+
+function LinearAlgebra.lmul!(p::cFFTWPlan{T,K,true}, x::StridedArray{T}) where {T,K}
     assert_applicable(p, x)
     unsafe_execute!(p, x, x)
     return x
@@ -980,6 +984,10 @@ function *(p::r2rFFTWPlan{T,K,false}, x::StridedArray{T,N}) where {T,K,N}
 end
 
 function *(p::r2rFFTWPlan{T,K,true}, x::StridedArray{T}) where {T,K}
+    lmul!(p, x)
+end
+
+function LinearAlgebra.lmul!(p::r2rFFTWPlan{T,K,true}, x::StridedArray{T}) where {T,K}
     assert_applicable(p, x)
     unsafe_execute!(p, x, x)
     return x
