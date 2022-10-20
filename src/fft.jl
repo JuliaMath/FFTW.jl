@@ -578,6 +578,9 @@ end
 
 # low-level FFTWPlan creation (for internal use in FFTW module)
 
+_mapIntknd(knd, region, kinds) = map(Int, knd)
+_mapIntknd(knd, region::AbstractUnitRange, kinds::Integer) = ntuple(x->Int(kinds), length(region))
+
 for (Tr,Tc,fftw,lib) in ((:Float64,:(Complex{Float64}),"fftw",:libfftw3),
                          (:Float32,:(Complex{Float32}),"fftwf",:libfftw3f))
     @eval @exclusive function cFFTWPlan{$Tc,K,inplace,N}(X::StridedArray{$Tc,N},
@@ -640,10 +643,10 @@ for (Tr,Tc,fftw,lib) in ((:Float64,:(Complex{Float64}),"fftw",:libfftw3),
         return rFFTWPlan{$Tc,$BACKWARD,inplace,N}(plan, flags, R, X, Y)
     end
 
-    @eval @exclusive function r2rFFTWPlan{$Tr,Any,inplace,N}(X::StridedArray{$Tr,N},
-                                                  Y::StridedArray{$Tr,N},
-                                                  region, kinds, flags::Integer,
-                                                  timelimit::Real) where {inplace,N}
+    @eval @inline function _r2rFFTWPlan(X::StridedArray{$Tr,N},
+                          Y::StridedArray{$Tr,N},
+                          region, kinds, flags::Integer,
+                          timelimit::Real, ::Val{inplace}) where {inplace,N}
         R = isa(region, Tuple) ? region : copy(region)
         knd = fix_kinds(region, kinds)
         unsafe_set_timelimit($Tr, timelimit)
@@ -658,14 +661,13 @@ for (Tr,Tc,fftw,lib) in ((:Float64,:(Complex{Float64}),"fftw",:libfftw3),
         if plan == C_NULL
             error("FFTW could not create plan") # shouldn't normally happen
         end
-        r2rFFTWPlan{$Tr,(map(Int,knd)...,),inplace,N}(plan, flags, R, X, Y)
+        r2rFFTWPlan{$Tr,(_mapIntknd(knd, region, kinds)...,),inplace,N}(plan, flags, R, X, Y)
     end
 
-    # support r2r transforms of complex = transforms of real & imag parts
-    @eval @exclusive function r2rFFTWPlan{$Tc,Any,inplace,N}(X::StridedArray{$Tc,N},
-                                                  Y::StridedArray{$Tc,N},
-                                                  region, kinds, flags::Integer,
-                                                  timelimit::Real) where {inplace,N}
+    @eval @inline function _r2rFFTWPlan(X::StridedArray{$Tc,N},
+                          Y::StridedArray{$Tc,N},
+                          region, kinds, flags::Integer,
+                          timelimit::Real, ::Val{inplace}) where {inplace,N}
         R = isa(region, Tuple) ? region : copy(region)
         knd = fix_kinds(region, kinds)
         unsafe_set_timelimit($Tr, timelimit)
@@ -683,8 +685,49 @@ for (Tr,Tc,fftw,lib) in ((:Float64,:(Complex{Float64}),"fftw",:libfftw3),
         if plan == C_NULL
             error("FFTW could not create plan") # shouldn't normally happen
         end
-        r2rFFTWPlan{$Tc,(map(Int,knd)...,),inplace,N}(plan, flags, R, X, Y)
+        r2rFFTWPlan{$Tc,(_mapIntknd(knd, region, kinds)...,),inplace,N}(plan, flags, R, X, Y)
     end
+
+    # Aggressive constant propagation helps with type-inference if `kinds` and `region` are
+    # compile-time constants
+    @static if VERSION >= v"1.7"
+        @eval @exclusive Base.@constprop :aggressive function r2rFFTWPlan{$Tr,Any,inplace,N}(
+                                                    X::StridedArray{$Tr,N},
+                                                    Y::StridedArray{$Tr,N},
+                                                    region, kinds, flags::Integer,
+                                                    timelimit::Real) where {inplace,N}
+
+            _r2rFFTWPlan(X, Y, region, kinds, flags, timelimit, Val(inplace))
+        end
+
+        # support r2r transforms of complex = transforms of real & imag parts
+        @eval @exclusive Base.@constprop :aggressive function r2rFFTWPlan{$Tc,Any,inplace,N}(
+                                                    X::StridedArray{$Tc,N},
+                                                    Y::StridedArray{$Tc,N},
+                                                    region, kinds, flags::Integer,
+                                                    timelimit::Real) where {inplace,N}
+
+            _r2rFFTWPlan(X, Y, region, kinds, flags, timelimit, Val(inplace))
+        end
+    else
+        @eval @exclusive function r2rFFTWPlan{$Tr,Any,inplace,N}(X::StridedArray{$Tr,N},
+                                                    Y::StridedArray{$Tr,N},
+                                                    region, kinds, flags::Integer,
+                                                    timelimit::Real) where {inplace,N}
+
+            _r2rFFTWPlan(X, Y, region, kinds, flags, timelimit, Val(inplace))
+        end
+
+        # support r2r transforms of complex = transforms of real & imag parts
+        @eval @exclusive function r2rFFTWPlan{$Tc,Any,inplace,N}(X::StridedArray{$Tc,N},
+                                                    Y::StridedArray{$Tc,N},
+                                                    region, kinds, flags::Integer,
+                                                    timelimit::Real) where {inplace,N}
+
+            _r2rFFTWPlan(X, Y, region, kinds, flags, timelimit, Val(inplace))
+        end
+    end
+
 
 end
 

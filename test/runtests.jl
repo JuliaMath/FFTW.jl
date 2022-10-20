@@ -552,3 +552,21 @@ end
     end
     @test FFTW.get_num_threads() == 2 # Unchanged
 end
+
+@testset "type-inference in r2r plans" begin
+    # Compare with definition
+    function testr2r(::Type{T}) where {T}
+        n = 4
+        v = T[1:n;]
+        plan = @static if VERSION >= v"1.7"
+            @inferred (() -> FFTW.plan_r2r(v, FFTW.REDFT10))()
+        else
+            FFTW.plan_r2r(v, FFTW.REDFT10)
+        end
+        @test plan * v ≈ [2sum(j->v[j+1]*cos(pi*(j+1/2)*k/n), 0:n-1) for k in 0:n-1]
+    end
+    testr2r(Float32)
+    testr2r(Float64)
+    testr2r(ComplexF32)
+    testr2r(ComplexF64)
+end
