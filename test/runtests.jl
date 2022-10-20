@@ -565,8 +565,13 @@ end
         end
         @test plan * v ≈ [2sum(j->v[j+1]*cos(pi*(j+1/2)*k/n), 0:n-1) for k in 0:n-1]
     end
-    testr2r(Float32)
-    testr2r(Float64)
-    testr2r(ComplexF32)
-    testr2r(ComplexF64)
+    @testset for T in (Float32, Float64)
+        testr2r(T)
+    end
+    # complex r2r is broken on mkl
+    if FFTW.get_provider() == "fftw"
+        @testset for T in (ComplexF32, ComplexF64)
+            testr2r(T)
+        end
+    end
 end
