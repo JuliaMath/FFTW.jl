@@ -563,19 +563,21 @@ function fix_kinds(region, kinds)
                 throw(ArgumentError("must supply a transform kind"))
             end
             k = Vector{Int32}(undef, length(region))
-            k[1:length(kinds)] = [kinds...]
+            for (ind1, ind2) in zip(eachindex(k), eachindex(kinds))
+                k[ind1] = kinds[ind2]
+            end
             k[length(kinds)+1:end] .= kinds[end]
-            kinds = k
         end
     else
-        kinds = Int32[kinds...]
+        k = Vector{Int32}(undef, length(kinds))
+        k .= kinds
     end
-    for i = 1:length(kinds)
-        if kinds[i] < 0 || kinds[i] > 10
+    for ki in k
+        if ki < 0 || ki > 10
             throw(ArgumentError("invalid transform kind"))
         end
     end
-    return kinds
+    return k
 end
 
 # low-level FFTWPlan creation (for internal use in FFTW module)
