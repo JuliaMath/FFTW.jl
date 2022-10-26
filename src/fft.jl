@@ -563,19 +563,15 @@ function fix_kinds(region, kinds)
                 throw(ArgumentError("must supply a transform kind"))
             end
             k = Vector{Int32}(undef, length(region))
-            for (ind1, ind2) in zip(eachindex(k), eachindex(kinds))
-                k[ind1] = kinds[ind2]
-            end
+            copyto!(k, kinds)
             k[length(kinds)+1:end] .= kinds[end]
         end
     else
         k = Vector{Int32}(undef, length(kinds))
         k .= kinds
     end
-    for ki in k
-        if ki < 0 || ki > 10
-            throw(ArgumentError("invalid transform kind"))
-        end
+    if any(x -> x < 0 || x > 10, k)
+        throw(ArgumentError("invalid transform kind"))
     end
     return k
 end
