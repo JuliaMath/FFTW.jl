@@ -38,14 +38,14 @@ an array of real or complex floating-point numbers.
 function r2r! end
 
 """
-    plan_r2r!(A, kind [, dims [, flags [, timelimit]]])
+    plan_r2r!(A, kind [, dims [, flags [, timelimit [, num_threads]]]])
 
 Similar to [`plan_fft`](@ref), but corresponds to [`r2r!`](@ref).
 """
 function plan_r2r! end
 
 """
-    plan_r2r(A, kind [, dims [, flags [, timelimit]]])
+    plan_r2r(A, kind [, dims [, flags [, timelimit [, num_threads]]]])
 
 Pre-plan an optimized r2r transform, similar to [`plan_fft`](@ref)
 except that the transforms (and the first three arguments)
@@ -171,9 +171,33 @@ end
 
 # Threads
 
-@exclusive function set_num_threads(nthreads::Integer)
-    ccall((:fftw_plan_with_nthreads,libfftw3[]), Cvoid, (Int32,), nthreads)
-    ccall((:fftwf_plan_with_nthreads,libfftw3f[]), Cvoid, (Int32,), nthreads)
+# Must only be called after acquiring fftwlock
+function _set_num_threads(num_threads::Integer)
+    @static if fftw_provider == "mkl"
+        _last_num_threads[] = num_threads
+    end
+    ccall((:fftw_plan_with_nthreads,libfftw3[]), Cvoid, (Int32,), num_threads)
+    ccall((:fftwf_plan_with_nthreads,libfftw3f[]), Cvoid, (Int32,), num_threads)
+end
+
+@exclusive set_num_threads(num_threads::Integer) = _set_num_threads(num_threads)
+
+function get_num_threads()
+    @static if fftw_provider == "fftw"
+        ccall((:fftw_planner_nthreads,libfftw3[]), Cint, ())
+    else
+        _last_num_threads[]
+    end
+end
+
+@exclusive function set_num_threads(f::Function, num_threads::Integer)
+    orig_num_threads = get_num_threads()
+    _set_num_threads(num_threads)
+    try
+        f()
+    finally
+        _set_num_threads(orig_num_threads)
+    end
 end
 
 # pointer type for fftw_plan (opaque pointer)
@@ -514,7 +538,7 @@ unsafe_execute!(plan::r2rFFTWPlan{T},
 
 # Compute dims and howmany for FFTW guru planner
 function dims_howmany(X::StridedArray, Y::StridedArray,
-                      sz::Array{Int,1}, region)
+                      sz::Vector{Int}, region)
     reg = if isa(region, Int)
         region:region
     elseif isa(region, Tuple)
@@ -545,19 +569,17 @@ function fix_kinds(region, kinds)
                 throw(ArgumentError("must supply a transform kind"))
             end
             k = Vector{Int32}(undef, length(region))
-            k[1:length(kinds)] = [kinds...]
+            copyto!(k, kinds)
             k[length(kinds)+1:end] .= kinds[end]
-            kinds = k
         end
     else
-        kinds = Int32[kinds...]
+        k = Vector{Int32}(undef, length(kinds))
+        k .= kinds
     end
-    for i = 1:length(kinds)
-        if kinds[i] < 0 || kinds[i] > 10
-            throw(ArgumentError("invalid transform kind"))
-        end
+    if any(x -> x < 0 || x > 10, k)
+        throw(ArgumentError("invalid transform kind"))
     end
-    return kinds
+    return k
 end
 
 # low-level FFTWPlan creation (for internal use in FFTW module)
@@ -690,14 +712,28 @@ for (f,direction) in ((:fft,FORWARD), (:bfft,BACKWARD))
     @eval begin
         function $plan_f(X::StridedArray{T,N}, region;
                          flags::Integer=ESTIMATE,
-                         timelimit::Real=NO_TIMELIMIT) where {T<:fftwComplex,N}
+                         timelimit::Real=NO_TIMELIMIT,
+                         num_threads::Union{Nothing, Integer} = nothing) where {T<:fftwComplex,N}
+            if num_threads !== nothing
+                plan = set_num_threads(num_threads) do
+                    $plan_f(X, region; flags = flags, timelimit = timelimit)
+                end
+                return plan
+            end
             cFFTWPlan{T,$direction,false,N}(X, fakesimilar(flags, X, T),
                                             region, flags, timelimit)
         end
 
         function $plan_f!(X::StridedArray{T,N}, region;
-                         flags::Integer=ESTIMATE,
-                         timelimit::Real=NO_TIMELIMIT) where {T<:fftwComplex,N}
+                          flags::Integer=ESTIMATE,
+                          timelimit::Real=NO_TIMELIMIT,
+                          num_threads::Union{Nothing, Integer} = nothing ) where {T<:fftwComplex,N}
+            if num_threads !== nothing
+                plan = set_num_threads(num_threads) do
+                    $plan_f!(X, region; flags = flags, timelimit = timelimit)
+                end
+                return plan
+            end
             cFFTWPlan{T,$direction,true,N}(X, X, region, flags, timelimit)
         end
         $plan_f(X::StridedArray{<:fftwComplex}; kws...) =
@@ -705,7 +741,14 @@ for (f,direction) in ((:fft,FORWARD), (:bfft,BACKWARD))
         $plan_f!(X::StridedArray{<:fftwComplex}; kws...) =
             $plan_f!(X, 1:ndims(X); kws...)
 
-        function plan_inv(p::cFFTWPlan{T,$direction,inplace,N}) where {T<:fftwComplex,N,inplace}
+        function plan_inv(p::cFFTWPlan{T,$direction,inplace,N};
+                          num_threads::Union{Nothing, Integer} = nothing) where {T<:fftwComplex,N,inplace}
+            if num_threads !== nothing
+                plan = set_num_threads(num_threads) do
+                    plan_inv(p)
+                end
+                return plan
+            end
             X = Array{T}(undef, p.sz)
             Y = inplace ? X : fakesimilar(p.flags, X, T)
             ScaledPlan(cFFTWPlan{T,$idirection,inplace,N}(X, Y, p.region,
@@ -741,7 +784,14 @@ for (Tr,Tc) in ((:Float32,:(Complex{Float32})),(:Float64,:(Complex{Float64})))
     @eval begin
         function plan_rfft(X::StridedArray{$Tr,N}, region;
                            flags::Integer=ESTIMATE,
-                           timelimit::Real=NO_TIMELIMIT) where N
+                           timelimit::Real=NO_TIMELIMIT,
+                           num_threads::Union{Nothing, Integer} = nothing) where N
+            if num_threads !== nothing
+                plan = set_num_threads(num_threads) do
+                    plan_rfft(X, region; flags = flags, timelimit = timelimit)
+                end
+                return plan
+            end
             osize = rfft_output_size(X, region)
             Y = flags&ESTIMATE != 0 ? FakeArray{$Tc}(osize) : Array{$Tc}(undef, osize)
             rFFTWPlan{$Tr,$FORWARD,false,N}(X, Y, region, flags, timelimit)
@@ -749,7 +799,14 @@ for (Tr,Tc) in ((:Float32,:(Complex{Float32})),(:Float64,:(Complex{Float64})))
 
         function plan_brfft(X::StridedArray{$Tc,N}, d::Integer, region;
                             flags::Integer=ESTIMATE,
-                            timelimit::Real=NO_TIMELIMIT) where N
+                            timelimit::Real=NO_TIMELIMIT,
+                            num_threads::Union{Nothing, Integer} = nothing) where N
+            if num_threads !== nothing
+                plan = set_num_threads(num_threads) do
+                    plan_brfft(X, d, region; flags = flags, timelimit = timelimit)
+                end
+                return plan
+            end
             osize = brfft_output_size(X, d, region)
             Y = flags&ESTIMATE != 0 ? FakeArray{$Tr}(osize) : Array{$Tr}(undef, osize)
 
@@ -769,7 +826,14 @@ for (Tr,Tc) in ((:Float32,:(Complex{Float32})),(:Float64,:(Complex{Float64})))
         plan_rfft(X::StridedArray{$Tr};kws...)=plan_rfft(X,1:ndims(X);kws...)
         plan_brfft(X::StridedArray{$Tr};kws...)=plan_brfft(X,1:ndims(X);kws...)
 
-        function plan_inv(p::rFFTWPlan{$Tr,$FORWARD,false,N}) where N
+        function plan_inv(p::rFFTWPlan{$Tr,$FORWARD,false,N},
+                          num_threads::Union{Nothing, Integer} = nothing) where N
+            if num_threads !== nothing
+                plan = set_num_threads(num_threads) do
+                    plan_inv(p)
+                end
+                return plan
+            end
             X = Array{$Tr}(undef, p.sz)
             Y = p.flags&ESTIMATE != 0 ? FakeArray{$Tc}(p.osz) : Array{$Tc}(undef, p.osz)
             ScaledPlan(rFFTWPlan{$Tc,$BACKWARD,false,N}(Y, X, p.region,
@@ -779,7 +843,14 @@ for (Tr,Tc) in ((:Float32,:(Complex{Float32})),(:Float64,:(Complex{Float64})))
                        normalization(X, p.region))
         end
 
-        function plan_inv(p::rFFTWPlan{$Tc,$BACKWARD,false,N}) where N
+        function plan_inv(p::rFFTWPlan{$Tc,$BACKWARD,false,N};
+                          num_threads::Union{Nothing, Integer} = nothing) where N
+            if num_threads !== nothing
+                plan = set_num_threads(num_threads) do
+                    plan_inv(p)
+                end
+                return plan
+            end
             X = Array{$Tc}(undef, p.sz)
             Y = p.flags&ESTIMATE != 0 ? FakeArray{$Tr}(p.osz) : Array{$Tr}(undef, p.osz)
             ScaledPlan(rFFTWPlan{$Tr,$FORWARD,false,N}(Y, X, p.region,
@@ -838,14 +909,28 @@ end
 
 function plan_r2r(X::StridedArray{T,N}, kinds, region;
                   flags::Integer=ESTIMATE,
-                  timelimit::Real=NO_TIMELIMIT) where {T<:fftwNumber,N}
+                  timelimit::Real=NO_TIMELIMIT,
+                  num_threads::Union{Nothing, Integer} = nothing) where {T<:fftwNumber,N}
+    if num_threads !== nothing
+        plan = set_num_threads(num_threads) do
+            plan_r2r(X, kinds, region; flags = flags, timelimit = timelimit)
+        end
+        return plan
+    end
     r2rFFTWPlan{T,Any,false,N}(X, fakesimilar(flags, X, T), region, kinds,
                                flags, timelimit)
 end
 
 function plan_r2r!(X::StridedArray{T,N}, kinds, region;
                    flags::Integer=ESTIMATE,
-                   timelimit::Real=NO_TIMELIMIT) where {T<:fftwNumber,N}
+                   timelimit::Real=NO_TIMELIMIT,
+                   num_threads::Union{Nothing, Integer} = nothing) where {T<:fftwNumber,N}
+    if num_threads !== nothing
+        plan = set_num_threads(num_threads) do
+            plan_r2r(X, kinds, region; flags = flags, timelimit = timelimit)
+        end
+        return plan
+    end
     r2rFFTWPlan{T,Any,true,N}(X, X, region, kinds, flags, timelimit)
 end
 
@@ -867,7 +952,14 @@ function logical_size(n::Integer, k::Integer)
     return 2n
 end
 
-function plan_inv(p::r2rFFTWPlan{T,K,inplace,N}) where {T<:fftwNumber,K,inplace,N}
+function plan_inv(p::r2rFFTWPlan{T,K,inplace,N};
+                  num_threads::Union{Nothing, Integer} = nothing) where {T<:fftwNumber,K,inplace,N}
+    if num_threads !== nothing
+        set_num_threads(num_threads) do
+            plan = plan_inv(p)
+        end
+        return plan
+    end
     X = Array{T}(undef, p.sz)
     iK = fix_kinds(p.region, [inv_kind[k] for k in K])
     Y = inplace ? X : fakesimilar(p.flags, X, T)
