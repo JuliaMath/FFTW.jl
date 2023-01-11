@@ -354,9 +354,13 @@ end
     y = rfft(x)
     @inferred rfft(x)
 
-    # See Julia issue #23063
     if ndims(x) == 2
-        @test_broken @inferred brfft(x,18)
+        if VERSION >= v"1.9.0-beta2"
+            @inferred brfft(x,18)
+        else
+            # See Julia issue #23063
+            @test_broken @inferred brfft(x,18)
+        end
     end
 
     @inferred brfft(y,10)
@@ -372,9 +376,18 @@ end
               plan_rfft, fft, bfft, fft_, ifft)
         # More of #23063 (why does plan_rfft work and the others don't)?
         if ndims(x) == 2 && f != plan_rfft
-            @test_broken @inferred f(x)
-            @test_broken @inferred plan_inv(f(x))
-            continue
+            if VERSION >= v"1.9.0-beta2"
+                @inferred f(x)
+                if isa(f, Plan)
+                    @inferred plan_inv(f(x))
+                end
+            else
+                @test_broken @inferred f(x)
+                if isa(f, Plan)
+                    @test_broken @inferred plan_inv(f(x))
+                end
+                continue
+            end
         end
         p = @inferred f(x)
         if isa(p, Plan)
