@@ -355,7 +355,7 @@ end
     @inferred rfft(x)
 
     if ndims(x) == 2
-        if VERSION >= v"1.9.0-beta2"
+        if VERSION >= v"1.6.7"
             @inferred brfft(x,18)
         else
             # See Julia issue #23063
@@ -376,7 +376,7 @@ end
               plan_rfft, fft, bfft, fft_, ifft)
         # More of #23063 (why does plan_rfft work and the others don't)?
         if ndims(x) == 2 && f != plan_rfft
-            if VERSION >= v"1.9.0-beta2"
+            if VERSION >= v"1.6.7"
                 @inferred f(x)
                 if isa(f, Plan)
                     @inferred plan_inv(f(x))
