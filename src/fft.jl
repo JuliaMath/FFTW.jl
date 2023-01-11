@@ -579,7 +579,7 @@ end
 # low-level FFTWPlan creation (for internal use in FFTW module)
 
 _mapIntknd(knd, region, kinds) = map(Int, knd)
-_mapIntknd(knd, region::AbstractUnitRange, kinds::Integer) = ntuple(x->Int(kinds), length(region))
+_mapIntknd(knd, region::Union{AbstractUnitRange,Tuple}, kinds::Integer) = ntuple(x->Int(kinds), length(region))
 
 for (Tr,Tc,fftw,lib) in ((:Float64,:(Complex{Float64}),"fftw",:libfftw3),
                          (:Float32,:(Complex{Float32}),"fftwf",:libfftw3f))
