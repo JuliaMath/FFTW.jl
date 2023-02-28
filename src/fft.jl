@@ -983,8 +983,8 @@ function logical_size(n::Integer, k::Integer)
     return 2n
 end
 
-function plan_inv(p::r2rFFTWPlan{T,<:Any,inplace,N};
-                  num_threads::Union{Nothing, Integer} = nothing) where {T<:fftwNumber,inplace,N}
+function plan_inv(p::r2rFFTWPlan{T,K,inplace,N};
+                  num_threads::Union{Nothing, Integer} = nothing) where {T<:fftwNumber,K,inplace,N}
     if num_threads !== nothing
         set_num_threads(num_threads) do
             plan = plan_inv(p)
@@ -992,6 +992,7 @@ function plan_inv(p::r2rFFTWPlan{T,<:Any,inplace,N};
         return plan
     end
     X = Array{T}(undef, p.sz)
+    # broadcast getindex to preserve tuples
     iK = fix_kinds(p.region, getindex.((inv_kind,), p.kinds))
     Y = inplace ? X : fakesimilar(p.flags, X, T)
     ScaledPlan(r2rFFTWPlan{T,Any,inplace,N}(X, Y, p.region, iK,
@@ -1007,14 +1008,14 @@ function mul!(y::StridedArray{T}, p::r2rFFTWPlan{T}, x::StridedArray{T}) where T
     return y
 end
 
-function *(p::r2rFFTWPlan{T,<:Any,false}, x::StridedArray{T,N}) where {T,N}
+function *(p::r2rFFTWPlan{T,K,false}, x::StridedArray{T,N}) where {T,K,N}
     assert_applicable(p, x)
     y = Array{T}(undef, p.osz)::Array{T,N}
     unsafe_execute!(p, x, y)
     return y
 end
 
-function *(p::r2rFFTWPlan{T,<:Any,true}, x::StridedArray{T}) where {T}
+function *(p::r2rFFTWPlan{T,K,true}, x::StridedArray{T}) where {T,K}
     assert_applicable(p, x)
     unsafe_execute!(p, x, x)
     return x
