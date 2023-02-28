@@ -245,7 +245,7 @@ end
 # needed to determine whether it is applicable.   We need to put
 # this into a type to support a finalizer on the fftw_plan.
 # K is FORWARD/BACKWARD for forward/backward or r2c/c2r plans, respectively.
-# For r2r plans, K is a tuple of the transform kinds along each dimension.
+# For r2r plans, the field kinds::K is a tuple/vector of the transform kinds along each dimension.
 abstract type FFTWPlan{T<:fftwNumber,K,inplace} <: Plan{T} end
 for P in (:cFFTWPlan, :rFFTWPlan) # complex, r2c/c2r
     @eval begin
