@@ -604,7 +604,7 @@ function fix_kinds(region, kinds)
     return k
 end
 fix_kinds(region::Tuple, kinds::Integer) = ntuple(_->Int32(kinds), length(region))
-fix_kinds(region::Tuple, kinds::Tuple{Integer}) = ntuple(_->Int32(kinds[1]), length(region))
+fix_kinds(region::Tuple, kinds::Tuple{Integer}) = fix_kinds(region, kinds[1])
 
 # Potentially avoid an extra `collect`
 _collect(T, x) = collect(T, x)
