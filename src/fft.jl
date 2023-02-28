@@ -553,7 +553,6 @@ function dims_howmany(X::StridedArray, Y::StridedArray,
     return (dims, howmany)
 end
 
-# check & convert kinds into int32 array with same length as region
 function fix_kinds(region, kinds)
     if length(kinds) != length(region)
         if length(kinds) > length(region)
@@ -575,12 +574,13 @@ function fix_kinds(region, kinds)
     end
     return k
 end
+fix_kinds(region::Tuple, kinds::Integer) = ntuple(_->Int32(kinds), length(region))
+
+# potentially avoid an extra collection if x isa Vector{T}
+_collect(T, x) = collect(T, x)
+_collect(::Type{T}, v::AbstractVector) where {T} = convert(Vector{T}, v)
 
 # low-level FFTWPlan creation (for internal use in FFTW module)
-
-_mapIntknd(knd, region, kinds) = map(Int, knd)
-_mapIntknd(knd, region::Union{AbstractUnitRange,Tuple}, kinds::Integer) = ntuple(x->Int(kinds), length(region))
-
 for (Tr,Tc,fftw,lib) in ((:Float64,:(Complex{Float64}),"fftw",:libfftw3),
                          (:Float32,:(Complex{Float32}),"fftwf",:libfftw3f))
     @eval @exclusive function cFFTWPlan{$Tc,K,inplace,N}(X::StridedArray{$Tc,N},
@@ -656,12 +656,12 @@ for (Tr,Tc,fftw,lib) in ((:Float64,:(Complex{Float64}),"fftw",:libfftw3),
                      (Int32, Ptr{Int}, Int32, Ptr{Int},
                       Ptr{$Tr}, Ptr{$Tr}, Ptr{Int32}, UInt32),
                      size(dims,2), dims, size(howmany,2), howmany,
-                     X, Y, knd, flags)
+                     X, Y, _collect(Int32, knd), flags)
         unsafe_set_timelimit($Tr, NO_TIMELIMIT)
         if plan == C_NULL
             error("FFTW could not create plan") # shouldn't normally happen
         end
-        r2rFFTWPlan{$Tr,(_mapIntknd(knd, region, kinds)...,),inplace,N}(plan, flags, R, X, Y)
+        r2rFFTWPlan{$Tr,Tuple(map(Int, knd)),inplace,N}(plan, flags, R, X, Y)
     end
 
     @eval @inline function _r2rFFTWPlan(X::StridedArray{$Tc,N},
@@ -680,12 +680,12 @@ for (Tr,Tc,fftw,lib) in ((:Float64,:(Complex{Float64}),"fftw",:libfftw3),
                      (Int32, Ptr{Int}, Int32, Ptr{Int},
                       Ptr{$Tc}, Ptr{$Tc}, Ptr{Int32}, UInt32),
                      size(dims,2), dims, size(howmany,2), howmany,
-                     X, Y, knd, flags)
+                     X, Y, _collect(Int32, knd), flags)
         unsafe_set_timelimit($Tr, NO_TIMELIMIT)
         if plan == C_NULL
             error("FFTW could not create plan") # shouldn't normally happen
         end
-        r2rFFTWPlan{$Tc,(_mapIntknd(knd, region, kinds)...,),inplace,N}(plan, flags, R, X, Y)
+        r2rFFTWPlan{$Tc,Tuple(map(Int, knd)),inplace,N}(plan, flags, R, X, Y)
     end
 
     # Aggressive constant propagation helps with type-inference if `kinds` and `region` are
@@ -931,15 +931,16 @@ end
 
 # FFTW r2r transforms (low-level interface)
 
+_ntupleid(v) = ntuple(identity, v)
 for f in (:r2r, :r2r!)
     pf = Symbol("plan_", f)
     @eval begin
         $f(x::AbstractArray{<:fftwNumber}, kinds) = $pf(x, kinds) * x
         $f(x::AbstractArray{<:fftwNumber}, kinds, region) = $pf(x, kinds, region) * x
-        $pf(x::AbstractArray, kinds; kws...) = $pf(x, kinds, 1:ndims(x); kws...)
-        $f(x::AbstractArray{<:Real}, kinds, region=1:ndims(x)) = $f(fftwfloat(x), kinds, region)
+        $pf(x::AbstractArray, kinds; kws...) = $pf(x, kinds, _ntupleid(Val(ndims(x))); kws...)
+        $f(x::AbstractArray{<:Real}, kinds, region=_ntupleid(Val(ndims(x)))) = $f(fftwfloat(x), kinds, region)
         $pf(x::AbstractArray{<:Real}, kinds, region; kws...) = $pf(fftwfloat(x), kinds, region; kws...)
-        $f(x::AbstractArray{<:Complex}, kinds, region=1:ndims(x)) = $f(fftwcomplex(x), kinds, region)
+        $f(x::AbstractArray{<:Complex}, kinds, region=_ntupleid(Val(ndims(x)))) = $f(fftwcomplex(x), kinds, region)
         $pf(x::AbstractArray{<:Complex}, kinds, region; kws...) = $pf(fftwcomplex(x), kinds, region; kws...)
     end
 end
