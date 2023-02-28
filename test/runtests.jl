@@ -558,12 +558,11 @@ end
     function testr2r(::Type{T}) where {T}
         n = 4
         v = T[1:n;]
-        plan = @static if VERSION >= v"1.7"
-            @inferred (() -> FFTW.plan_r2r(v, FFTW.REDFT10))()
-        else
-            FFTW.plan_r2r(v, FFTW.REDFT10)
-        end
-        @test plan * v ≈ [2sum(j->v[j+1]*cos(pi*(j+1/2)*k/n), 0:n-1) for k in 0:n-1]
+        plan = @inferred (() -> FFTW.plan_r2r(v, FFTW.REDFT10))()
+        w = plan * v
+        @test w ≈ [2sum(j->v[j+1]*cos(pi*(j+1/2)*k/n), 0:n-1) for k in 0:n-1]
+        invplan = @inferred FFTW.plan_inv(plan)
+        @test invplan * w ≈ v
     end
     @testset for T in (Float32, Float64)
         testr2r(T)
