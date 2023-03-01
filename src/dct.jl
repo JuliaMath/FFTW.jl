@@ -80,13 +80,14 @@ function idct! end
 # Unlike Matlab we compute the multidimensional transform by default,
 # similar to the Julia fft functions.
 
-mutable struct DCTPlan{T<:fftwNumber,K,inplace} <: Plan{T}
-    plan::r2rFFTWPlan{T}
-    r::Array{UnitRange{Int}} # array of indices for rescaling
+mutable struct DCTPlan{T<:fftwNumber,K,inplace,G,R<:r2rFFTWPlan{T}} <: Plan{T}
+    plan::R
+    r::Vector{UnitRange{Int}} # array of indices for rescaling
     nrm::Float64 # normalization factor
-    region::Dims # dimensions being transformed
+    region::G # dimensions being transformed
     pinv::DCTPlan{T}
-    DCTPlan{T,K,inplace}(plan,r,nrm,region) where {T<:fftwNumber,K,inplace} = new(plan,r,nrm,region)
+    DCTPlan{T,K,inplace}(plan::R,r,nrm,region::G) where {T<:fftwNumber,K,inplace,G,R<:r2rFFTWPlan{T}} =
+        new{T,K,inplace,G,R}(plan,r,nrm,region)
 end
 
 size(p::DCTPlan) = size(p.plan)
