@@ -1,0 +1,59 @@
+task:
+  timeout_in: 15m
+  matrix:
+    - name: FreeBSD
+      freebsd_instance:
+        image_family: freebsd-13-1
+      env:
+        matrix:
+        - JULIA_VERSION: 1.6
+        - JULIA_VERSION: 1
+        - JULIA_VERSION: nightly
+    - name: Linux ARMv8
+      arm_container:
+        image: ubuntu:latest
+      env:
+        matrix:
+        - JULIA_VERSION: 1.6
+        - JULIA_VERSION: 1
+        - JULIA_VERSION: nightly
+    - name: musl Linux
+      container:
+        image: alpine:3.14
+      env:
+        matrix:
+        - JULIA_VERSION: 1.6
+        - JULIA_VERSION: 1
+        - JULIA_VERSION: nightly
+    - name: MacOS M1
+      macos_instance:
+        image: ghcr.io/cirruslabs/macos-monterey-base:latest
+      env:
+        matrix:
+        # - JULIA_VERSION: 1.6 # not available
+        - JULIA_VERSION: 1
+        - JULIA_VERSION: nightly
+
+  allow_failures: $JULIA_VERSION == 'nightly'
+  install_script: |
+    URL="https://raw.githubusercontent.com/ararslan/CirrusCI.jl/master/bin/install.sh"
+    set -x
+    if [ "$(uname -s)" = "Linux" ] && command -v apt; then
+        apt update
+        apt install -y curl
+    fi
+    if command -v curl; then
+        sh -c "$(curl ${URL})"
+    elif command -v wget; then
+        sh -c "$(wget ${URL} -O-)"
+    elif command -v fetch; then
+        sh -c "$(fetch ${URL} -o -)"
+    else
+        echo "No downloader installed! :( Install one! :)"
+    fi
+  build_script:
+    - cirrusjl build
+  test_script:
+    - cirrusjl test
+  coverage_script:
+    - cirrusjl coverage codecov
