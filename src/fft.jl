@@ -286,7 +286,7 @@ mutable struct r2rFFTWPlan{T<:fftwNumber,K,inplace,N,G} <: FFTWPlan{T,K,inplace}
     ialign::Int32 # alignment mod 16 of input
     oalign::Int32 # alignment mod 16 of input
     flags::UInt32 # planner flags
-    region::G # region (iterable) of dims that are transormed
+    region::G # region (iterable) of dims that are transformed
     kinds::K
     pinv::ScaledPlan
     function r2rFFTWPlan{T,K,inplace,N,G}(plan::PlanPtr, flags::Integer, R::G,
