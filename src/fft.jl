@@ -245,9 +245,9 @@ end
 # needed to determine whether it is applicable.   We need to put
 # this into a type to support a finalizer on the fftw_plan.
 # K is FORWARD/BACKWARD for forward/backward or r2c/c2r plans, respectively.
-# For r2r plans, K is a tuple of the transform kinds along each dimension.
+# For r2r plans, the field kinds::K is a tuple/vector of the transform kinds along each dimension.
 abstract type FFTWPlan{T<:fftwNumber,K,inplace} <: Plan{T} end
-for P in (:cFFTWPlan, :rFFTWPlan, :r2rFFTWPlan) # complex, r2c/c2r, and r2r
+for P in (:cFFTWPlan, :rFFTWPlan) # complex, r2c/c2r
     @eval begin
         mutable struct $P{T<:fftwNumber,K,inplace,N,G} <: FFTWPlan{T,K,inplace}
             plan::PlanPtr
@@ -275,6 +275,34 @@ for P in (:cFFTWPlan, :rFFTWPlan, :r2rFFTWPlan) # complex, r2c/c2r, and r2r
             $P{T,K,inplace,N,G}(plan, flags, R, X, Y)
         end
     end
+end
+
+mutable struct r2rFFTWPlan{T<:fftwNumber,K,inplace,N,G} <: FFTWPlan{T,K,inplace}
+    plan::PlanPtr
+    sz::NTuple{N,Int} # size of array on which plan operates (Int tuple)
+    osz::NTuple{N,Int} # size of output array (Int tuple)
+    istride::NTuple{N,Int} # strides of input
+    ostride::NTuple{N,Int} # strides of output
+    ialign::Int32 # alignment mod 16 of input
+    oalign::Int32 # alignment mod 16 of input
+    flags::UInt32 # planner flags
+    region::G # region (iterable) of dims that are transformed
+    kinds::K
+    pinv::ScaledPlan
+    function r2rFFTWPlan{T,K,inplace,N,G}(plan::PlanPtr, flags::Integer, R::G,
+                                 X::StridedArray{T,N},
+                                 Y::StridedArray, kinds::K) where {T<:fftwNumber,K,inplace,N,G}
+        p = new(plan, size(X), size(Y), strides(X), strides(Y),
+                alignment_of(X), alignment_of(Y), flags, R, kinds)
+        finalizer(maybe_destroy_plan, p)
+        p
+    end
+end
+
+function r2rFFTWPlan{T,K,inplace,N}(plan::PlanPtr, flags::Integer, R::G,
+                           X::StridedArray{T,N},
+                           Y::StridedArray, kinds::K) where {T<:fftwNumber,K,inplace,N,G}
+    r2rFFTWPlan{T,K,inplace,N,G}(plan, flags, R, X, Y, kinds)
 end
 
 size(p::FFTWPlan) = p.sz
@@ -427,16 +455,17 @@ function show(io::IO, p::rFFTWPlan{T,K,inplace}) where {T,K,inplace}
 end
 
 function show(io::IO, p::r2rFFTWPlan{T,K,inplace}) where {T,K,inplace}
+    kinds = p.kinds
     print(io, inplace ? "FFTW in-place r2r " : "FFTW r2r ")
-    if isempty(K)
+    if isempty(kinds)
         print(io, "0-dimensional")
-    elseif K == ntuple(i -> K[1], length(K))
-        print(io, kind2string(K[1]))
-        if length(K) > 1
-            print(io, "^", length(K))
+    elseif kinds == ntuple(i -> kinds[1], length(kinds))
+        print(io, kind2string(kinds[1]))
+        if length(kinds) > 1
+            print(io, "^", length(kinds))
         end
     else
-        print(io, join(map(kind2string, K), "×"))
+        print(io, join(map(kind2string, kinds), "×"))
     end
     print(io, " plan for ")
     showfftdims(io, p.sz, p.istride, T)
@@ -553,7 +582,6 @@ function dims_howmany(X::StridedArray, Y::StridedArray,
     return (dims, howmany)
 end
 
-# check & convert kinds into int32 array with same length as region
 function fix_kinds(region, kinds)
     if length(kinds) != length(region)
         if length(kinds) > length(region)
@@ -575,9 +603,14 @@ function fix_kinds(region, kinds)
     end
     return k
 end
+fix_kinds(region::Tuple, kinds::Integer) = ntuple(_->Int32(kinds), length(region))
+fix_kinds(region::Tuple, kinds::Tuple{Integer}) = fix_kinds(region, kinds[1])
+
+# Potentially avoid an extra `collect`
+_collect(T, x) = collect(T, x)
+_collect(::Type{T}, x::AbstractVector) where {T} = convert(Vector{T}, x)
 
 # low-level FFTWPlan creation (for internal use in FFTW module)
-
 for (Tr,Tc,fftw,lib) in ((:Float64,:(Complex{Float64}),"fftw",:libfftw3),
                          (:Float32,:(Complex{Float32}),"fftwf",:libfftw3f))
     @eval @exclusive function cFFTWPlan{$Tc,K,inplace,N}(X::StridedArray{$Tc,N},
@@ -644,6 +677,7 @@ for (Tr,Tc,fftw,lib) in ((:Float64,:(Complex{Float64}),"fftw",:libfftw3),
                                                   Y::StridedArray{$Tr,N},
                                                   region, kinds, flags::Integer,
                                                   timelimit::Real) where {inplace,N}
+
         R = isa(region, Tuple) ? region : copy(region)
         knd = fix_kinds(region, kinds)
         unsafe_set_timelimit($Tr, timelimit)
@@ -653,12 +687,12 @@ for (Tr,Tc,fftw,lib) in ((:Float64,:(Complex{Float64}),"fftw",:libfftw3),
                      (Int32, Ptr{Int}, Int32, Ptr{Int},
                       Ptr{$Tr}, Ptr{$Tr}, Ptr{Int32}, UInt32),
                      size(dims,2), dims, size(howmany,2), howmany,
-                     X, Y, knd, flags)
+                     X, Y, _collect(Int32, knd), flags)
         unsafe_set_timelimit($Tr, NO_TIMELIMIT)
         if plan == C_NULL
             error("FFTW could not create plan") # shouldn't normally happen
         end
-        r2rFFTWPlan{$Tr,(map(Int,knd)...,),inplace,N}(plan, flags, R, X, Y)
+        r2rFFTWPlan{$Tr,typeof(knd),inplace,N}(plan, flags, R, X, Y, knd)
     end
 
     # support r2r transforms of complex = transforms of real & imag parts
@@ -666,6 +700,7 @@ for (Tr,Tc,fftw,lib) in ((:Float64,:(Complex{Float64}),"fftw",:libfftw3),
                                                   Y::StridedArray{$Tc,N},
                                                   region, kinds, flags::Integer,
                                                   timelimit::Real) where {inplace,N}
+
         R = isa(region, Tuple) ? region : copy(region)
         knd = fix_kinds(region, kinds)
         unsafe_set_timelimit($Tr, timelimit)
@@ -678,14 +713,13 @@ for (Tr,Tc,fftw,lib) in ((:Float64,:(Complex{Float64}),"fftw",:libfftw3),
                      (Int32, Ptr{Int}, Int32, Ptr{Int},
                       Ptr{$Tc}, Ptr{$Tc}, Ptr{Int32}, UInt32),
                      size(dims,2), dims, size(howmany,2), howmany,
-                     X, Y, knd, flags)
+                     X, Y, _collect(Int32, knd), flags)
         unsafe_set_timelimit($Tr, NO_TIMELIMIT)
         if plan == C_NULL
             error("FFTW could not create plan") # shouldn't normally happen
         end
-        r2rFFTWPlan{$Tc,(map(Int,knd)...,),inplace,N}(plan, flags, R, X, Y)
+        r2rFFTWPlan{$Tc,typeof(knd),inplace,N}(plan, flags, R, X, Y, knd)
     end
-
 end
 
 # Convert arrays of numeric types to FFTW-supported packed complex-float types
@@ -888,15 +922,16 @@ end
 
 # FFTW r2r transforms (low-level interface)
 
+_ntupleid(v) = ntuple(identity, v)
 for f in (:r2r, :r2r!)
     pf = Symbol("plan_", f)
     @eval begin
         $f(x::AbstractArray{<:fftwNumber}, kinds) = $pf(x, kinds) * x
         $f(x::AbstractArray{<:fftwNumber}, kinds, region) = $pf(x, kinds, region) * x
-        $pf(x::AbstractArray, kinds; kws...) = $pf(x, kinds, 1:ndims(x); kws...)
-        $f(x::AbstractArray{<:Real}, kinds, region=1:ndims(x)) = $f(fftwfloat(x), kinds, region)
+        $pf(x::AbstractArray, kinds; kws...) = $pf(x, kinds, _ntupleid(Val(ndims(x))); kws...)
+        $f(x::AbstractArray{<:Real}, kinds, region=_ntupleid(Val(ndims(x)))) = $f(fftwfloat(x), kinds, region)
         $pf(x::AbstractArray{<:Real}, kinds, region; kws...) = $pf(fftwfloat(x), kinds, region; kws...)
-        $f(x::AbstractArray{<:Complex}, kinds, region=1:ndims(x)) = $f(fftwcomplex(x), kinds, region)
+        $f(x::AbstractArray{<:Complex}, kinds, region=_ntupleid(Val(ndims(x)))) = $f(fftwcomplex(x), kinds, region)
         $pf(x::AbstractArray{<:Complex}, kinds, region; kws...) = $pf(fftwcomplex(x), kinds, region; kws...)
     end
 end
@@ -955,13 +990,14 @@ function plan_inv(p::r2rFFTWPlan{T,K,inplace,N};
         return plan
     end
     X = Array{T}(undef, p.sz)
-    iK = fix_kinds(p.region, [inv_kind[k] for k in K])
+    # broadcast getindex to preserve tuples
+    iK = fix_kinds(p.region, getindex.((inv_kind,), p.kinds))
     Y = inplace ? X : fakesimilar(p.flags, X, T)
     ScaledPlan(r2rFFTWPlan{T,Any,inplace,N}(X, Y, p.region, iK,
                                             p.flags, NO_TIMELIMIT),
                normalization(real(T),
                              map(logical_size, [p.sz...][[p.region...]], iK),
-                             1:length(iK)))
+                             1:length(p.region)))
 end
 
 function mul!(y::StridedArray{T}, p::r2rFFTWPlan{T}, x::StridedArray{T}) where T

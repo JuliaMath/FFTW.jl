@@ -552,3 +552,25 @@ end
     end
     @test FFTW.get_num_threads() == 2 # Unchanged
 end
+
+@testset "type-inference in r2r plans" begin
+    # Compare with definition
+    function testr2r(::Type{T}) where {T}
+        n = 4
+        v = T[1:n;]
+        plan = @inferred (() -> FFTW.plan_r2r(v, FFTW.REDFT10))()
+        w = plan * v
+        @test w ≈ [2sum(j->v[j+1]*cos(pi*(j+1/2)*k/n), 0:n-1) for k in 0:n-1]
+        invplan = @inferred FFTW.plan_inv(plan)
+        @test invplan * w ≈ v
+    end
+    @testset for T in (Float32, Float64)
+        testr2r(T)
+    end
+    # complex r2r is broken on mkl
+    if FFTW.get_provider() == "fftw"
+        @testset for T in (ComplexF32, ComplexF64)
+            testr2r(T)
+        end
+    end
+end
