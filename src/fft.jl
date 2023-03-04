@@ -132,7 +132,7 @@ alignment_of(A::FakeArray) = Int32(0)
 # Import and export wisdom to/from a single file for all precisions,
 # which is more user-friendly than requiring the user to call a
 # separate routine depending on the fp precision of the plans.  This
-# requires a bit of trickness since we have to (a) use the libc file
+# requires a bit of trickiness since we have to (a) use the libc file
 # I/O routines with fftw_export_wisdom_to_file/import_wisdom_from_file
 # (b) we need 256 bytes of space padding between the wisdoms to work
 # around FFTW's internal file i/o buffering [see the BUFSZ constant in
@@ -258,7 +258,7 @@ for P in (:cFFTWPlan, :rFFTWPlan) # complex, r2c/c2r
             ialign::Int32 # alignment mod 16 of input
             oalign::Int32 # alignment mod 16 of input
             flags::UInt32 # planner flags
-            region::G # region (iterable) of dims that are transormed
+            region::G # region (iterable) of dims that are transformed
             pinv::ScaledPlan
             function $P{T,K,inplace,N,G}(plan::PlanPtr, flags::Integer, R::G,
                                          X::StridedArray{T,N}, Y::StridedArray) where {T<:fftwNumber,K,inplace,N,G}
