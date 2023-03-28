@@ -577,7 +577,7 @@ function dims_howmany(X::StridedArray, Y::StridedArray,
     ist = _collect_Intvector(strides(X))
     ost = _collect_Intvector(strides(Y))
     dims = vcat(view(sz, reg)', view(ist, reg)', view(ost, reg)')
-    oreg = [i for i in 1:ndims(X) if i ∉ reg]
+    oreg = filter(∉(reg), 1:ndims(X))
     howmany = vcat(view(sz, oreg)', view(ist, oreg)', view(ost, oreg)')
     return (dims, howmany)
 end
