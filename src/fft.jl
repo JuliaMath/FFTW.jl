@@ -642,6 +642,12 @@ fix_kinds(region::Tuple, kinds::Tuple{Integer}) = fix_kinds(region, kinds[1])
 _collect(T, x) = collect(T, x)
 _collect(::Type{T}, x::AbstractVector) where {T} = convert(Vector{T}, x)
 
+_circshiftmin1(v::AbstractVector) = circshift(v, -1)
+_circshiftmin1(t::Tuple) = (t[2:end]..., t[1])
+_circshiftmin1(x::Integer) = x
+# fallback for arbitrary iterators: convert to a vector first
+_circshiftmin1(v) = circshift(_collect_Intvector(v), -1)
+
 # low-level FFTWPlan creation (for internal use in FFTW module)
 for (Tr,Tc,fftw,lib) in ((:Float64,:(Complex{Float64}),"fftw",:libfftw3),
                          (:Float32,:(Complex{Float32}),"fftwf",:libfftw3f))
@@ -669,9 +675,9 @@ for (Tr,Tc,fftw,lib) in ((:Float64,:(Complex{Float64}),"fftw",:libfftw3),
                                                      Y::StridedArray{$Tc,N},
                                                      region, flags::Integer, timelimit::Real) where {inplace,N}
         R = isa(region, Tuple) ? region : copy(region)
-        region = circshift(Int[region...],-1) # FFTW halves last dim
+        regionshft = _circshiftmin1(region) # FFTW halves last dim
         unsafe_set_timelimit($Tr, timelimit)
-        dims, howmany = dims_howmany(X, Y, size(X), region)
+        dims, howmany = dims_howmany(X, Y, size(X), regionshft)
         plan = ccall(($(string(fftw,"_plan_guru64_dft_r2c")),$lib[]),
                      PlanPtr,
                      (Int32, Ptr{Int}, Int32, Ptr{Int},
@@ -689,9 +695,9 @@ for (Tr,Tc,fftw,lib) in ((:Float64,:(Complex{Float64}),"fftw",:libfftw3),
                                                       Y::StridedArray{$Tr,N},
                                                       region, flags::Integer, timelimit::Real) where {inplace,N}
         R = isa(region, Tuple) ? region : copy(region)
-        region = circshift(Int[region...],-1) # FFTW halves last dim
+        regionshft = _circshiftmin1(region) # FFTW halves last dim
         unsafe_set_timelimit($Tr, timelimit)
-        dims, howmany = dims_howmany(X, Y, [size(Y)...], region)
+        dims, howmany = dims_howmany(X, Y, size(Y), regionshft)
         plan = ccall(($(string(fftw,"_plan_guru64_dft_c2r")),$lib[]),
                      PlanPtr,
                      (Int32, Ptr{Int}, Int32, Ptr{Int},
@@ -799,9 +805,9 @@ for (f,direction) in ((:fft,FORWARD), (:bfft,BACKWARD))
             cFFTWPlan{T,$direction,true,N}(X, X, region, flags, timelimit)
         end
         $plan_f(X::StridedArray{<:fftwComplex}; kws...) =
-            $plan_f(X, 1:ndims(X); kws...)
+            $plan_f(X, ntuple(identity, ndims(X)); kws...)
         $plan_f!(X::StridedArray{<:fftwComplex}; kws...) =
-            $plan_f!(X, 1:ndims(X); kws...)
+            $plan_f!(X, ntuple(identity, ndims(X)); kws...)
 
         function plan_inv(p::cFFTWPlan{T,$direction,inplace,N};
                           num_threads::Union{Nothing, Integer} = nothing) where {T<:fftwComplex,N,inplace}
@@ -885,8 +891,8 @@ for (Tr,Tc) in ((:Float32,:(Complex{Float32})),(:Float64,:(Complex{Float64})))
             end
         end
 
-        plan_rfft(X::StridedArray{$Tr};kws...)=plan_rfft(X,1:ndims(X);kws...)
-        plan_brfft(X::StridedArray{$Tr};kws...)=plan_brfft(X,1:ndims(X);kws...)
+        plan_rfft(X::StridedArray{$Tr};kws...)=plan_rfft(X,ntuple(identity, ndims(X));kws...)
+        plan_brfft(X::StridedArray{$Tr};kws...)=plan_brfft(X,ntuple(identity, ndims(X));kws...)
 
         function plan_inv(p::rFFTWPlan{$Tr,$FORWARD,false,N},
                           num_threads::Union{Nothing, Integer} = nothing) where N
