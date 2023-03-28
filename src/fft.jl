@@ -573,6 +573,23 @@ function _anyrepeated(region)
         count(==(x), region) > 1
     end
 end
+
+# Utility methods to reduce allocations in dims_howmany
+@inline _setindex(oreg, v, n) = (oreg[n] = v; oreg)
+@inline _setindex(oreg::Tuple, v, n) = Base.setindex(oreg, v, n)
+@inline _filtercoll(region::Union{Int, Tuple}, len) = ntuple(zero, len)
+@inline _filtercoll(region, len) = Vector{Int}(undef, len)
+# Optimized filter(∉(region), 1:ndims(X))
+function _filter_notin_region(region, ::Val{ndimsX}) where {ndimsX}
+    oreg = _filtercoll(region, ndimsX - length(region))
+    n = 1
+    for dim in 1:ndimsX
+        dim in region && continue
+        oreg = _setindex(oreg, dim, n)
+        n += 1
+    end
+    oreg
+end
 function dims_howmany(X::StridedArray, Y::StridedArray, sz, region)
     if _anyrepeated(region)
         throw(ArgumentError("each dimension can be transformed at most once"))
@@ -586,7 +603,7 @@ function dims_howmany(X::StridedArray, Y::StridedArray, sz, region)
         dims[3, ind] = ost[i]
     end
 
-    oreg = filter(∉(region), 1:ndims(X))
+    oreg = _filter_notin_region(region, Val(ndims(X)))
     howmany = Matrix{Int}(undef, 3, length(oreg))
     for (ind, i) in enumerate(oreg)
         howmany[1, ind] = sz[i]
