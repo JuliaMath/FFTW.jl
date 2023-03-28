@@ -566,19 +566,19 @@ unsafe_execute!(plan::r2rFFTWPlan{T},
 #    re-use the table of trigonometric constants from the first plan.
 
 # Compute dims and howmany for FFTW guru planner
+_collect_Intvector(x) = copyto!(Vector{Int}(undef, length(x)), x)
 function dims_howmany(X::StridedArray, Y::StridedArray,
                       sz::Vector{Int}, region)
-    reg = Int[region...]::Vector{Int}
+
+    reg = _collect_Intvector(region)
     if length(unique(reg)) < length(reg)
         throw(ArgumentError("each dimension can be transformed at most once"))
     end
-    ist = [strides(X)...]
-    ost = [strides(Y)...]
-    dims = Matrix(transpose([sz[reg] ist[reg] ost[reg]]))
-    oreg = [1:ndims(X);]
-    oreg[reg] .= 0
-    oreg = filter(d -> d > 0, oreg)
-    howmany = Matrix(transpose([sz[oreg] ist[oreg] ost[oreg]]))
+    ist = _collect_Intvector(strides(X))
+    ost = _collect_Intvector(strides(Y))
+    dims = vcat(view(sz, reg)', view(ist, reg)', view(ost, reg)')
+    oreg = [i for i in 1:ndims(X) if i ∉ reg]
+    howmany = vcat(view(sz, oreg)', view(ist, oreg)', view(ost, oreg)')
     return (dims, howmany)
 end
 
