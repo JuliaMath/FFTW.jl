@@ -566,7 +566,6 @@ unsafe_execute!(plan::r2rFFTWPlan{T},
 #    re-use the table of trigonometric constants from the first plan.
 
 # Compute dims and howmany for FFTW guru planner
-_collect_Intvector(x) = copyto!(Vector{Int}(undef, length(x)), x)
 _anyrepeated(::Union{Number, AbstractUnitRange}) = false
 function _anyrepeated(region)
     any(region) do x
@@ -642,11 +641,9 @@ fix_kinds(region::Tuple, kinds::Tuple{Integer}) = fix_kinds(region, kinds[1])
 _collect(T, x) = collect(T, x)
 _collect(::Type{T}, x::AbstractVector) where {T} = convert(Vector{T}, x)
 
-_circshiftmin1(v::AbstractVector) = circshift(v, -1)
+_circshiftmin1(v) = circshift(collect(Int, v), -1)
 _circshiftmin1(t::Tuple) = (t[2:end]..., t[1])
 _circshiftmin1(x::Integer) = x
-# fallback for arbitrary iterators: convert to a vector first
-_circshiftmin1(v) = circshift(_collect_Intvector(v), -1)
 
 # low-level FFTWPlan creation (for internal use in FFTW module)
 for (Tr,Tc,fftw,lib) in ((:Float64,:(Complex{Float64}),"fftw",:libfftw3),
