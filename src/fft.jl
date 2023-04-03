@@ -634,12 +634,6 @@ function fix_kinds(region, kinds)
     end
     return k
 end
-fix_kinds(region::Tuple, kinds::Integer) = ntuple(_->Int32(kinds), length(region))
-fix_kinds(region::Tuple, kinds::Tuple{Integer}) = fix_kinds(region, kinds[1])
-
-# Potentially avoid an extra `collect`
-_collect(T, x) = collect(T, x)
-_collect(::Type{T}, x::AbstractVector) where {T} = convert(Vector{T}, x)
 
 _circshiftmin1(v) = circshift(collect(Int, v), -1)
 _circshiftmin1(t::Tuple) = (t[2:end]..., t[1])
@@ -722,7 +716,7 @@ for (Tr,Tc,fftw,lib) in ((:Float64,:(Complex{Float64}),"fftw",:libfftw3),
                      (Int32, Ptr{Int}, Int32, Ptr{Int},
                       Ptr{$Tr}, Ptr{$Tr}, Ptr{Int32}, UInt32),
                      size(dims,2), dims, size(howmany,2), howmany,
-                     X, Y, _collect(Int32, knd), flags)
+                     X, Y, knd, flags)
         unsafe_set_timelimit($Tr, NO_TIMELIMIT)
         if plan == C_NULL
             error("FFTW could not create plan") # shouldn't normally happen
@@ -750,7 +744,7 @@ for (Tr,Tc,fftw,lib) in ((:Float64,:(Complex{Float64}),"fftw",:libfftw3),
                      (Int32, Ptr{Int}, Int32, Ptr{Int},
                       Ptr{$Tc}, Ptr{$Tc}, Ptr{Int32}, UInt32),
                      size(dims,2), dims, size(howmany,2), howmany,
-                     X, Y, _collect(Int32, knd), flags)
+                     X, Y, knd, flags)
         unsafe_set_timelimit($Tr, NO_TIMELIMIT)
         if plan == C_NULL
             error("FFTW could not create plan") # shouldn't normally happen
