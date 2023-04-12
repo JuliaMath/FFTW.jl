@@ -181,6 +181,9 @@ true_fftd3_m3d[:,:,2] .= -15
 end
 
 @testset "rfft/rfftn" begin
+    # Test regions as int/collection
+    @test rfft(m4,1) == rfft(m4,1:1) == rfft(m4,(1,)) == rfft(m4, [1])
+
     rfft_m4 = rfft(m4,1)
     rfftd2_m4 = rfft(m4,2)
     rfftn_m4 = rfft(m4)
