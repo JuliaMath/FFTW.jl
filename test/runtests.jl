@@ -1,6 +1,6 @@
 # This file was formerly a part of Julia. License is MIT: https://julialang.org/license
 using FFTW
-using FFTW: fftw_provider
+using FFTW: fftw_provider, r2r
 using AbstractFFTs: Plan, plan_inv
 using Test
 using LinearAlgebra
@@ -602,8 +602,24 @@ end
                 for dims in unique((1, 1:N, N))
                     test_frule(f, x, dims)
                     test_rrule(f, x, dims)
-                end
-            end
-        end
+                end # for dims
+            end # for x
+        end # for f
     end
+
+    @testset "r2r" begin
+        for k in 0:10
+            for x in (randn(3), randn(3, 4), randn(3, 4, 5))
+                test_frule(r2r, x, k)
+                test_rrule(r2r, x, k)
+
+                N = ndims(x)
+                for dims in unique((1, 1:N, N))
+                    test_frule(r2r, x, k, dims)
+                    test_rrule(r2r, x, k, dims)
+                end # for dims
+            end # for x
+        end # for f
+    end
+
 end

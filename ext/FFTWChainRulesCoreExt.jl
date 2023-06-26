@@ -1,6 +1,7 @@
 module FFTWChainRulesCoreExt
 
 using FFTW
+using FFTW: r2r
 using ChainRulesCore
 
 # DCT
@@ -42,7 +43,7 @@ end
 
 function ChainRulesCore.rrule(::typeof(idct), x::AbstractArray, args...)
     y = idct(x, args...)
-    project_x = ChainRulesCore.ProjectTo(x)
+    project_x = ProjectTo(x)
 
     function idct_pullback(ȳ)
         f̄ = NoTangent()
@@ -57,6 +58,36 @@ function ChainRulesCore.rrule(::typeof(idct), x::AbstractArray, args...)
     end
 
     return y, idct_pullback
+end
+
+# R2R
+
+function ChainRulesCore.frule(Δ, ::typeof(r2r), x::AbstractArray, args...)
+    Δx = Δ[2]
+    y = r2r(x, args...)
+    Δy = r2r(Δx, args...)
+    return y, Δy
+end
+
+function ChainRulesCore.rrule(::typeof(r2r), x::AbstractArray, kinds, args...)
+    y = r2r(x, kinds, args...)
+    kinvs = Tuple(FFTW.inv_kind[k] for k in kinds)
+    project_x = ProjectTo(x)
+
+    function r2r_pullback(ȳ)
+        f̄ = NoTangent()
+        x̄ = project_x(r2r(unthunk(ȳ), kinvs, args...))
+        k̄ = NoTangent()
+        ā = NoTangent()
+
+        if isempty(args)
+            return f̄, x̄, k̄
+        else
+            return f̄, x̄, k̄, ā
+        end
+    end
+
+    return y, r2r_pullback
 end
 
 end # module
