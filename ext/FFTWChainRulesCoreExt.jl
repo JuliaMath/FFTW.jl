@@ -15,6 +15,7 @@ end
 function ChainRulesCore.rrule(::typeof(dct), x::AbstractArray, args...)
     y = dct(x, args...)
     project_x = ProjectTo(x)
+
     function dct_pullback(ȳ)
         f̄ = NoTangent()
         x̄ = project_x(idct(unthunk(ȳ), args...))
@@ -42,6 +43,7 @@ end
 function ChainRulesCore.rrule(::typeof(idct), x::AbstractArray, args...)
     y = idct(x, args...)
     project_x = ChainRulesCore.ProjectTo(x)
+
     function idct_pullback(ȳ)
         f̄ = NoTangent()
         x̄ = project_x(dct(unthunk(ȳ), args...))
