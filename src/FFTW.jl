@@ -16,6 +16,10 @@ export dct, idct, dct!, idct!, plan_dct, plan_idct, plan_dct!, plan_idct!
 
 include("providers.jl")
 
+@static if !isdefined(Base, :get_extension)
+    import Requires
+end
+
 function __init__()
     # If someone is trying to set the provider via the old environment variable, warn them that they
     # should instead use `set_provider!()` instead.
@@ -34,6 +38,12 @@ function __init__()
     @static if fftw_provider == "mkl"
         libfftw3[] = MKL_jll.libmkl_rt_path
         libfftw3f[] = MKL_jll.libmkl_rt_path
+    end
+
+    @static if !isdefined(Base, :get_extension)
+        Requires.@require ChainRulesCore = "d360d2e6-b24c-11e9-a2a3-2a2ae2dbcce4" begin
+            include("../ext/FFTWChainRulesCoreExt.jl")
+        end
     end
 end
 

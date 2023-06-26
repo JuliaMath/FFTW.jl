@@ -9,11 +9,22 @@ LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 MKL_jll = "856f044c-d86e-5d09-b602-aeab76dc8ba7"
 Preferences = "21216c6a-2e73-6563-6e65-726566657250"
 Reexport = "189a3867-3050-52da-a836-e630ba90ab69"
+Requires = "ae029012-a4dd-5104-9daa-d747884805df"
+
+[extensions]
+FFTWChainRulesCoreExt = "ChainRulesCore"
 
 [compat]
 AbstractFFTs = "1.0"
+ChainRulesCore = "1"
 FFTW_jll = "3.3.9"
 MKL_jll = "2019.0.117, 2020, 2021, 2022, 2023"
 Preferences = "1.2"
 Reexport = "0.2, 1.0"
 julia = "1.6"
+
+[extras]
+ChainRulesCore = "d360d2e6-b24c-11e9-a2a3-2a2ae2dbcce4"
+
+[weakdeps]
+ChainRulesCore = "d360d2e6-b24c-11e9-a2a3-2a2ae2dbcce4"
