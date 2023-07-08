@@ -608,8 +608,8 @@ end
     end
 
     @testset "r2r" begin
-        for k in 4 #0:10
-            for x in (randn(3), )#randn(3, 4), randn(3, 4, 5))
+        for k in 0:10
+            for x in (randn(3), randn(3, 4), randn(3, 4, 5))
                 test_frule(r2r, x, k)
     
                 N = ndims(x)
