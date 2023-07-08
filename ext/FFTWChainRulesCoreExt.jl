@@ -69,29 +69,4 @@ function ChainRulesCore.frule(Δ, ::typeof(r2r), x::AbstractArray, region...)
     return y, Δy
 end
 
-function ChainRulesCore.rrule(::typeof(r2r), x::AbstractArray, kinds, region...)
-    y = r2r(x, kinds, region...)
-    kinvs = if kinds isa Integer
-        FFTW.inv_kind[kinds]
-    else
-        Tuple(FFTW.inv_kind[k] for k in kinds)
-    end
-    project_x = ProjectTo(x)
-
-    function r2r_pullback(ȳ)
-        f̄ = NoTangent()
-        x̄ = project_x(r2r(unthunk(ȳ), kinvs, region...))
-        k̄ = NoTangent()
-        r̄ = NoTangent()
-
-        if isempty(region)
-            return f̄, x̄, k̄
-        else
-            return f̄, x̄, k̄, r̄
-        end
-    end
-
-    return y, r2r_pullback
-end
-
 end # module
