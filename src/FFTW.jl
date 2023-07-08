@@ -4,6 +4,10 @@ using LinearAlgebra, Reexport, Preferences
 @reexport using AbstractFFTs
 using Base.Threads
 
+@static if !isdefined(Base, :get_extension)
+    include("../ext/FFTWChainRulesCoreExt.jl")
+end
+
 import AbstractFFTs: Plan, ScaledPlan,
                      fft, ifft, bfft, fft!, ifft!, bfft!,
                      plan_fft, plan_ifft, plan_bfft, plan_fft!, plan_ifft!, plan_bfft!,
@@ -34,12 +38,6 @@ function __init__()
     @static if fftw_provider == "mkl"
         libfftw3[] = MKL_jll.libmkl_rt_path
         libfftw3f[] = MKL_jll.libmkl_rt_path
-    end
-
-    @static if !isdefined(Base, :get_extension)
-        Requires.@require ChainRulesCore = "d360d2e6-b24c-11e9-a2a3-2a2ae2dbcce4" begin
-            include("../ext/FFTWChainRulesCoreExt.jl")
-        end
     end
 end
 
