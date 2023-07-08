@@ -6,46 +6,28 @@ using ChainRulesCore
 
 # DCT/IDCT
 
-function ChainRulesCore.frule(Δ, ::typeof(dct), x::AbstractArray, region = 1:ndims(x))
-    Δx = Δ[2]
-    y = dct(x, region)
-    Δy = dct(Δx, region)
-    return y, Δy
-end
+for (fwd, bwd) in (
+    (dct, idct),
+    (idct, dct),
+)
+    function ChainRulesCore.frule(Δ, ::typeof(fwd), x::AbstractArray, region = 1:ndims(x))
+        Δx = Δ[2]
+        y = fwd(x, region)
+        Δy = fwd(Δx, region)
+        return y, Δy
+    end
 
-function ChainRulesCore.rrule(::typeof(dct), x::AbstractArray)
-    project_x = ProjectTo(x)
-    region = 1:ndims(x)
-    dct_pb(Δ) = NoTangent(), project_x(idct(unthunk(Δ), region))
-    return dct(x, region), dct_pb
-end
+    function ChainRulesCore.rrule(::typeof(fwd), x::AbstractArray)
+        project_x = ProjectTo(x)
+        dct_pb(Δ) = NoTangent(), project_x(bwd(unthunk(Δ)))
+        return fwd(x), dct_pb
+    end
 
-function ChainRulesCore.rrule(::typeof(dct), x::AbstractArray, region)
-    project_x = ProjectTo(x)
-    dct_pb(Δ) = NoTangent(), project_x(idct(unthunk(Δ), region)), NoTangent()
-    return dct(x, region), dct_pb
-end
-
-# IDCT
-
-function ChainRulesCore.frule(Δ, ::typeof(idct), x::AbstractArray, region = 1:ndims(x))
-    Δx = Δ[2]
-    y = idct(x, region)
-    Δy = idct(Δx, region)
-    return y, Δy
-end
-
-function ChainRulesCore.rrule(::typeof(idct), x::AbstractArray)
-    project_x = ProjectTo(x)
-    region = 1:ndims(x)
-    dct_pb(Δ) = NoTangent(), project_x(dct(unthunk(Δ), region))
-    return idct(x, region), dct_pb
-end
-
-function ChainRulesCore.rrule(::typeof(idct), x::AbstractArray, region)
-    project_x = ProjectTo(x)
-    dct_pb(Δ) = NoTangent(), project_x(dct(unthunk(Δ), region)), NoTangent()
-    return idct(x, region), dct_pb
+    function ChainRulesCore.rrule(::typeof(fwd), x::AbstractArray, region)
+        project_x = ProjectTo(x)
+        dct_pb(Δ) = NoTangent(), project_x(bwd(unthunk(Δ), region)), NoTangent()
+        return fwd(x, region), dct_pb
+    end
 end
 
 # R2R
