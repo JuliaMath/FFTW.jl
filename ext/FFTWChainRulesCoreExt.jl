@@ -4,7 +4,7 @@ using FFTW
 using FFTW: r2r
 using ChainRulesCore
 
-# DCT
+# DCT/IDCT
 
 function ChainRulesCore.frule(Δ, ::typeof(dct), x::AbstractArray, region = 1:ndims(x))
     Δx = Δ[2]
@@ -13,23 +13,17 @@ function ChainRulesCore.frule(Δ, ::typeof(dct), x::AbstractArray, region = 1:nd
     return y, Δy
 end
 
-function ChainRulesCore.rrule(::typeof(dct), x::AbstractArray, region...)
-    y = dct(x, region...)
+function ChainRulesCore.rrule(::typeof(dct), x::AbstractArray)
     project_x = ProjectTo(x)
+    region = 1:ndims(x)
+    dct_pb(Δ) = NoTangent(), project_x(idct(unthunk(Δ), region))
+    return dct(x, region), dct_pb
+end
 
-    function dct_pullback(ȳ)
-        f̄ = NoTangent()
-        x̄ = project_x(idct(unthunk(ȳ), region...))
-        r̄ = NoTangent()
-
-        if isempty(region)
-            return f̄, x̄
-        else
-            return f̄, x̄, r̄
-        end
-    end
-
-    return y, dct_pullback
+function ChainRulesCore.rrule(::typeof(dct), x::AbstractArray, region)
+    project_x = ProjectTo(x)
+    dct_pb(Δ) = NoTangent(), project_x(idct(unthunk(Δ), region)), NoTangent()
+    return dct(x, region), dct_pb
 end
 
 # IDCT
@@ -41,23 +35,17 @@ function ChainRulesCore.frule(Δ, ::typeof(idct), x::AbstractArray, region = 1:n
     return y, Δy
 end
 
-function ChainRulesCore.rrule(::typeof(idct), x::AbstractArray, region...)
-    y = idct(x, region...)
+function ChainRulesCore.rrule(::typeof(idct), x::AbstractArray)
     project_x = ProjectTo(x)
+    region = 1:ndims(x)
+    dct_pb(Δ) = NoTangent(), project_x(dct(unthunk(Δ), region))
+    return idct(x, region), dct_pb
+end
 
-    function idct_pullback(ȳ)
-        f̄ = NoTangent()
-        x̄ = project_x(dct(unthunk(ȳ), region...))
-        r̄ = NoTangent()
-
-        if isempty(region)
-            return f̄, x̄
-        else
-            return f̄, x̄, r̄
-        end
-    end
-
-    return y, idct_pullback
+function ChainRulesCore.rrule(::typeof(idct), x::AbstractArray, region)
+    project_x = ProjectTo(x)
+    dct_pb(Δ) = NoTangent(), project_x(dct(unthunk(Δ), region)), NoTangent()
+    return idct(x, region), dct_pb
 end
 
 # R2R
