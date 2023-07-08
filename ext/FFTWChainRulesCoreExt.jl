@@ -6,10 +6,10 @@ using ChainRulesCore
 
 # DCT
 
-function ChainRulesCore.frule(Δ, ::typeof(dct), x::AbstractArray, region...)
+function ChainRulesCore.frule(Δ, ::typeof(dct), x::AbstractArray, region = 1:ndims(x))
     Δx = Δ[2]
-    y = dct(x, region...)
-    Δy = dct(Δx, region...)
+    y = dct(x, region)
+    Δy = dct(Δx, region)
     return y, Δy
 end
 
@@ -34,10 +34,10 @@ end
 
 # IDCT
 
-function ChainRulesCore.frule(Δ, ::typeof(idct), x::AbstractArray, region...)
+function ChainRulesCore.frule(Δ, ::typeof(idct), x::AbstractArray, region = 1:ndims(x))
     Δx = Δ[2]
-    y = idct(x, region...)
-    Δy = idct(Δx, region...)
+    y = idct(x, region)
+    Δy = idct(Δx, region)
     return y, Δy
 end
 
@@ -62,10 +62,10 @@ end
 
 # R2R
 
-function ChainRulesCore.frule(Δ, ::typeof(r2r), x::AbstractArray, region...)
+function ChainRulesCore.frule(Δ, ::typeof(r2r), x::AbstractArray, kind, region = 1:ndims(x))
     Δx = Δ[2]
-    y = r2r(x, region...)
-    Δy = r2r(Δx, region...)
+    y = r2r(x, kind, region)
+    Δy = r2r(Δx, kind, region)
     return y, Δy
 end
 
