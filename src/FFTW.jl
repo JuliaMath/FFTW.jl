@@ -16,10 +16,6 @@ export dct, idct, dct!, idct!, plan_dct, plan_idct, plan_dct!, plan_idct!
 
 include("providers.jl")
 
-@static if !isdefined(Base, :get_extension)
-    import Requires
-end
-
 function __init__()
     # If someone is trying to set the provider via the old environment variable, warn them that they
     # should instead use `set_provider!()` instead.
