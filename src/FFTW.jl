@@ -4,10 +4,6 @@ using LinearAlgebra, Reexport, Preferences
 @reexport using AbstractFFTs
 using Base.Threads
 
-@static if !isdefined(Base, :get_extension)
-    include("../ext/FFTWChainRulesCoreExt.jl")
-end
-
 import AbstractFFTs: Plan, ScaledPlan,
                      fft, ifft, bfft, fft!, ifft!, bfft!,
                      plan_fft, plan_ifft, plan_bfft, plan_fft!, plan_ifft!, plan_bfft!,
@@ -75,5 +71,9 @@ include("dct.jl")
 
 include("precompile.jl")
 _precompile_()
+
+@static if !isdefined(Base, :get_extension)
+    include("../ext/FFTWChainRulesCoreExt.jl")
+end
 
 end # module
