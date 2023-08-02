@@ -1052,15 +1052,6 @@ end
 
 #######################################################################
 
-"""
-    R2RAdjointStyle(kinds)
-
-Projection style for real to real transforms
-"""
-struct R2RAdjointStyle{K} <: AbstractFFTs.AdjointStyle
-    kinds::K
-end
-
 AbstractFFTs.AdjointStyle(::cFFTWPlan) = AbstractFFTs.FFTAdjointStyle()
 AbstractFFTs.AdjointStyle(::rFFTWPlan{T, FORWARD}) where {T} = AbstractFFTs.RFFTAdjointStyle()
 AbstractFFTs.AdjointStyle(P::rFFTWPlan{T, BACKWARD}) where {T} = AbstractFFTs.IRFFTAdjointStyle(P.osz[first(P.region)])
