@@ -11,7 +11,7 @@ Preferences = "21216c6a-2e73-6563-6e65-726566657250"
 Reexport = "189a3867-3050-52da-a836-e630ba90ab69"
 
 [compat]
-AbstractFFTs = "1.0"
+AbstractFFTs = "1.5"
 FFTW_jll = "3.3.9"
 MKL_jll = "2019.0.117, 2020, 2021, 2022, 2023"
 Preferences = "1.2"

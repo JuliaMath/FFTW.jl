@@ -577,3 +577,27 @@ end
         end
     end
 end
+
+@testset "DCT adjoints" begin
+    # only test on FFTW because MKL is missing functionality
+    if FFTW.get_provider() == "fftw"
+        for x in (randn(3), randn(4), randn(3, 4), randn(3, 4, 5))
+            y = randn(size(x))
+            N = ndims(x)
+            for dims in unique((1, 1:N, N))
+                for P in (plan_dct(x, dims), plan_idct(x, dims))
+                    AbstractFFTs.TestUtils.test_plan_adjoint(P, x)
+                end
+            end
+        end
+    end
+end
+
+@testset "AbstractFFTs FFT backend tests" begin
+    # note this also tests adjoint functionality for FFT plans
+    # only test on FFTW because MKL is missing functionality
+    if FFTW.get_provider() == "fftw"
+        AbstractFFTs.TestUtils.test_complex_ffts(Array)
+        AbstractFFTs.TestUtils.test_real_ffts(Array; copy_input=true)
+    end
+end

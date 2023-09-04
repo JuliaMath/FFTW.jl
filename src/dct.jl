@@ -171,3 +171,5 @@ end
     mul!(Array{T}(undef, p.plan.osz), p, copy(x)) # need copy to preserve input
 
 *(p::DCTPlan{T,K,true}, x::StridedArray{T}) where {T,K} = mul!(x, p, x)
+
+AbstractFFTs.AdjointStyle(::DCTPlan) = AbstractFFTs.UnitaryAdjointStyle()
