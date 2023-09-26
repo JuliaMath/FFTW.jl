@@ -578,46 +578,26 @@ end
     end
 end
 
-@testset "ChainRules" begin
-
-    if isdefined(Base, :get_extension)
-        CRCEXT = Base.get_extension(FFTW, :FFTWChainRulesCoreExt)
-        @test isnothing(CRCEXT)
+@testset "DCT adjoints" begin
+    # only test on FFTW because MKL is missing functionality
+    if FFTW.get_provider() == "fftw"
+        for x in (randn(3), randn(4), randn(3, 4), randn(3, 4, 5))
+            y = randn(size(x))
+            N = ndims(x)
+            for dims in unique((1, 1:N, N))
+                for P in (plan_dct(x, dims), plan_idct(x, dims))
+                    AbstractFFTs.TestUtils.test_plan_adjoint(P, x)
+                end
+            end
+        end
     end
+end
 
-    using ChainRulesTestUtils
-
-    if isdefined(Base, :get_extension)
-        CRCEXT = Base.get_extension(FFTW, :FFTWChainRulesCoreExt)
-        @test !isnothing(CRCEXT)
+@testset "AbstractFFTs FFT backend tests" begin
+    # note this also tests adjoint functionality for FFT plans
+    # only test on FFTW because MKL is missing functionality
+    if FFTW.get_provider() == "fftw"
+        AbstractFFTs.TestUtils.test_complex_ffts(Array)
+        AbstractFFTs.TestUtils.test_real_ffts(Array; copy_input=true)
     end
-
-    @testset "DCT" begin
-        for f in (dct, idct)
-            for x in (randn(3), randn(3, 4), randn(3, 4, 5))
-                test_frule(f, x)
-                test_rrule(f, x)
-    
-                N = ndims(x)
-                for region in unique((1, 1:N, N))
-                    test_frule(f, x, region)
-                    test_rrule(f, x, region)
-                end # for region
-            end # for x
-        end # for f
-    end
-    
-    @testset "r2r" begin
-        for k in 0:10
-            for x in (randn(3), randn(3, 4), randn(3, 4, 5))
-                test_frule(r2r, x, k)
-    
-                N = ndims(x)
-                for region in unique((1, 1:N, N))
-                    test_frule(r2r, x, k, region)
-                end # for region
-            end # for x
-        end # for f
-    end
-
 end

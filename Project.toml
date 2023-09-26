@@ -15,8 +15,8 @@ ChainRulesCore = "d360d2e6-b24c-11e9-a2a3-2a2ae2dbcce4"
 FFTWChainRulesCoreExt = "ChainRulesCore"
 
 [compat]
-AbstractFFTs = "1.0"
 ChainRulesCore = "1"
+AbstractFFTs = "1.5"
 FFTW_jll = "3.3.9"
 MKL_jll = "2019.0.117, 2020, 2021, 2022, 2023"
 Preferences = "1.2"
