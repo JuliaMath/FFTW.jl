@@ -1,10 +1,26 @@
-const valid_fftw_providers = if FFTW_jll.is_available() && MKL_jll.is_available()
-    ("fftw", "mkl")
-elseif FFTW_jll.is_available()
-    ("fftw",)
-elseif MKL_jll.is_available()
-    ("mkl",)
-else
+# Hardcoded list of supported platforms
+# In principle, we could check FFTW_jll.is_available() and MKL_jll.is_available()
+# but then we would have to load MKL_jll which we want to avoid (lazy artifacts!)
+const platforms_providers = Dict(
+    Base.BinaryPlatforms.Platform("aarch64", "macos") => ("fftw",),
+    Base.BinaryPlatforms.Platform("aarch64", "linux"; libc = "glibc") => ("fftw",),
+    Base.BinaryPlatforms.Platform("aarch64", "linux"; libc = "musl") => ("fftw",),
+    Base.BinaryPlatforms.Platform("armv6l", "linux"; libc = "glibc", call_abi = "eabihf") => ("fftw",),
+    Base.BinaryPlatforms.Platform("armv6l", "linux"; libc = "musl", call_abi = "eabihf") => ("fftw",),
+    Base.BinaryPlatforms.Platform("armv7l", "linux"; libc = "glibc", call_abi = "eabihf") => ("fftw",),
+    Base.BinaryPlatforms.Platform("armv7l", "linux"; libc = "musl", call_abi = "eabihf") => ("fftw",),
+    Base.BinaryPlatforms.Platform("i686", "linux"; libc = "glibc") => ("fftw", "mkl"),
+    Base.BinaryPlatforms.Platform("i686", "linux"; libc = "musl") => ("fftw",),
+    Base.BinaryPlatforms.Platform("i686", "windows") => ("fftw", "mkl"),
+    Base.BinaryPlatforms.Platform("powerpc64le", "linux"; libc = "glibc") => ("fftw",),
+    Base.BinaryPlatforms.Platform("x86_64", "macos") => ("fftw", "mkl"),
+    Base.BinaryPlatforms.Platform("x86_64", "linux"; libc = "glibc") => ("fftw",),
+    Base.BinaryPlatforms.Platform("x86_64", "linux"; libc = "musl") => ("fftw",),
+    Base.BinaryPlatforms.Platform("x86_64", "freebsd") => ("fftw",),
+    Base.BinaryPlatforms.Platform("x86_64", "windows") => ("fftw", "mkl"),
+)
+const valid_fftw_providers = Base.BinaryPlatforms.select_platform(platforms_providers, Base.BinaryPlatforms.HostPlatform())
+if valid_fftw_providers === nothing
     error("no valid FFTW library available")
 end
 
@@ -56,6 +72,12 @@ end
 
 # If we're using fftw_jll, load it in
 @static if fftw_provider == "fftw"
+    import FFTW_jll
+    if !FFTW_jll.is_available()
+        # more descriptive error message if FFTW is not available
+        # (should not be possible to reach this)
+        error("FFTW library cannot be loaded: please switch to the `mkl` provider for FFTW.jl")
+    end
     libfftw3[] = FFTW_jll.libfftw3_path
     libfftw3f[] = FFTW_jll.libfftw3f_path
 
@@ -90,6 +112,12 @@ end
 
 # If we're using MKL, load it in and set library paths appropriately.
 @static if fftw_provider == "mkl"
+    import MKL_jll
+    if !MKL_jll.is_available()
+        # more descriptive error message if MKL is not available
+        # (should not be possible to reach this)
+        error("MKL library cannot be loaded: please switch to the `fftw` provider for FFTW.jl")
+    end
     libfftw3[] = MKL_jll.libmkl_rt_path
     libfftw3f[] = MKL_jll.libmkl_rt_path
     const _last_num_threads = Ref(Cint(1))
