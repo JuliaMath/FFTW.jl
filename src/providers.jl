@@ -1,17 +1,26 @@
+const valid_fftw_providers = if FFTW_jll.is_available() && MKL_jll.is_available()
+    ("fftw", "mkl")
+elseif FFTW_jll.is_available()
+    ("fftw",)
+elseif MKL_jll.is_available()
+    ("mkl",)
+else
+    error("no valid FFTW library available")
+end
 
 function get_provider()
     # Note: we CANNOT do something like have the `default` value be `get(ENV, "JULIA_FFTW_PROVIDER", "fftw")` here.
     # This is because the only way the Julia knows that a default has changed is if the values on-disk change; so
     # if your "default" value can be changed from the outside, you quickly run into cache invalidation issues.
     # So the default here _must_ be a constant.
-    default_provider = "fftw"
+    default_provider = first(valid_fftw_providers)
 
     # Load the preference
     provider = @load_preference("provider", default_provider)
 
     # Ensure the provider matches one of the ones we support
-    if provider ∉ ("fftw", "mkl")
-        @error("Invalid provider setting \"$(provider)\"; valid settings include [\"fftw\", \"mkl\"], defaulting to \"fftw\"")
+    if provider ∉ valid_fftw_providers
+        @error("Invalid provider setting \"$(provider)\"; valid settings include [$(join(map(x -> '"' * x * '"', valid_fftw_providers), ", "))]")
         provider = default_provider
     end
     return provider
@@ -34,8 +43,8 @@ Also supports `Preferences` sentinel values `nothing` and `missing`; see the doc
 `Preferences.set_preferences!()` for more information on what these values mean.
 """
 function set_provider!(provider; export_prefs::Bool = false)
-    if provider !== nothing && provider !== missing && provider ∉ ("fftw", "mkl")
-        throw(ArgumentError("Invalid provider value '$(provider)'"))
+    if provider !== nothing && provider !== missing && provider ∉ valid_fftw_providers
+        throw(ArgumentError("Invalid provider value \"$(provider)\"; valid settings include [$(join(map(x -> '"' * x * '"', valid_fftw_providers), ", "))]"))
     end
     set_preferences!(@__MODULE__, "provider" => provider; export_prefs, force = true)
     if provider != fftw_provider
@@ -47,7 +56,6 @@ end
 
 # If we're using fftw_jll, load it in
 @static if fftw_provider == "fftw"
-    import FFTW_jll
     libfftw3[] = FFTW_jll.libfftw3_path
     libfftw3f[] = FFTW_jll.libfftw3f_path
 
@@ -82,7 +90,6 @@ end
 
 # If we're using MKL, load it in and set library paths appropriately.
 @static if fftw_provider == "mkl"
-    import MKL_jll
     libfftw3[] = MKL_jll.libmkl_rt_path
     libfftw3f[] = MKL_jll.libmkl_rt_path
     const _last_num_threads = Ref(Cint(1))

@@ -11,6 +11,8 @@ import AbstractFFTs: Plan, ScaledPlan,
                      fftshift, ifftshift,
                      rfft_output_size, brfft_output_size,
                      plan_inv, normalization
+import FFTW_jll
+import MKL_jll
 
 export dct, idct, dct!, idct!, plan_dct, plan_idct, plan_dct!, plan_idct!
 
