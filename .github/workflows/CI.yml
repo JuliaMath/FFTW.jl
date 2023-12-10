@@ -49,6 +49,9 @@ jobs:
             arch: x86
           - provider: 'mkl'
             threads: '2'
+          # In MKL 2024, Intel dropped support for macOS.
+          - os: macOS-latest
+            provider: 'mkl'
 
     steps:
       - uses: actions/checkout@v3
