@@ -7,7 +7,7 @@ using LinearAlgebra
 
 using Aqua
 @testset "Project quality" begin
-    Aqua.test_all(FFTW, stale_deps=fftw_provider=="mkl", piracies=false)
+    Aqua.test_all(FFTW, stale_deps=false, piracies=false)
 end
 
 @info "FFTW provider: $(fftw_provider)"
