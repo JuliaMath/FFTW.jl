@@ -4,5 +4,12 @@
 
 [deps]
 AbstractFFTs = "621f4979-c628-5d54-868e-fcf4e3e8185c"
+Aqua = "4c88cf16-eb10-579e-8560-4a9242c79595"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+
+[compat]
+Aqua = "0.8"
+AbstractFFTs = "1.5"
+LinearAlgebra = "<0.0.1, 1"
+Test = "<0.0.1, 1"
