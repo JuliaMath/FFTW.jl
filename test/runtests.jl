@@ -1,6 +1,6 @@
 # This file was formerly a part of Julia. License is MIT: https://julialang.org/license
 using FFTW
-using FFTW: fftw_provider
+using FFTW: fftw_provider, r2r
 using AbstractFFTs: Plan, plan_inv
 using Test
 using LinearAlgebra

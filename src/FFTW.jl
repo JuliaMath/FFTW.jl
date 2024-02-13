@@ -72,4 +72,8 @@ include("dct.jl")
 include("precompile.jl")
 _precompile_()
 
+@static if !isdefined(Base, :get_extension)
+    include("../ext/FFTWChainRulesCoreExt.jl")
+end
+
 end # module
