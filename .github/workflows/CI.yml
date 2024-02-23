@@ -32,14 +32,16 @@ jobs:
           - 'nightly'
         os:
           - ubuntu-latest
-          - macOS-latest
           - windows-latest
+          - macOS-13 # intel
+          - macOS-14 # arm
         threads:
           - '1'
           - '2'
         arch:
           - x64
           - x86
+          - aarch64
         exclude:
           # 32-bit Julia binaries are not available on macOS
           - os: macOS-latest
@@ -50,7 +52,23 @@ jobs:
             arch: x86
           - provider: 'mkl'
             threads: '2'
-
+          # Disable various OS-arch combinations that are not available 
+          - os: ubuntu-latest
+            arch: aarch64
+          - os: windows-latest
+            arch: aarch64
+          - os: macOS-13
+            arch: x86
+          - os: macOS-13
+            arch: aarch64
+          - os: macOS-14
+            arch: x86
+          - os: macOS-14
+            arch: x64
+          - os: macOS-14
+            arch: aarch64
+            version: '1.6'
+            
     steps:
       - uses: actions/checkout@v4
       - uses: julia-actions/setup-julia@v1
