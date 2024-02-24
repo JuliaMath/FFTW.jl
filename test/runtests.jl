@@ -5,6 +5,11 @@ using AbstractFFTs: Plan, plan_inv
 using Test
 using LinearAlgebra
 
+using Aqua
+@testset "Project quality" begin
+    Aqua.test_all(FFTW, stale_deps=false, piracies=false)
+end
+
 @info "FFTW provider: $(fftw_provider)"
 
 @testset "colmajorstrides" begin
