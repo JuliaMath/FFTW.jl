@@ -61,7 +61,6 @@ jobs:
             arch: x86
           - os: macOS-13
             arch: aarch64
-          - 
           - os: macOS-14
             arch: x86
           - os: macOS-14
