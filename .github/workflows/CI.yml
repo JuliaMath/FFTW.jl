@@ -61,6 +61,7 @@ jobs:
             arch: x86
           - os: macOS-13
             arch: aarch64
+          - 
           - os: macOS-14
             arch: x86
           - os: macOS-14
@@ -68,6 +69,9 @@ jobs:
           - os: macOS-14
             arch: aarch64
             version: '1.6'
+          - os: macOS-14
+            arch: aarch64
+            provider: 'mkl'
             
     steps:
       - uses: actions/checkout@v4
