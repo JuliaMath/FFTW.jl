@@ -61,15 +61,16 @@ jobs:
             arch: x86
           - os: macOS-13
             arch: aarch64
+          - os: macOS-13
+            version: '1.6'
+            provider: 'mkl'
           - os: macOS-14
             arch: x86
           - os: macOS-14
             arch: x64
           - os: macOS-14
-            arch: aarch64
             version: '1.6'
           - os: macOS-14
-            arch: aarch64
             provider: 'mkl'
             
     steps:
@@ -83,7 +84,7 @@ jobs:
       # So, in CI, for the macOS jobs, we force MKL 2023 to be installed (instead of
       # MKL 2024).
       - run: julia .ci/macos_mkl_2023.jl
-        if: (matrix.os == 'macOS-latest') && (matrix.provider == 'mkl')
+        if: (matrix.os == 'macOS-13') && (matrix.provider == 'mkl')
       - name: Set Preferences
         run: julia --project .github/set_ci_preferences.jl "${{ matrix.provider }}"
       - uses: julia-actions/julia-runtest@v1
