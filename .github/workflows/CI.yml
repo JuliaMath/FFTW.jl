@@ -32,14 +32,16 @@ jobs:
           - 'nightly'
         os:
           - ubuntu-latest
-          - macOS-latest
           - windows-latest
+          - macOS-13 # intel
+          - macOS-14 # arm
         threads:
           - '1'
           - '2'
         arch:
           - x64
           - x86
+          - aarch64
         exclude:
           # 32-bit Julia binaries are not available on macOS
           - os: macOS-latest
@@ -50,7 +52,27 @@ jobs:
             arch: x86
           - provider: 'mkl'
             threads: '2'
-
+          # Disable various OS-arch combinations that are not available 
+          - os: ubuntu-latest
+            arch: aarch64
+          - os: windows-latest
+            arch: aarch64
+          - os: macOS-13
+            arch: x86
+          - os: macOS-13
+            arch: aarch64
+          - os: macOS-13
+            version: '1.6'
+            provider: 'mkl'
+          - os: macOS-14
+            arch: x86
+          - os: macOS-14
+            arch: x64
+          - os: macOS-14
+            version: '1.6'
+          - os: macOS-14
+            provider: 'mkl'
+            
     steps:
       - uses: actions/checkout@v4
       - uses: julia-actions/setup-julia@v1
@@ -62,7 +84,7 @@ jobs:
       # So, in CI, for the macOS jobs, we force MKL 2023 to be installed (instead of
       # MKL 2024).
       - run: julia .ci/macos_mkl_2023.jl
-        if: (matrix.os == 'macOS-latest') && (matrix.provider == 'mkl')
+        if: (matrix.os == 'macOS-13') && (matrix.provider == 'mkl')
       - name: Set Preferences
         run: julia --project .github/set_ci_preferences.jl "${{ matrix.provider }}"
       - uses: julia-actions/julia-runtest@v1
