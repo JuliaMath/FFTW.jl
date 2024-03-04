@@ -45,6 +45,8 @@ function set_provider!(provider; export_prefs::Bool = false)
     end
 end
 
+const num_queued_threads = Threads.Atomic{Int}(0)
+
 # If we're using fftw_jll, load it in
 @static if fftw_provider == "fftw"
     import FFTW_jll
@@ -55,7 +57,14 @@ end
     # tasks (FFTW/fftw3#175):
     function spawnloop(f::Ptr{Cvoid}, fdata::Ptr{Cvoid}, elsize::Csize_t, num::Cint, callback_data::Ptr{Cvoid})
         @sync for i = 0:num-1
-            Threads.@spawn ccall(f, Ptr{Cvoid}, (Ptr{Cvoid},), fdata + elsize*i)
+            Threads.@spawn begin
+                Threads.atomic_add!(num_queued_threads, 1)
+                try
+                    ccall(f, Ptr{Cvoid}, (Ptr{Cvoid},), fdata + elsize*i)
+                finally
+                    Threads.atomic_sub!(num_queued_threads, 1)
+                end
+            end
         end
     end
 
