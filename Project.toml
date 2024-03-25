@@ -21,8 +21,8 @@ julia = "1.6"
 [extensions]
 FFTWMKLExt = ["MKL_jll"]
 
-[weakdeps]
+[extras]
 MKL_jll = "856f044c-d86e-5d09-b602-aeab76dc8ba7"
 
-[extras]
+[weakdeps]
 MKL_jll = "856f044c-d86e-5d09-b602-aeab76dc8ba7"
