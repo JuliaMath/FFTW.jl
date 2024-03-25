@@ -4,6 +4,10 @@ using FFTW: fftw_provider
 using AbstractFFTs: Plan, plan_inv
 using Test
 using LinearAlgebra
+# needs to be explicitly loaded for the extension to work on 1.9+
+@static if isdefined(Base, :get_extension)
+    import MKL_jll
+end
 
 using Aqua
 @testset "Project quality" begin
