@@ -54,10 +54,12 @@ correspond to [`r2r`](@ref) and [`r2r!`](@ref), respectively.
 function plan_r2r end
 
 ## FFT: Implement fft by calling fftw.
+const version = Ref{Union{Missing,VersionNumber}}(missing)
 
-const version = VersionNumber(split(unsafe_string(cglobal(
-    (:fftw_version,libfftw3[]), UInt8)), ['-', ' '])[2])
-
+@static if FFTW.fftw_provider == "fftw"
+    version[] = VersionNumber(split(unsafe_string(cglobal(
+                              (:fftw_version,libfftw3[]), UInt8)), ['-', ' '])[2])
+end
 ## Direction of FFT
 
 const FORWARD = -1
@@ -422,7 +424,7 @@ end
 
 # The sprint_plan function was released in FFTW 3.3.4, but MKL versions
 # claiming to be FFTW 3.3.4 still don't seem to have this function.
-const has_sprint_plan = version >= v"3.3.4" && fftw_provider == "fftw"
+const has_sprint_plan = fftw_provider == "fftw" && version[] >= v"3.3.4"
 
 @static if has_sprint_plan
     sprint_plan_(plan::FFTWPlan{<:fftwDouble}) =

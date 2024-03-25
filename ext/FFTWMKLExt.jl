@@ -7,6 +7,8 @@ using FFTW
     import MKL_jll
     FFTW.libfftw3[] = MKL_jll.libmkl_rt_path
     FFTW.libfftw3f[] = MKL_jll.libmkl_rt_path
+    FFTW.version[] = VersionNumber(split(unsafe_string(cglobal(
+                                    (:fftw_version,FFTW.libfftw3[]), UInt8)), ['-', ' '])[2])
 end
 
 function __init__()
@@ -16,6 +18,8 @@ function __init__()
     @static if FFTW.fftw_provider == "mkl"
         FFTW.libfftw3[] = MKL_jll.libmkl_rt_path
         FFTW.libfftw3f[] = MKL_jll.libmkl_rt_path
+        FFTW.version[] = VersionNumber(split(unsafe_string(cglobal(
+                                (:fftw_version,FFTW.libfftw3[]), UInt8)), ['-', ' '])[2])
     end
 end
 
