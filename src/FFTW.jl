@@ -14,6 +14,8 @@ import AbstractFFTs: Plan, ScaledPlan,
 
 export dct, idct, dct!, idct!, plan_dct, plan_idct, plan_dct!, plan_idct!
 
+const _last_num_threads = Ref(Cint(1))
+
 include("providers.jl")
 
 function __init__()
@@ -30,10 +32,6 @@ function __init__()
         libfftw3[] = FFTW_jll.libfftw3_path
         libfftw3f[] = FFTW_jll.libfftw3f_path
         fftw_init_threads()
-    end
-    @static if fftw_provider == "mkl"
-        libfftw3[] = MKL_jll.libmkl_rt_path
-        libfftw3f[] = MKL_jll.libmkl_rt_path
     end
 end
 
@@ -68,6 +66,11 @@ end
 
 include("fft.jl")
 include("dct.jl")
+
+@static if !isdefined(Base, :get_extension)
+    include("../ext/FFTWMKLExt.jl")
+    using .FFTWMKLExt
+end
 
 include("precompile.jl")
 _precompile_()

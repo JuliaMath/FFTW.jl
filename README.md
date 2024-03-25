@@ -32,10 +32,11 @@ The documentation of generic FFT functionality can be found in the [AbstractFFTs
 
 Alternatively, the FFTs in Intel's Math Kernel Library (MKL) can be used
 by running `FFTW.set_provider!("mkl")`. MKL will be provided through `MKL_jll`.
-This change of provider is persistent and has to be done only once, i.e., the package will use MKL when building and updating. 
+On Julia 1.9+, this functionality is provided as an extension and so either `MKL` or `MKL_jll` must be explicitly loaded.
+This change of provider is persistent and has to be done only once, i.e., the package will use MKL when building and updating.
 Note however that MKL provides only a subset of the functionality provided by FFTW. See
 Intel's [documentation](https://software.intel.com/en-us/mkl-developer-reference-c-using-fftw3-wrappers)
-for more information about potential differences or gaps in functionality. 
+for more information about potential differences or gaps in functionality.
 In case MKL does not fit the needs (anymore), `FFTW.set_provider!("fftw")` allows to revert the change of provider.
 
 

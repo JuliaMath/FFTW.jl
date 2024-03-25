@@ -79,11 +79,3 @@ end
         end
     end
 end
-
-# If we're using MKL, load it in and set library paths appropriately.
-@static if fftw_provider == "mkl"
-    import MKL_jll
-    libfftw3[] = MKL_jll.libmkl_rt_path
-    libfftw3f[] = MKL_jll.libmkl_rt_path
-    const _last_num_threads = Ref(Cint(1))
-end
