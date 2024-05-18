@@ -1,17 +1,15 @@
 # Examples
 
-Here you can find a list of examples to help you quick start using this
-library.
+Here you can find some basic examples of how to use this package.
 
 
-# 1D signal
+## Spectrum of a 1D Signal
 
-A simple real ``60 Hz`` with the first harmonics:
+This example shows how to obtain and plot the spectrum of a simple, real-valued signal with a second-order harmonic using FFTW and [Plots](https://github.com/JuliaPlots/Plots.jl).
 
 ```julia
 using Plots
 using FFTW
-using DSP
 
 # Number of points
 N = 2^12 - 1
