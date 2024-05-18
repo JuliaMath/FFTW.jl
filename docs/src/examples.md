@@ -26,7 +26,11 @@ t = t0:Ts:tmax
 
 signal = sin.(2π * 60 * t) + .5 * sin.(2π * 120 * t)
 
-# Fourier Transform of it
+# The `fft` function calculates the (discrete) Fourier transform of its input.
+# The first half of the returned array contains the positive frequencies, while
+# the second half contains the negative ones. For visualization purposes, we
+# rearrange the array to have the zero-frequency at the center.
+
 F = fftshift(fft(signal))
 freqs =  fftshift(fftfreq(length(t), fs))
 
