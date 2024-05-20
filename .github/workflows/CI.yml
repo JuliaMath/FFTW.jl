@@ -34,7 +34,7 @@ jobs:
           - ubuntu-latest
           - windows-latest
           - macOS-13 # intel
-          - macOS-14 # arm
+          - macOS-latest # arm
         threads:
           - '1'
           - '2'
@@ -64,13 +64,13 @@ jobs:
           - os: macOS-13
             version: '1.6'
             provider: 'mkl'
-          - os: macOS-14
+          - os: macOS-latest
             arch: x86
-          - os: macOS-14
+          - os: macOS-latest
             arch: x64
-          - os: macOS-14
+          - os: macOS-latest
             version: '1.6'
-          - os: macOS-14
+          - os: macOS-latest
             provider: 'mkl'
             
     steps:
