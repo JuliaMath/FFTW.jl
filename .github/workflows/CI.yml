@@ -79,7 +79,7 @@ jobs:
         with:
           version: ${{ matrix.version }}
           arch: ${{ matrix.arch }}
-      - uses: julia-actions/cache@v1
+      - uses: julia-actions/cache@v2
       # In MKL 2024, Intel dropped support for macOS.
       # So, in CI, for the macOS jobs, we force MKL 2023 to be installed (instead of
       # MKL 2024).
@@ -102,7 +102,7 @@ jobs:
       - uses: julia-actions/setup-julia@latest
         with:
           version: 1
-      - uses: julia-actions/cache@v1
+      - uses: julia-actions/cache@v2
       - uses: julia-actions/julia-buildpkg@v1
       - uses: julia-actions/julia-docdeploy@releases/v1
         env:
