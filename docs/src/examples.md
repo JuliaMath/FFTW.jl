@@ -24,6 +24,11 @@ tmax = t0 + N * Ts
 # time coordinate
 t = t0:Ts:tmax
 
+# The underlying signal here is the sum of a sine wave at 60 cycles per second
+# and its second harmonic (120 cycles per second) at half amplitude. We have
+# discrete observations (samples) of this signal at each time `t`, with `fs`
+# samples per second.
+
 signal = sin.(2π * 60 * t) + .5 * sin.(2π * 120 * t)
 
 # The `fft` function calculates the (discrete) Fourier transform of its input.
