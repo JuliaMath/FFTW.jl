@@ -1,6 +1,6 @@
 # FFTW.jl
 
-[![CI](https://github.com/JuliaMath/FFTW.jl/workflows/CI/badge.svg)](https://github.com/JuliaMath/FFTW.jl/actions?query=workflow%3ACI)
+[![CI](https://github.com/JuliaMath/FFTW.jl/actions/workflows/CI.yml/badge.svg)](https://github.com/JuliaMath/FFTW.jl/actions/workflows/CI.yml)
 [![Coveralls](https://coveralls.io/repos/github/JuliaMath/FFTW.jl/badge.svg?branch=master)](https://coveralls.io/github/JuliaMath/FFTW.jl?branch=master)
 
 [![](https://img.shields.io/badge/docs-stable-blue.svg)](https://JuliaMath.github.io/FFTW.jl/stable)
