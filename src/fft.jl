@@ -987,7 +987,7 @@ function plan_r2r!(X::StridedArray{T,N}, kinds, region;
                    num_threads::Union{Nothing, Integer} = nothing) where {T<:fftwNumber,N}
     if num_threads !== nothing
         plan = set_num_threads(num_threads) do
-            plan_r2r(X, kinds, region; flags = flags, timelimit = timelimit)
+            plan_r2r!(X, kinds, region; flags = flags, timelimit = timelimit)
         end
         return plan
     end
