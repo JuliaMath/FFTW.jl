@@ -10,8 +10,15 @@ MKL_jll = "856f044c-d86e-5d09-b602-aeab76dc8ba7"
 Preferences = "21216c6a-2e73-6563-6e65-726566657250"
 Reexport = "189a3867-3050-52da-a836-e630ba90ab69"
 
+[weakdeps]
+Enzyme = "7da242da-08ed-463a-9acd-ee780be4f1d9"
+
+[extensions]
+FFTWEnzymeExt = "Enzyme"
+
 [compat]
 AbstractFFTs = "1.5"
+Enzyme = "0.12, 0.13"
 FFTW_jll = "3.3.9"
 LinearAlgebra = "<0.0.1, 1"
 MKL_jll = "2019.0.117, 2020, 2021, 2022, 2023, 2024"
