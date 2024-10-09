@@ -319,9 +319,9 @@ unsafe_convert(::Type{PlanPtr}, p::FFTWPlan) = p.plan
 # This is accomplished by the maybe_destroy_plan function, which is used as the plan finalizer.
 
 # these functions should only be called while the fftwlock is held
-unsafe_destroy_plan(plan::FFTWPlan{<:fftwDouble}) =
+unsafe_destroy_plan(@nospecialize(plan::FFTWPlan{<:fftwDouble})) =
     ccall((:fftw_destroy_plan,libfftw3[]), Cvoid, (PlanPtr,), plan)
-unsafe_destroy_plan(plan::FFTWPlan{<:fftwSingle}) =
+unsafe_destroy_plan(@nospecialize(plan::FFTWPlan{<:fftwSingle})) =
     ccall((:fftwf_destroy_plan,libfftw3f[]), Cvoid, (PlanPtr,), plan)
 
 const deferred_destroy_lock = ReentrantLock() # lock protecting the deferred_destroy_plans list
@@ -335,7 +335,12 @@ function destroy_deferred()
         # we'll do nothing (the other function will eventually run destroy_deferred).
         if !isempty(deferred_destroy_plans) && trylock(fftwlock)
             try
-                foreach(unsafe_destroy_plan, deferred_destroy_plans)
+                @static if Base.VERSION >= v"1.9"
+                    @inline foreach(unsafe_destroy_plan, deferred_destroy_plans)
+                else
+                    # call-site @inline isn't supported on old versions of Julia
+                    foreach(unsafe_destroy_plan, deferred_destroy_plans)
+                end
                 empty!(deferred_destroy_plans)
             finally
                 unlock(fftwlock)
