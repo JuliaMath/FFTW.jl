@@ -27,7 +27,7 @@ jobs:
           - 'fftw'
           - 'mkl'
         version:
-          - '1.6'
+          - 'lts'
           - '1'
           - 'nightly'
         os:
