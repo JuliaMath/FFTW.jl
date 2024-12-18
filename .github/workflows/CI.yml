@@ -92,7 +92,7 @@ jobs:
       - uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }} # required
-          file: lcov.info
+          files: lcov.info
 
   Documentation:
     runs-on: ubuntu-latest
