@@ -46,12 +46,11 @@ jobs:
           # 32-bit Julia binaries are not available on macOS
           - os: macOS-latest
             arch: x86
-          # 32-bit Linux binary for MKL isn't always available, let's ignore it
-          - os: ubuntu-latest
-            provider: 'mkl'
-            arch: x86
           - provider: 'mkl'
             threads: '2'
+          # MKL 2025 doesn't support i686
+          - provider: 'mkl'
+            arch: x86
           # Disable various OS-arch combinations that are not available 
           - os: ubuntu-latest
             arch: aarch64
