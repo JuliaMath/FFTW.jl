@@ -52,9 +52,8 @@ jobs:
             arch: x86
           - provider: 'mkl'
             threads: '2'
-          # x86 has issues with MKL 2025
-          - os: windows-latest
-            provider: 'mkl'
+          # MKL 2025 doesn't support i686
+          - provider: 'mkl'
             arch: x86
           # Disable various OS-arch combinations that are not available 
           - os: ubuntu-latest
