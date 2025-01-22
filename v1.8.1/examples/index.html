@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>Examples · FFTW.jl</title><link href="https://fonts.googleapis.com/css?family=Lato|Roboto+Mono" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.0/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.0/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.0/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.11.1/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL=".."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="../assets/documenter.js"></script><script src="../siteinfo.js"></script><script src="../../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/documenter-dark.css" data-theme-name="documenter-dark" data-theme-primary-dark/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="../assets/themeswap.js"></script></head><body><div id="documenter"><nav class="docs-sidebar"><div class="docs-package-name"><span class="docs-autofit">FFTW.jl</span></div><form class="docs-search" action="../search/"><input class="docs-search-query" id="documenter-search-query" name="q" type="text" placeholder="Search docs"/></form><ul class="docs-menu"><li><a class="tocitem" href="../">Home</a></li><li><a class="tocitem" href="../fft/">API</a></li><li class="is-active"><a class="tocitem" href>Examples</a><ul class="internal"><li><a class="tocitem" href="#Spectrum-of-a-1D-Signal"><span>Spectrum of a 1D Signal</span></a></li></ul></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><nav class="breadcrumb"><ul class="is-hidden-mobile"><li class="is-active"><a href>Examples</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href>Examples</a></li></ul></nav><div class="docs-right"><a class="docs-edit-link" href="https://github.com/JuliaMath/FFTW.jl/blob/master/docs/src/examples.md" title="Edit on GitHub"><span class="docs-icon fab"></span><span class="docs-label is-hidden-touch">Edit on GitHub</span></a><a class="docs-settings-button fas fa-cog" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-sidebar-button fa fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a></div></header><article class="content" id="documenter-page"><h1 id="Examples"><a class="docs-heading-anchor" href="#Examples">Examples</a><a id="Examples-1"></a><a class="docs-heading-anchor-permalink" href="#Examples" title="Permalink"></a></h1><p>Here you can find some basic examples of how to use this package.</p><h2 id="Spectrum-of-a-1D-Signal"><a class="docs-heading-anchor" href="#Spectrum-of-a-1D-Signal">Spectrum of a 1D Signal</a><a id="Spectrum-of-a-1D-Signal-1"></a><a class="docs-heading-anchor-permalink" href="#Spectrum-of-a-1D-Signal" title="Permalink"></a></h2><p>This example shows how to obtain and plot the spectrum of a simple, real-valued signal with a second-order harmonic using FFTW and <a href="https://github.com/JuliaPlots/Plots.jl">Plots</a>.</p><pre><code class="language-julia">using Plots
+using FFTW
+
+# Number of points
+N = 2^12 - 1
+# Sample spacing
+Ts = 1 / (1.1 * N)
+# Sample rate
+fs = 1 / Ts
+# Start time
+t0 = 0
+tmax = t0 + N * Ts
+
+# time coordinate
+t = t0:Ts:tmax
+
+# The underlying signal here is the sum of a sine wave at 60 cycles per second
+# and its second harmonic (120 cycles per second) at half amplitude. We have
+# discrete observations (samples) of this signal at each time `t`, with `fs`
+# samples per second.
+
+signal = sin.(2π * 60 * t) + .5 * sin.(2π * 120 * t)
+
+# The `fft` function calculates the (discrete) Fourier transform of its input.
+# The first half of the returned array contains the positive frequencies, while
+# the second half contains the negative ones. For visualization purposes, we
+# rearrange the array to have the zero-frequency at the center.
+
+F = fftshift(fft(signal))
+freqs =  fftshift(fftfreq(length(t), fs))
+
+# Plot
+time_domain = plot(t, signal, title=&quot;Signal&quot;, xlims=(0, 4 / 60), xlabel=&quot;time (s)&quot;, label=&quot;&quot;)
+freq_domain = plot(freqs, abs.(F), title=&quot;Spectrum&quot;, xlims=(0, 200), xlabel=&quot;frequency (Hz)&quot;, label=&quot;&quot;)
+plot(time_domain, freq_domain, layout = 2)
+savefig(&quot;Wave.pdf&quot;)</code></pre><p><img src="../img/1D60Hz.png" alt/></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../fft/">« API</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> on <span class="colophon-date" title="Wednesday 22 January 2025 19:18">Wednesday 22 January 2025</span>. Using Julia version 1.11.3.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
