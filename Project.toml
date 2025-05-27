@@ -2,6 +2,7 @@ name = "FFTW"
 uuid = "7a1cc6ca-52ef-59f5-83cd-3a7055c09341"
 version = "1.9.0-dev"
 
+
 [deps]
 AbstractFFTs = "621f4979-c628-5d54-868e-fcf4e3e8185c"
 FFTW_jll = "f5851436-0d7a-5f13-b9de-f02708fd171a"
@@ -14,7 +15,7 @@ Reexport = "189a3867-3050-52da-a836-e630ba90ab69"
 AbstractFFTs = "1.5"
 FFTW_jll = "3.3.9"
 LinearAlgebra = "1"
-MKL_jll = "2019.0.117, 2020, 2021, 2022, 2023, 2024"
+MKL_jll = "2019.0.117, 2020, 2021, 2022, 2023, 2024, 2025"
 Preferences = "1.2"
 Reexport = "0.2, 1.0"
 julia = "1.10"
