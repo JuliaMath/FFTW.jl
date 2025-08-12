@@ -335,12 +335,7 @@ function destroy_deferred()
         # we'll do nothing (the other function will eventually run destroy_deferred).
         if !isempty(deferred_destroy_plans) && trylock(fftwlock)
             try
-                @static if Base.VERSION >= v"1.9"
-                    @inline foreach(unsafe_destroy_plan, deferred_destroy_plans)
-                else
-                    # call-site @inline isn't supported on old versions of Julia
-                    foreach(unsafe_destroy_plan, deferred_destroy_plans)
-                end
+                @inline foreach(unsafe_destroy_plan, deferred_destroy_plans)
                 empty!(deferred_destroy_plans)
             finally
                 unlock(fftwlock)
