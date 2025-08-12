@@ -23,8 +23,8 @@ const fftw_provider = get_provider()
 # We'll initialize `libfftw3` here (in the conditionals below), and
 # it will get overwritten again in `__init__()`.  This allows us to
 # `ccall` at build time, and also be relocatable for PackageCompiler.
-const libfftw3 = Ref{String}()
-const libfftw3f = Ref{String}()
+const libfftw3_path = Ref{String}()
+const libfftw3f_path = Ref{String}()
 
 """
     set_provider!(provider; export_prefs::Bool = false)
@@ -48,8 +48,8 @@ end
 # If we're using fftw_jll, load it in
 @static if fftw_provider == "fftw"
     import FFTW_jll
-    libfftw3[] = FFTW_jll.libfftw3_path
-    libfftw3f[] = FFTW_jll.libfftw3f_path
+    libfftw3_path[] = FFTW_jll.libfftw3_path
+    libfftw3f_path[] = FFTW_jll.libfftw3f_path
 
     # callback function that FFTW uses to launch `num` parallel
     # tasks (FFTW/fftw3#175):
@@ -66,16 +66,19 @@ end
     #      (Previously, we called fftw_cleanup, but this invalidated existing
     #       plans, causing Base Julia issue #19892.)
     function fftw_init_threads()
-        stat =  ccall((:fftw_init_threads,   libfftw3[]), Int32, ())
-        statf = ccall((:fftwf_init_threads, libfftw3f[]), Int32, ())
+        # We de-reference libfftw3(f)_path directly in this function instead of using
+        # `libfftw3(f)()` to avoid the circular dependency and thus a stack overflow. This
+        # function is only called after the path references are initialized.
+        stat =  ccall((:fftw_init_threads,   libfftw3_path[]), Int32, ())
+        statf = ccall((:fftwf_init_threads, libfftw3f_path[]), Int32, ())
         if stat == 0 || statf == 0
             error("could not initialize FFTW threads")
         end
 
         if nthreads() > 1
             cspawnloop = @cfunction(spawnloop, Cvoid, (Ptr{Cvoid}, Ptr{Cvoid}, Csize_t, Cint, Ptr{Cvoid}))
-            ccall((:fftw_threads_set_callback,  libfftw3[]),  Cvoid, (Ptr{Cvoid}, Ptr{Cvoid}), cspawnloop, C_NULL)
-            ccall((:fftwf_threads_set_callback, libfftw3f[]), Cvoid, (Ptr{Cvoid}, Ptr{Cvoid}), cspawnloop, C_NULL)
+            ccall((:fftw_threads_set_callback,  libfftw3_path[]),  Cvoid, (Ptr{Cvoid}, Ptr{Cvoid}), cspawnloop, C_NULL)
+            ccall((:fftwf_threads_set_callback, libfftw3f_path[]), Cvoid, (Ptr{Cvoid}, Ptr{Cvoid}), cspawnloop, C_NULL)
         end
     end
 end
@@ -83,7 +86,7 @@ end
 # If we're using MKL, load it in and set library paths appropriately.
 @static if fftw_provider == "mkl"
     import MKL_jll
-    libfftw3[] = MKL_jll.libmkl_rt_path
-    libfftw3f[] = MKL_jll.libmkl_rt_path
+    libfftw3_path[] = MKL_jll.libmkl_rt_path
+    libfftw3f_path[] = MKL_jll.libmkl_rt_path
     const _last_num_threads = Ref(Cint(1))
 end
