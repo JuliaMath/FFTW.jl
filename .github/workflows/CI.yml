@@ -60,15 +60,10 @@ jobs:
             arch: x86
           - os: macOS-13
             arch: aarch64
-          - os: macOS-13
-            version: '1.6'
-            provider: 'mkl'
           - os: macOS-latest
             arch: x86
           - os: macOS-latest
             arch: x64
-          - os: macOS-latest
-            version: '1.6'
           - os: macOS-latest
             provider: 'mkl'
             
