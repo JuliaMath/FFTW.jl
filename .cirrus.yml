@@ -6,7 +6,7 @@ task:
         image_family: freebsd-13-1
       env:
         matrix:
-        - JULIA_VERSION: 1.6
+        - JULIA_VERSION: 1.10.0
         - JULIA_VERSION: 1
         - JULIA_VERSION: nightly
     - name: Linux ARMv8
@@ -14,7 +14,7 @@ task:
         image: ubuntu:latest
       env:
         matrix:
-        - JULIA_VERSION: 1.6
+        - JULIA_VERSION: 1.10.0
         - JULIA_VERSION: 1
         - JULIA_VERSION: nightly
     - name: musl Linux
@@ -22,7 +22,7 @@ task:
         image: alpine:3.14
       env:
         matrix:
-        - JULIA_VERSION: 1.6
+        - JULIA_VERSION: 1.10.0
         - JULIA_VERSION: 1
         - JULIA_VERSION: nightly
     - name: MacOS M1
@@ -30,7 +30,7 @@ task:
         image: ghcr.io/cirruslabs/macos-monterey-base:latest
       env:
         matrix:
-        # - JULIA_VERSION: 1.6 # not available
+        - JULIA_VERSION: 1.10.0
         - JULIA_VERSION: 1
         - JULIA_VERSION: nightly
 
