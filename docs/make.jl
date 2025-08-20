@@ -8,6 +8,7 @@ links = InterLinks(
 makedocs(
     modules = [FFTW],
     clean = false,
+    repo = Remotes.GitHub("JuliaMath", "FFTW.jl"),
     sitename = "FFTW.jl",
     pages = Any[
         "Home" => "index.md",
