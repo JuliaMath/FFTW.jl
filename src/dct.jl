@@ -12,9 +12,8 @@ function plan_dct! end
 """
     plan_idct(A [, dims [, flags [, timelimit [, num_threads]]]])
 
-Pre-plan an optimized inverse discrete cosine transform (DCT), similar to
-[`plan_fft`](@ref) except producing a function that computes
-[`idct`](@ref). The first two arguments have the same meaning as for
+Pre-plan an optimized inverse discrete cosine transform (DCT), similar to [`plan_fft`](@extref `AbstractFFTs.plan_fft`)
+except producing a function that computes [`idct`](@ref). The first two arguments have the same meaning as for
 [`idct`](@ref).
 """
 function plan_idct end
@@ -22,10 +21,8 @@ function plan_idct end
 """
     plan_dct(A [, dims [, flags [, timelimit [, num_threads]]]])
 
-Pre-plan an optimized discrete cosine transform (DCT), similar to
-[`plan_fft`](@ref) except producing a function that computes
-[`dct`](@ref). The first two arguments have the same meaning as for
-[`dct`](@ref).
+Pre-plan an optimized discrete cosine transform (DCT), similar to [`plan_fft`](@extref `AbstractFFTs.plan_fft`) except
+producing a function that computes [`dct`](@ref). The first two arguments have the same meaning as for [`dct`](@ref).
 """
 function plan_dct end
 
@@ -39,12 +36,10 @@ function plan_idct! end
 """
     dct(A [, dims])
 
-Performs a multidimensional type-II discrete cosine transform (DCT) of the array `A`, using
-the unitary normalization of the DCT. The optional `dims` argument specifies an iterable
-subset of dimensions (e.g. an integer, range, tuple, or array) to transform along.  Most
-efficient if the size of `A` along the transformed dimensions is a product of small primes;
-see [`nextprod`](@ref). See also [`plan_dct`](@ref) for even greater
-efficiency.
+Performs a multidimensional type-II discrete cosine transform (DCT) of the array `A`, using the unitary normalization of
+the DCT. The optional `dims` argument specifies an iterable subset of dimensions (e.g. an integer, range, tuple, or
+array) to transform along.  Most efficient if the size of `A` along the transformed dimensions is a product of small
+primes; see [`nextprod`](@extref `Base.nextprod`). See also [`plan_dct`](@ref) for even greater efficiency.
 """
 function dct end
 
@@ -55,7 +50,7 @@ Computes the multidimensional inverse discrete cosine transform (DCT) of the arr
 (technically, a type-III DCT with the unitary normalization). The optional `dims` argument
 specifies an iterable subset of dimensions (e.g. an integer, range, tuple, or array) to
 transform along.  Most efficient if the size of `A` along the transformed dimensions is a
-product of small primes; see [`nextprod`](@ref).  See also
+product of small primes; see [`nextprod`](@extref `Base.nextprod`).  See also
 [`plan_idct`](@ref) for even greater efficiency.
 """
 function idct end
