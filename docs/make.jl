@@ -1,4 +1,9 @@
-using Documenter, FFTW
+using Documenter, DocumenterInterLinks, FFTW
+
+links = InterLinks(
+    "Julia" => "https://docs.julialang.org/en/v1/",
+    "AbstractFFTs" => "https://juliamath.github.io/AbstractFFTs.jl/dev/",
+)
 
 makedocs(
     modules = [FFTW],
@@ -9,6 +14,7 @@ makedocs(
         "API" => "fft.md",
         "Examples" => "examples.md",
     ],
+    plugins=[links],
 )
 
 deploydocs(

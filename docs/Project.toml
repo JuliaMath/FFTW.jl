@@ -1,9 +1,11 @@
 [deps]
 Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
+DocumenterInterLinks = "d12716ef-a0f6-4df4-a9f1-a5a34e75c656"
 FFTW = "7a1cc6ca-52ef-59f5-83cd-3a7055c09341"
 
 [sources]
-FFTW = {path = ".."}
+FFTW = { path = ".." }
 
 [compat]
 Documenter = "^1"
+DocumenterInterLinks = "^1.1"
