@@ -20,4 +20,5 @@ FFTW.plan_dct
 FFTW.plan_idct
 FFTW.plan_dct!
 FFTW.plan_idct!
+FFTW.set_provider!
 ```
