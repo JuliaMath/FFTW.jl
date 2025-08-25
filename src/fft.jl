@@ -40,16 +40,15 @@ function r2r! end
 """
     plan_r2r!(A, kind [, dims [, flags [, timelimit [, num_threads]]]])
 
-Similar to [`plan_fft`](@ref), but corresponds to [`r2r!`](@ref).
+Similar to [`plan_fft`](@extref `AbstractFFTs.plan_fft`), but corresponds to [`r2r!`](@ref).
 """
 function plan_r2r! end
 
 """
     plan_r2r(A, kind [, dims [, flags [, timelimit [, num_threads]]]])
 
-Pre-plan an optimized r2r transform, similar to [`plan_fft`](@ref)
-except that the transforms (and the first three arguments)
-correspond to [`r2r`](@ref) and [`r2r!`](@ref), respectively.
+Pre-plan an optimized r2r transform, similar to [`plan_fft`](@extref `AbstractFFTs.plan_fft`) except that the
+transforms (and the first three arguments) correspond to [`r2r`](@ref) and [`r2r!`](@ref), respectively.
 """
 function plan_r2r end
 
