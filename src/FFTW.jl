@@ -31,19 +31,19 @@ end
 
 if VERSION >= v"1.11.0"
 # This can be be deleted once FFTW_jll is upgraded to the real lazy jll code, to get the real benefits of this mess
-mutable struct FakeLazyLibrary
+mutable struct FakeLazyLibrary{T}
     reallibrary::Symbol
-    on_load_callback
+    on_load_callback::T
     @atomic h::Ptr{Cvoid}
 end
 import Libdl: LazyLibrary, dlopen
-function dlopen(lib::FakeLazyLibrary)
+function dlopen(lib::FakeLazyLibrary{T}) where T
     h = @atomic :monotonic lib.h
     h != C_NULL && return h
     @lock fftwlock begin
         h = @atomic :monotonic lib.h
         h != C_NULL && return h
-        h = dlopen(getglobal(FFTW, lib.reallibrary))
+        h = dlopen(getglobal(FFTW, lib.reallibrary)::String)
         lib.on_load_callback()
         @atomic :release lib.h = h
     end
