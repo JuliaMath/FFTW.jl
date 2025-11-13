@@ -36,7 +36,7 @@ mutable struct FakeLazyLibrary{T}
     on_load_callback::T
     @atomic h::Ptr{Cvoid}
 end
-import Libdl: LazyLibrary, dlopen
+import Libdl: LazyLibrary, dlopen, dlsym
 function dlopen(lib::FakeLazyLibrary{T}) where T
     h = @atomic :monotonic lib.h
     h != C_NULL && return h
@@ -60,7 +60,13 @@ end
 const libfftw3 = FakeLazyLibrary(:libfftw3_no_init, fftw_init_check, C_NULL)
 const libfftw3f = FakeLazyLibrary(:libfftw3f_no_init, fftw_init_check, C_NULL)
 
-else
+if VERSION >= v"1.12.0"
+function __init__()
+    dlopen(libfftw3) # Ensure that dlopen(::FakeLazyLibrary) is built by JuliaC
+end
+end
+
+else # !(VERSION >= v"1.11.0")
 @static if fftw_provider == "fftw"
     import FFTW_jll: libfftw3_path as libfftw3_no_init,
                      libfftw3f_path as libfftw3f_no_init,

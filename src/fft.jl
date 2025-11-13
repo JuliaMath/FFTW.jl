@@ -322,20 +322,18 @@ unsafe_convert(::Type{PlanPtr}, p::FFTWPlan) = p.plan
 
 struct FFTWPlanDestructor
     ptr::PlanPtr
-    use_32bit_lib::Bool
+    fptr::Ptr{Cvoid}
 end
 
-FFTWPlanDestructor(plan::FFTWPlan{<:fftwSingle}) = FFTWPlanDestructor(plan.plan, true)
-FFTWPlanDestructor(plan::FFTWPlan{<:fftwDouble}) = FFTWPlanDestructor(plan.plan, false)
+FFTWPlanDestructor(plan::FFTWPlan{<:fftwSingle}) =
+    FFTWPlanDestructor(plan.plan, dlsym(dlopen(libfftw3f), :fftwf_destroy_plan))
+FFTWPlanDestructor(plan::FFTWPlan{<:fftwDouble}) = 
+    FFTWPlanDestructor(plan.plan, dlsym(dlopen(libfftw3), :fftw_destroy_plan))
 
 # these functions should only be called while the fftwlock is held
 unsafe_destroy_plan(plan::FFTWPlan) = unsafe_destroy_plan(FFTWPlanDestructor(plan))
 function unsafe_destroy_plan(destructor::FFTWPlanDestructor)
-    if destructor.use_32bit_lib
-        ccall((:fftwf_destroy_plan,libfftw3f), Cvoid, (PlanPtr,), destructor.ptr)
-    else
-        ccall((:fftw_destroy_plan,libfftw3), Cvoid, (PlanPtr,), destructor.ptr)
-    end
+    ccall(destructor.fptr, Cvoid, (PlanPtr, ), destructor.ptr)
 end
 
 const deferred_destroy_lock = ReentrantLock() # lock protecting the deferred_destroy_plans list
