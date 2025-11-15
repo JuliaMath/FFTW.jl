@@ -36,7 +36,7 @@ mutable struct FakeLazyLibrary{T}
     on_load_callback::T
     @atomic h::Ptr{Cvoid}
 end
-import Libdl: LazyLibrary, dlopen, dlsym
+import Libdl: LazyLibrary, dlopen
 function dlopen(lib::FakeLazyLibrary{T}) where T
     h = @atomic :monotonic lib.h
     h != C_NULL && return h

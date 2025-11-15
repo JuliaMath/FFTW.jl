@@ -2,6 +2,7 @@
 
 import Base: show, *, convert, unsafe_convert, size, strides, ndims, pointer
 import LinearAlgebra: mul!
+import Libdl: dlopen, dlsym
 
 """
     r2r(A, kind [, dims])
