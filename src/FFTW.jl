@@ -14,7 +14,18 @@ import AbstractFFTs: Plan, ScaledPlan,
 
 export dct, idct, dct!, idct!, plan_dct, plan_idct, plan_dct!, plan_idct!
 
-public ESTIMATE, MEASURE, PATIENT
+# FFTW flags from fft.jl
+public MEASURE
+public DESTROY_INPUT
+public UNALIGNED
+public CONSERVE_MEMORY
+public EXHAUSTIVE
+public PRESERVE_INPUT
+public PATIENT
+public ESTIMATE
+public WISDOM_ONLY
+public NO_SIMD
+
 
 include("providers.jl")
 
