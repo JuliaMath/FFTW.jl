@@ -14,6 +14,8 @@ import AbstractFFTs: Plan, ScaledPlan,
 
 export dct, idct, dct!, idct!, plan_dct, plan_idct, plan_dct!, plan_idct!
 
+public ESTIMATE, MEASURE, PATIENT
+
 include("providers.jl")
 
 function fftw_init_check()
