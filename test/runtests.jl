@@ -586,3 +586,5 @@ end
         AbstractFFTs.TestUtils.test_real_ffts(Array; copy_input=true)
     end
 end
+
+include("test_rfft!.jl")
