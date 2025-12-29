@@ -15,8 +15,20 @@ import AbstractFFTs: Plan, ScaledPlan,
 export dct, idct, dct!, idct!, plan_dct, plan_idct, plan_dct!, plan_idct!
 
 # FFTW flags from fft.jl
-if VERSION ≥ v"1.11.0"
-    include("public.jl")
+@static if VERSION ≥ v"1.11.0"
+    eval(Expr(
+        :public,
+        :MEASURE,
+        :DESTROY_INPUT,
+        :UNALIGNED,
+        :CONSERVE_MEMORY,
+        :EXHAUSTIVE,
+        :PRESERVE_INPUT,
+        :PATIENT,
+        :ESTIMATE,
+        :WISDOM_ONLY,
+        :NO_SIMD,
+    ))
 end
 
 
