@@ -49,19 +49,19 @@ end
 
 if VERSION >= v"1.11.0"
 # This can be be deleted once FFTW_jll is upgraded to the real lazy jll code, to get the real benefits of this mess
-mutable struct FakeLazyLibrary
+mutable struct FakeLazyLibrary{T}
     reallibrary::Symbol
-    on_load_callback
+    on_load_callback::T
     @atomic h::Ptr{Cvoid}
 end
 import Libdl: LazyLibrary, dlopen
-function dlopen(lib::FakeLazyLibrary)
+function dlopen(lib::FakeLazyLibrary{T}) where T
     h = @atomic :monotonic lib.h
     h != C_NULL && return h
     @lock fftwlock begin
         h = @atomic :monotonic lib.h
         h != C_NULL && return h
-        h = dlopen(getglobal(FFTW, lib.reallibrary))
+        h = dlopen(getglobal(FFTW, lib.reallibrary)::String)
         lib.on_load_callback()
         @atomic :release lib.h = h
     end
@@ -78,7 +78,13 @@ end
 const libfftw3 = FakeLazyLibrary(:libfftw3_no_init, fftw_init_check, C_NULL)
 const libfftw3f = FakeLazyLibrary(:libfftw3f_no_init, fftw_init_check, C_NULL)
 
-else
+if VERSION >= v"1.12.0"
+function __init__()
+    dlopen(libfftw3) # Ensure that dlopen(::FakeLazyLibrary) is built by JuliaC
+end
+end
+
+else # !(VERSION >= v"1.11.0")
 @static if fftw_provider == "fftw"
     import FFTW_jll: libfftw3_path as libfftw3_no_init,
                      libfftw3f_path as libfftw3f_no_init,
