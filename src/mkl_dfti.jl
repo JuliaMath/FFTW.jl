@@ -220,12 +220,7 @@ mutable struct MKLcPlan{T<:fftwComplex,K,inplace,N,G} <: FFTWPlan{T,K,inplace}
                                        outer_offsets::Vector{Tuple{Int,Int}}=Tuple{Int,Int}[]) where {T<:fftwComplex,K,inplace,N,G}
         p = new(handle, size(X), size(Y), strides(X), strides(Y),
                 alignment_of(X), alignment_of(Y), UInt32(flags), R, outer_offsets)
-        finalizer(p) do plan
-            if plan.handle != C_NULL
-                dfti_free_descriptor(plan.handle)
-                plan.handle = C_NULL
-            end
-        end
+        finalizer(maybe_destroy_plan, p)
         p
     end
 end
@@ -254,12 +249,7 @@ mutable struct MKLrPlan{T<:fftwNumber,K,inplace,N,G} <: FFTWPlan{T,K,inplace}
                                        outer_offsets::Vector{Tuple{Int,Int}}=Tuple{Int,Int}[]) where {T<:fftwNumber,K,inplace,N,G}
         p = new(handle, size(X), size(Y), strides(X), strides(Y),
                 alignment_of(X), alignment_of(Y), UInt32(flags), R, outer_offsets)
-        finalizer(p) do plan
-            if plan.handle != C_NULL
-                dfti_free_descriptor(plan.handle)
-                plan.handle = C_NULL
-            end
-        end
+        finalizer(maybe_destroy_plan, p)
         p
     end
 end
@@ -288,7 +278,8 @@ unsafe_destroy_plan(@nospecialize(plan::MKLrPlan)) = begin
     end
 end
 
-# Override unsafe_convert so that MKL plans don't try to convert to PlanPtr
+# Override unsafe_convert to avoid the default FFTWPlan method, which would
+# access the nonexistent `p.plan` field. Instead, wrap the DFTI handle as a PlanPtr.
 unsafe_convert(::Type{PlanPtr}, p::MKLcPlan) = reinterpret(PlanPtr, p.handle)
 unsafe_convert(::Type{PlanPtr}, p::MKLrPlan) = reinterpret(PlanPtr, p.handle)
 
@@ -847,7 +838,7 @@ for (Tr, Tc) in ((:Float32, :(Complex{Float32})), (:Float64, :(Complex{Float64})
         end
 
         plan_rfft(X::StridedArray{$Tr}; kws...) = plan_rfft(X, ntuple(identity, ndims(X)); kws...)
-        plan_brfft(X::StridedArray{$Tr}; kws...) = plan_brfft(X, ntuple(identity, ndims(X)); kws...)
+        plan_brfft(X::StridedArray{$Tc}; kws...) = plan_brfft(X, 2*size(X,1)-1, ntuple(identity, ndims(X)); kws...)
 
         function plan_inv(p::MKLrPlan{$Tr,$FORWARD,false,N};
                           num_threads::Union{Nothing, Integer} = nothing) where N
