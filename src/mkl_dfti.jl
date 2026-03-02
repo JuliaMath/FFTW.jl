@@ -9,7 +9,7 @@
 # DFTI configuration constants (from mkl_dfti.h)
 #==============================================================================#
 
-# DFTI_CONFIG_VALUE enum
+# DFTI_CONFIG_VALUE enum 
 const DFTI_COMMITTED       = Int64(30)
 const DFTI_UNCOMMITTED     = Int64(31)
 
