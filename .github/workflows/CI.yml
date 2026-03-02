@@ -81,6 +81,11 @@ jobs:
         if: (matrix.os == 'macOS-15-intel') && (matrix.provider == 'mkl')
       - name: Set Preferences
         run: julia --project .github/set_ci_preferences.jl "${{ matrix.provider }}"
+      # MKL 2023 on macOS 15 may select unsupported CPU instruction paths (SIGILL).
+      # Constrain to AVX2 to avoid illegal-instruction crashes.
+      - name: Constrain MKL instruction set on macOS
+        if: contains(matrix.os, 'macOS') && matrix.provider == 'mkl'
+        run: echo "MKL_ENABLE_INSTRUCTIONS=AVX2" >> $GITHUB_ENV
       - uses: julia-actions/julia-runtest@v1
       - uses: julia-actions/julia-processcoverage@v1
       - uses: codecov/codecov-action@v5
