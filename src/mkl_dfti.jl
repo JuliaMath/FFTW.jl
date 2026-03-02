@@ -6,70 +6,75 @@
 # This file is only included when fftw_provider == "mkl".
 
 #==============================================================================#
+# MKL_LONG type: C `long`, which is 64-bit on Linux/macOS but 32-bit on Windows
+#==============================================================================#
+const MKL_LONG = Clong
+
+#==============================================================================#
 # DFTI configuration constants (from mkl_dfti.h)
 #==============================================================================#
 
-# DFTI_CONFIG_VALUE enum 
-const DFTI_COMMITTED       = Int64(30)
-const DFTI_UNCOMMITTED     = Int64(31)
+# DFTI_CONFIG_VALUE enum
+const DFTI_COMMITTED       = MKL_LONG(30)
+const DFTI_UNCOMMITTED     = MKL_LONG(31)
 
 # Precision
-const DFTI_SINGLE          = Int64(35)
-const DFTI_DOUBLE          = Int64(36)
+const DFTI_SINGLE          = MKL_LONG(35)
+const DFTI_DOUBLE          = MKL_LONG(36)
 
 # Forward domain
-const DFTI_COMPLEX         = Int64(32)
-const DFTI_REAL            = Int64(33)
+const DFTI_COMPLEX         = MKL_LONG(32)
+const DFTI_REAL            = MKL_LONG(33)
 
 # Placement
-const DFTI_INPLACE         = Int64(43)
-const DFTI_NOT_INPLACE     = Int64(44)
+const DFTI_INPLACE         = MKL_LONG(43)
+const DFTI_NOT_INPLACE     = MKL_LONG(44)
 
 # Complex storage
-const DFTI_COMPLEX_COMPLEX = Int64(39)
-const DFTI_REAL_REAL       = Int64(40)
-const DFTI_COMPLEX_REAL    = Int64(41)
+const DFTI_COMPLEX_COMPLEX = MKL_LONG(39)
+const DFTI_REAL_REAL       = MKL_LONG(40)
+const DFTI_COMPLEX_REAL    = MKL_LONG(41)
 
 # Packed format
-const DFTI_CCE_FORMAT      = Int64(56)
-const DFTI_CCS_FORMAT      = Int64(45)
-const DFTI_PACK_FORMAT     = Int64(46)
-const DFTI_PERM_FORMAT     = Int64(47)
+const DFTI_CCE_FORMAT      = MKL_LONG(56)
+const DFTI_CCS_FORMAT      = MKL_LONG(45)
+const DFTI_PACK_FORMAT     = MKL_LONG(46)
+const DFTI_PERM_FORMAT     = MKL_LONG(47)
 
 # Allow/Avoid
-const DFTI_ALLOW           = Int64(51)
-const DFTI_AVOID           = Int64(52)
+const DFTI_ALLOW           = MKL_LONG(51)
+const DFTI_AVOID           = MKL_LONG(52)
 
 # DFTI_CONFIG_PARAM enum
-const DFTI_FORWARD_DOMAIN           = Int64(0)
-const DFTI_DIMENSION                = Int64(1)
-const DFTI_LENGTHS                  = Int64(2)
-const DFTI_PRECISION                = Int64(3)
-const DFTI_FORWARD_SCALE            = Int64(4)
-const DFTI_BACKWARD_SCALE           = Int64(5)
-const DFTI_NUMBER_OF_TRANSFORMS     = Int64(7)
-const DFTI_COMPLEX_STORAGE          = Int64(8)
-const DFTI_REAL_STORAGE             = Int64(9)
-const DFTI_CONJUGATE_EVEN_STORAGE   = Int64(10)
-const DFTI_PLACEMENT                = Int64(11)
-const DFTI_INPUT_STRIDES            = Int64(12)
-const DFTI_OUTPUT_STRIDES           = Int64(13)
-const DFTI_INPUT_DISTANCE           = Int64(14)
-const DFTI_OUTPUT_DISTANCE          = Int64(15)
-const DFTI_WORKSPACE                = Int64(17)
-const DFTI_ORDERING                 = Int64(18)
-const DFTI_TRANSPOSE                = Int64(19)
-const DFTI_DESCRIPTOR_NAME          = Int64(20)
-const DFTI_PACKED_FORMAT            = Int64(21)
-const DFTI_COMMIT_STATUS            = Int64(22)
-const DFTI_VERSION                  = Int64(23)
-const DFTI_NUMBER_OF_USER_THREADS   = Int64(26)
-const DFTI_THREAD_LIMIT             = Int64(27)
-const DFTI_DESTROY_INPUT            = Int64(28)
+const DFTI_FORWARD_DOMAIN           = MKL_LONG(0)
+const DFTI_DIMENSION                = MKL_LONG(1)
+const DFTI_LENGTHS                  = MKL_LONG(2)
+const DFTI_PRECISION                = MKL_LONG(3)
+const DFTI_FORWARD_SCALE            = MKL_LONG(4)
+const DFTI_BACKWARD_SCALE           = MKL_LONG(5)
+const DFTI_NUMBER_OF_TRANSFORMS     = MKL_LONG(7)
+const DFTI_COMPLEX_STORAGE          = MKL_LONG(8)
+const DFTI_REAL_STORAGE             = MKL_LONG(9)
+const DFTI_CONJUGATE_EVEN_STORAGE   = MKL_LONG(10)
+const DFTI_PLACEMENT                = MKL_LONG(11)
+const DFTI_INPUT_STRIDES            = MKL_LONG(12)
+const DFTI_OUTPUT_STRIDES           = MKL_LONG(13)
+const DFTI_INPUT_DISTANCE           = MKL_LONG(14)
+const DFTI_OUTPUT_DISTANCE          = MKL_LONG(15)
+const DFTI_WORKSPACE                = MKL_LONG(17)
+const DFTI_ORDERING                 = MKL_LONG(18)
+const DFTI_TRANSPOSE                = MKL_LONG(19)
+const DFTI_DESCRIPTOR_NAME          = MKL_LONG(20)
+const DFTI_PACKED_FORMAT            = MKL_LONG(21)
+const DFTI_COMMIT_STATUS            = MKL_LONG(22)
+const DFTI_VERSION                  = MKL_LONG(23)
+const DFTI_NUMBER_OF_USER_THREADS   = MKL_LONG(26)
+const DFTI_THREAD_LIMIT             = MKL_LONG(27)
+const DFTI_DESTROY_INPUT            = MKL_LONG(28)
 
 # Ordered/Scrambled
-const DFTI_ORDERED             = Int64(48)
-const DFTI_BACKWARD_SCRAMBLED  = Int64(49)
+const DFTI_ORDERED             = MKL_LONG(48)
+const DFTI_BACKWARD_SCRAMBLED  = MKL_LONG(49)
 
 #==============================================================================#
 # DFTI API wrappers
@@ -81,102 +86,102 @@ const DftiDescriptor = Ptr{Cvoid}
 # specific functions based on precision and dimensionality. We call the
 # specific underlying functions directly.
 
-function dfti_create_descriptor_1d(precision::Int64, domain::Int64, length::Int64)
+function dfti_create_descriptor_1d(precision::MKL_LONG, domain::MKL_LONG, length::MKL_LONG)
     handle = Ref{DftiDescriptor}(C_NULL)
     if precision == DFTI_SINGLE
-        status = ccall((:DftiCreateDescriptor_s_1d, libfftw3), Int64,
-                       (Ref{DftiDescriptor}, Int64, Int64),
+        status = ccall((:DftiCreateDescriptor_s_1d, libfftw3), MKL_LONG,
+                       (Ref{DftiDescriptor}, MKL_LONG, MKL_LONG),
                        handle, domain, length)
     else
-        status = ccall((:DftiCreateDescriptor_d_1d, libfftw3), Int64,
-                       (Ref{DftiDescriptor}, Int64, Int64),
+        status = ccall((:DftiCreateDescriptor_d_1d, libfftw3), MKL_LONG,
+                       (Ref{DftiDescriptor}, MKL_LONG, MKL_LONG),
                        handle, domain, length)
     end
     status != 0 && error("DftiCreateDescriptor failed: $(dfti_error_message(status))")
     return handle[]
 end
 
-function dfti_create_descriptor_md(precision::Int64, domain::Int64, ndim::Int64, lengths::Vector{Int64})
+function dfti_create_descriptor_md(precision::MKL_LONG, domain::MKL_LONG, ndim::MKL_LONG, lengths::Vector{MKL_LONG})
     handle = Ref{DftiDescriptor}(C_NULL)
     if precision == DFTI_SINGLE
-        status = ccall((:DftiCreateDescriptor_s_md, libfftw3), Int64,
-                       (Ref{DftiDescriptor}, Int64, Int64, Ptr{Int64}),
+        status = ccall((:DftiCreateDescriptor_s_md, libfftw3), MKL_LONG,
+                       (Ref{DftiDescriptor}, MKL_LONG, MKL_LONG, Ptr{MKL_LONG}),
                        handle, domain, ndim, lengths)
     else
-        status = ccall((:DftiCreateDescriptor_d_md, libfftw3), Int64,
-                       (Ref{DftiDescriptor}, Int64, Int64, Ptr{Int64}),
+        status = ccall((:DftiCreateDescriptor_d_md, libfftw3), MKL_LONG,
+                       (Ref{DftiDescriptor}, MKL_LONG, MKL_LONG, Ptr{MKL_LONG}),
                        handle, domain, ndim, lengths)
     end
     status != 0 && error("DftiCreateDescriptor failed: $(dfti_error_message(status))")
     return handle[]
 end
 
-function dfti_create_descriptor(precision::Int64, domain::Int64, lengths::Vector{Int64})
+function dfti_create_descriptor(precision::MKL_LONG, domain::MKL_LONG, lengths::Vector{MKL_LONG})
     ndim = length(lengths)
     if ndim == 1
         return dfti_create_descriptor_1d(precision, domain, lengths[1])
     else
-        return dfti_create_descriptor_md(precision, domain, Int64(ndim), lengths)
+        return dfti_create_descriptor_md(precision, domain, MKL_LONG(ndim), lengths)
     end
 end
 
-function dfti_set_value(handle::DftiDescriptor, param::Int64, value::Int64)
-    status = ccall((:DftiSetValue, libfftw3), Int64,
-                   (DftiDescriptor, Int64, Int64),
+function dfti_set_value(handle::DftiDescriptor, param::MKL_LONG, value::MKL_LONG)
+    status = ccall((:DftiSetValue, libfftw3), MKL_LONG,
+                   (DftiDescriptor, MKL_LONG, MKL_LONG),
                    handle, param, value)
     status != 0 && error("DftiSetValue failed (param=$param): $(dfti_error_message(status))")
 end
 
-function dfti_set_value(handle::DftiDescriptor, param::Int64, value::Float32)
-    status = ccall((:DftiSetValue, libfftw3), Int64,
-                   (DftiDescriptor, Int64, Float32),
+function dfti_set_value(handle::DftiDescriptor, param::MKL_LONG, value::Float32)
+    status = ccall((:DftiSetValue, libfftw3), MKL_LONG,
+                   (DftiDescriptor, MKL_LONG, Float32),
                    handle, param, value)
     status != 0 && error("DftiSetValue failed (param=$param): $(dfti_error_message(status))")
 end
 
-function dfti_set_value(handle::DftiDescriptor, param::Int64, value::Float64)
-    status = ccall((:DftiSetValue, libfftw3), Int64,
-                   (DftiDescriptor, Int64, Float64),
+function dfti_set_value(handle::DftiDescriptor, param::MKL_LONG, value::Float64)
+    status = ccall((:DftiSetValue, libfftw3), MKL_LONG,
+                   (DftiDescriptor, MKL_LONG, Float64),
                    handle, param, value)
     status != 0 && error("DftiSetValue failed (param=$param): $(dfti_error_message(status))")
 end
 
-function dfti_set_value(handle::DftiDescriptor, param::Int64, value::Vector{Int64})
-    status = ccall((:DftiSetValue, libfftw3), Int64,
-                   (DftiDescriptor, Int64, Ptr{Int64}),
+function dfti_set_value(handle::DftiDescriptor, param::MKL_LONG, value::Vector{MKL_LONG})
+    status = ccall((:DftiSetValue, libfftw3), MKL_LONG,
+                   (DftiDescriptor, MKL_LONG, Ptr{MKL_LONG}),
                    handle, param, value)
     status != 0 && error("DftiSetValue failed (param=$param): $(dfti_error_message(status))")
 end
 
 function dfti_commit_descriptor(handle::DftiDescriptor)
-    status = ccall((:DftiCommitDescriptor, libfftw3), Int64,
+    status = ccall((:DftiCommitDescriptor, libfftw3), MKL_LONG,
                    (DftiDescriptor,), handle)
     status != 0 && error("DftiCommitDescriptor failed: $(dfti_error_message(status))")
 end
 
 function dfti_compute_forward_inplace(handle::DftiDescriptor, data::Ptr)
-    status = ccall((:DftiComputeForward, libfftw3), Int64,
+    status = ccall((:DftiComputeForward, libfftw3), MKL_LONG,
                    (DftiDescriptor, Ptr{Cvoid}),
                    handle, data)
     status != 0 && error("DftiComputeForward failed: $(dfti_error_message(status))")
 end
 
 function dfti_compute_forward_outofplace(handle::DftiDescriptor, indata::Ptr, outdata::Ptr)
-    status = ccall((:DftiComputeForward, libfftw3), Int64,
+    status = ccall((:DftiComputeForward, libfftw3), MKL_LONG,
                    (DftiDescriptor, Ptr{Cvoid}, Ptr{Cvoid}),
                    handle, indata, outdata)
     status != 0 && error("DftiComputeForward failed: $(dfti_error_message(status))")
 end
 
 function dfti_compute_backward_inplace(handle::DftiDescriptor, data::Ptr)
-    status = ccall((:DftiComputeBackward, libfftw3), Int64,
+    status = ccall((:DftiComputeBackward, libfftw3), MKL_LONG,
                    (DftiDescriptor, Ptr{Cvoid}),
                    handle, data)
     status != 0 && error("DftiComputeBackward failed: $(dfti_error_message(status))")
 end
 
 function dfti_compute_backward_outofplace(handle::DftiDescriptor, indata::Ptr, outdata::Ptr)
-    status = ccall((:DftiComputeBackward, libfftw3), Int64,
+    status = ccall((:DftiComputeBackward, libfftw3), MKL_LONG,
                    (DftiDescriptor, Ptr{Cvoid}, Ptr{Cvoid}),
                    handle, indata, outdata)
     status != 0 && error("DftiComputeBackward failed: $(dfti_error_message(status))")
@@ -184,12 +189,12 @@ end
 
 function dfti_free_descriptor(handle::DftiDescriptor)
     ref = Ref(handle)
-    ccall((:DftiFreeDescriptor, libfftw3), Int64,
+    ccall((:DftiFreeDescriptor, libfftw3), MKL_LONG,
           (Ref{DftiDescriptor},), ref)
 end
 
-function dfti_error_message(status::Int64)
-    ptr = ccall((:DftiErrorMessage, libfftw3), Ptr{UInt8}, (Int64,), status)
+function dfti_error_message(status::MKL_LONG)
+    ptr = ccall((:DftiErrorMessage, libfftw3), Ptr{UInt8}, (MKL_LONG,), status)
     ptr == C_NULL ? "unknown error (status=$status)" : unsafe_string(ptr)
 end
 
@@ -208,11 +213,13 @@ mutable struct MKLcPlan{T<:fftwComplex,K,inplace,N,G} <: FFTWPlan{T,K,inplace}
     oalign::Int32
     flags::UInt32
     region::G
+    outer_offsets::Vector{Tuple{Int,Int}} # (ioffset, ooffset) for outer batch dims
     pinv::ScaledPlan
     function MKLcPlan{T,K,inplace,N,G}(handle::DftiDescriptor, flags::Integer, R::G,
-                                       X::StridedArray{T,N}, Y::StridedArray) where {T<:fftwComplex,K,inplace,N,G}
+                                       X::StridedArray{T,N}, Y::StridedArray,
+                                       outer_offsets::Vector{Tuple{Int,Int}}=Tuple{Int,Int}[]) where {T<:fftwComplex,K,inplace,N,G}
         p = new(handle, size(X), size(Y), strides(X), strides(Y),
-                alignment_of(X), alignment_of(Y), UInt32(flags), R)
+                alignment_of(X), alignment_of(Y), UInt32(flags), R, outer_offsets)
         finalizer(p) do plan
             if plan.handle != C_NULL
                 dfti_free_descriptor(plan.handle)
@@ -224,8 +231,9 @@ mutable struct MKLcPlan{T<:fftwComplex,K,inplace,N,G} <: FFTWPlan{T,K,inplace}
 end
 
 function MKLcPlan{T,K,inplace,N}(handle::DftiDescriptor, flags::Integer, R::G,
-                                 X::StridedArray{T,N}, Y::StridedArray) where {T<:fftwComplex,K,inplace,N,G}
-    MKLcPlan{T,K,inplace,N,G}(handle, flags, R, X, Y)
+                                 X::StridedArray{T,N}, Y::StridedArray,
+                                 outer_offsets::Vector{Tuple{Int,Int}}=Tuple{Int,Int}[]) where {T<:fftwComplex,K,inplace,N,G}
+    MKLcPlan{T,K,inplace,N,G}(handle, flags, R, X, Y, outer_offsets)
 end
 
 # MKL DFTI plan for real-to-complex (FORWARD) / complex-to-real (BACKWARD) transforms
@@ -239,11 +247,13 @@ mutable struct MKLrPlan{T<:fftwNumber,K,inplace,N,G} <: FFTWPlan{T,K,inplace}
     oalign::Int32
     flags::UInt32
     region::G
+    outer_offsets::Vector{Tuple{Int,Int}} # (ioffset, ooffset) for outer batch dims
     pinv::ScaledPlan
     function MKLrPlan{T,K,inplace,N,G}(handle::DftiDescriptor, flags::Integer, R::G,
-                                       X::StridedArray{T,N}, Y::StridedArray) where {T<:fftwNumber,K,inplace,N,G}
+                                       X::StridedArray{T,N}, Y::StridedArray,
+                                       outer_offsets::Vector{Tuple{Int,Int}}=Tuple{Int,Int}[]) where {T<:fftwNumber,K,inplace,N,G}
         p = new(handle, size(X), size(Y), strides(X), strides(Y),
-                alignment_of(X), alignment_of(Y), UInt32(flags), R)
+                alignment_of(X), alignment_of(Y), UInt32(flags), R, outer_offsets)
         finalizer(p) do plan
             if plan.handle != C_NULL
                 dfti_free_descriptor(plan.handle)
@@ -255,8 +265,9 @@ mutable struct MKLrPlan{T<:fftwNumber,K,inplace,N,G} <: FFTWPlan{T,K,inplace}
 end
 
 function MKLrPlan{T,K,inplace,N}(handle::DftiDescriptor, flags::Integer, R::G,
-                                 X::StridedArray{T,N}, Y::StridedArray) where {T<:fftwNumber,K,inplace,N,G}
-    MKLrPlan{T,K,inplace,N,G}(handle, flags, R, X, Y)
+                                 X::StridedArray{T,N}, Y::StridedArray,
+                                 outer_offsets::Vector{Tuple{Int,Int}}=Tuple{Int,Int}[]) where {T<:fftwNumber,K,inplace,N,G}
+    MKLrPlan{T,K,inplace,N,G}(handle, flags, R, X, Y, outer_offsets)
 end
 
 #==============================================================================#
@@ -322,7 +333,7 @@ function _make_dfti_complex_plan(::Type{T}, ::Val{K}, ::Val{inplace},
     # DFTI lengths: sizes along transformed dimensions, in the order given by region
     # MKL expects lengths in row-major (C) order for multi-dim, but since we
     # specify explicit strides, the lengths just correspond to the dimension sizes.
-    dfti_lengths = Int64[sz[d] for d in reg]
+    dfti_lengths = MKL_LONG[sz[d] for d in reg]
 
     prec = _dfti_precision(T)
 
@@ -342,82 +353,67 @@ function _make_dfti_complex_plan(::Type{T}, ::Val{K}, ::Val{inplace},
     # Y is always the second arg (output) to DftiCompute*, we always set:
     #   INPUT_STRIDES  = X strides (first arg to DftiCompute*)
     #   OUTPUT_STRIDES = Y strides (second arg to DftiCompute*)
-    dfti_xstrides = Int64[0; [ist[d] for d in reg]]
-    dfti_ystrides = Int64[0; [ost[d] for d in reg]]
+    dfti_xstrides = MKL_LONG[0; [ist[d] for d in reg]]
+    dfti_ystrides = MKL_LONG[0; [ost[d] for d in reg]]
     dfti_set_value(handle, DFTI_INPUT_STRIDES, dfti_xstrides)
     dfti_set_value(handle, DFTI_OUTPUT_STRIDES, dfti_ystrides)
 
     # Handle batch dimensions (non-transform dimensions)
     # Find all dimensions not in region
     batch_dims = [d for d in 1:N if !(d in reg)]
+    outer_offsets = Tuple{Int,Int}[]
 
     if !isempty(batch_dims)
         # We can use NUMBER_OF_TRANSFORMS with DISTANCE for batched execution.
         # For multiple batch dims, compute total batch count and use the
         # appropriate distance. The key insight is that for column-major arrays
         # with contiguous batch dims, we can set up a single batched call.
-        #
-        # Strategy: find the innermost batch dimension (smallest stride).
-        # Use it for NUMBER_OF_TRANSFORMS. For remaining batch dims, we
-        # multiply into the batch count if they are contiguous in memory.
-
         # Sort batch dims by input stride
         sorted_batch = sort(batch_dims, by=d->ist[d])
-
-        # Compute total number of transforms and distances
-        nbatch = 1
-        for d in batch_dims
-            nbatch *= sz[d]
-        end
-
-        # Use stride of the dimension with smallest stride as distance
-        # Check if all batch dimensions are "contiguous" in the sense that
-        # a single NUMBER_OF_TRANSFORMS + DISTANCE covers the whole batch.
-        # This works when all non-transform elements are accessed by
-        # incrementing a single distance.
-
-        # For general strided arrays, we need the batch to be describable
-        # by a single (count, input_distance, output_distance).
-        # We compute the minimum batch stride and check if total_batch * min_stride
-        # fills the space correctly.
 
         min_ist_dim = sorted_batch[1]
         idist = ist[min_ist_dim]
         odist = ost[min_ist_dim]
 
-        # Check if all batch dims can be described by a single distance
-        # by verifying the strides form a consistent row-major/col-major pattern
-        can_single_batch = true
+        # Find the contiguous prefix of batch dims that can be described
+        # by a single NUMBER_OF_TRANSFORMS + DISTANCE.
         expected_ist = idist
         expected_ost = odist
-        for d in sorted_batch
-            expected_count = sz[d]
+        inner_end = 0
+        for (i, d) in enumerate(sorted_batch)
             if ist[d] != expected_ist || ost[d] != expected_ost
-                can_single_batch = false
                 break
             end
-            expected_ist *= expected_count
-            expected_ost *= expected_count
+            inner_end = i
+            expected_ist *= sz[d]
+            expected_ost *= sz[d]
         end
 
-        if can_single_batch
-            dfti_set_value(handle, DFTI_NUMBER_OF_TRANSFORMS, Int64(nbatch))
-            dfti_set_value(handle, DFTI_INPUT_DISTANCE, Int64(idist))
-            dfti_set_value(handle, DFTI_OUTPUT_DISTANCE, Int64(odist))
-        else
-            inner_batch_count = sz[min_ist_dim]
-            dfti_set_value(handle, DFTI_NUMBER_OF_TRANSFORMS, Int64(inner_batch_count))
-            dfti_set_value(handle, DFTI_INPUT_DISTANCE, Int64(idist))
-            dfti_set_value(handle, DFTI_OUTPUT_DISTANCE, Int64(odist))
-            # We'll handle the outer loops during execution via assert_applicable checks
-            # For now, the plan stores the full sz/osz for checking.
-            # The execute function will need to loop over outer dims.
+        inner_count = prod(sz[sorted_batch[i]] for i in 1:inner_end)
+        dfti_set_value(handle, DFTI_NUMBER_OF_TRANSFORMS, MKL_LONG(inner_count))
+        dfti_set_value(handle, DFTI_INPUT_DISTANCE, MKL_LONG(idist))
+        dfti_set_value(handle, DFTI_OUTPUT_DISTANCE, MKL_LONG(odist))
+
+        # Compute outer batch offsets for dims not covered by DISTANCE
+        outer_dims = sorted_batch[inner_end+1:end]
+        if !isempty(outer_dims)
+            offsets = Tuple{Int,Int}[(0, 0)]
+            for d in outer_dims
+                new_offsets = Tuple{Int,Int}[]
+                for idx in 0:sz[d]-1
+                    for (io, oo) in offsets
+                        push!(new_offsets, (io + idx * ist[d], oo + idx * ost[d]))
+                    end
+                end
+                offsets = new_offsets
+            end
+            outer_offsets = offsets
         end
     end
 
     dfti_commit_descriptor(handle)
 
-    return MKLcPlan{T,K,inplace,N}(handle, flags, R, X, Y)
+    return MKLcPlan{T,K,inplace,N}(handle, flags, R, X, Y, outer_offsets)
 end
 
 """
@@ -442,7 +438,7 @@ function _make_dfti_r2c_plan(::Type{Tr}, ::Type{Tc}, ::Val{inplace},
     # gets halved for real transforms. Julia is column-major, so we reverse
     # the dimension order so that reg[1] (the halved dim) comes last.
     rev_reg = reverse(reg)
-    dfti_lengths = Int64[sz[d] for d in rev_reg]
+    dfti_lengths = MKL_LONG[sz[d] for d in rev_reg]
 
     prec = _dfti_precision(Tr)
 
@@ -455,51 +451,61 @@ function _make_dfti_r2c_plan(::Type{Tr}, ::Type{Tc}, ::Val{inplace},
     dfti_set_value(handle, DFTI_CONJUGATE_EVEN_STORAGE, DFTI_COMPLEX_COMPLEX)
 
     # Input strides (real domain) - strides in real elements (reversed order)
-    dfti_istrides = Int64[0; [ist[d] for d in rev_reg]]
+    dfti_istrides = MKL_LONG[0; [ist[d] for d in rev_reg]]
     dfti_set_value(handle, DFTI_INPUT_STRIDES, dfti_istrides)
 
     # Output strides (complex domain) - strides in complex elements (reversed order)
-    dfti_ostrides = Int64[0; [ost[d] for d in rev_reg]]
+    dfti_ostrides = MKL_LONG[0; [ost[d] for d in rev_reg]]
     dfti_set_value(handle, DFTI_OUTPUT_STRIDES, dfti_ostrides)
 
     # Handle batch dimensions
     batch_dims = [d for d in 1:N if !(d in reg)]
+    outer_offsets = Tuple{Int,Int}[]
     if !isempty(batch_dims)
         sorted_batch = sort(batch_dims, by=d->ist[d])
-        nbatch = prod(sz[d] for d in batch_dims)
 
         min_ist_dim = sorted_batch[1]
         idist = ist[min_ist_dim]
         odist = ost[min_ist_dim]
 
-        can_single_batch = true
+        # Find contiguous prefix of batch dims
         expected_ist = idist
         expected_ost = odist
-        for d in sorted_batch
-            expected_count = sz[d]
+        inner_end = 0
+        for (i, d) in enumerate(sorted_batch)
             if ist[d] != expected_ist || ost[d] != expected_ost
-                can_single_batch = false
                 break
             end
-            expected_ist *= expected_count
-            expected_ost *= expected_count
+            inner_end = i
+            expected_ist *= sz[d]
+            expected_ost *= sz[d]
         end
 
-        if can_single_batch
-            dfti_set_value(handle, DFTI_NUMBER_OF_TRANSFORMS, Int64(nbatch))
-            dfti_set_value(handle, DFTI_INPUT_DISTANCE, Int64(idist))
-            dfti_set_value(handle, DFTI_OUTPUT_DISTANCE, Int64(odist))
-        else
-            inner_count = sz[min_ist_dim]
-            dfti_set_value(handle, DFTI_NUMBER_OF_TRANSFORMS, Int64(inner_count))
-            dfti_set_value(handle, DFTI_INPUT_DISTANCE, Int64(idist))
-            dfti_set_value(handle, DFTI_OUTPUT_DISTANCE, Int64(odist))
+        inner_count = prod(sz[sorted_batch[i]] for i in 1:inner_end)
+        dfti_set_value(handle, DFTI_NUMBER_OF_TRANSFORMS, MKL_LONG(inner_count))
+        dfti_set_value(handle, DFTI_INPUT_DISTANCE, MKL_LONG(idist))
+        dfti_set_value(handle, DFTI_OUTPUT_DISTANCE, MKL_LONG(odist))
+
+        # Compute outer batch offsets for dims not covered by DISTANCE
+        outer_dims = sorted_batch[inner_end+1:end]
+        if !isempty(outer_dims)
+            offsets = Tuple{Int,Int}[(0, 0)]
+            for d in outer_dims
+                new_offsets = Tuple{Int,Int}[]
+                for idx in 0:sz[d]-1
+                    for (io, oo) in offsets
+                        push!(new_offsets, (io + idx * ist[d], oo + idx * ost[d]))
+                    end
+                end
+                offsets = new_offsets
+            end
+            outer_offsets = offsets
         end
     end
 
     dfti_commit_descriptor(handle)
 
-    return MKLrPlan{Tr,FORWARD,inplace,N}(handle, flags, R, X, Y)
+    return MKLrPlan{Tr,FORWARD,inplace,N}(handle, flags, R, X, Y, outer_offsets)
 end
 
 """
@@ -522,7 +528,7 @@ function _make_dfti_c2r_plan(::Type{Tc}, ::Type{Tr}, ::Val{inplace},
     # MKL DFTI uses C/row-major convention: reverse dims so that reg[1]
     # (the halved dim) comes last in the lengths array.
     rev_reg = reverse(reg)
-    dfti_lengths = Int64[sz_out[d] for d in rev_reg]
+    dfti_lengths = MKL_LONG[sz_out[d] for d in rev_reg]
 
     prec = _dfti_precision(Tr)
 
@@ -539,8 +545,8 @@ function _make_dfti_c2r_plan(::Type{Tc}, ::Type{Tr}, ::Val{inplace},
     #   INPUT_STRIDES  = backward input strides  = complex (X) strides
     #   OUTPUT_STRIDES = backward output strides  = real (Y) strides
     # Strides are reversed to match the reversed dimension order.
-    dfti_complex_strides = Int64[0; [ist[d] for d in rev_reg]]
-    dfti_real_strides = Int64[0; [ost[d] for d in rev_reg]]
+    dfti_complex_strides = MKL_LONG[0; [ist[d] for d in rev_reg]]
+    dfti_real_strides = MKL_LONG[0; [ost[d] for d in rev_reg]]
     dfti_set_value(handle, DFTI_INPUT_STRIDES, dfti_complex_strides)
     dfti_set_value(handle, DFTI_OUTPUT_STRIDES, dfti_real_strides)
 
@@ -549,43 +555,53 @@ function _make_dfti_c2r_plan(::Type{Tc}, ::Type{Tr}, ::Val{inplace},
 
     # Handle batch dimensions
     batch_dims = [d for d in 1:N if !(d in reg)]
+    outer_offsets = Tuple{Int,Int}[]
     if !isempty(batch_dims)
         # For c2r, batch dim sizes come from the complex input array
         sorted_batch = sort(batch_dims, by=d->ist[d])
-        nbatch = prod(sz_in[d] for d in batch_dims)
 
         min_ist_dim = sorted_batch[1]
         idist = ist[min_ist_dim]
         odist = ost[min_ist_dim]
 
-        can_single_batch = true
+        # Find contiguous prefix of batch dims
         expected_ist = idist
         expected_ost = odist
-        for d in sorted_batch
-            expected_count = sz_in[d]
+        inner_end = 0
+        for (i, d) in enumerate(sorted_batch)
             if ist[d] != expected_ist || ost[d] != expected_ost
-                can_single_batch = false
                 break
             end
-            expected_ist *= expected_count
-            expected_ost *= expected_count
+            inner_end = i
+            expected_ist *= sz_in[d]
+            expected_ost *= sz_in[d]
         end
 
-        if can_single_batch
-            dfti_set_value(handle, DFTI_NUMBER_OF_TRANSFORMS, Int64(nbatch))
-            dfti_set_value(handle, DFTI_INPUT_DISTANCE, Int64(idist))
-            dfti_set_value(handle, DFTI_OUTPUT_DISTANCE, Int64(odist))
-        else
-            inner_count = sz_in[min_ist_dim]
-            dfti_set_value(handle, DFTI_NUMBER_OF_TRANSFORMS, Int64(inner_count))
-            dfti_set_value(handle, DFTI_INPUT_DISTANCE, Int64(idist))
-            dfti_set_value(handle, DFTI_OUTPUT_DISTANCE, Int64(odist))
+        inner_count = prod(sz_in[sorted_batch[i]] for i in 1:inner_end)
+        dfti_set_value(handle, DFTI_NUMBER_OF_TRANSFORMS, MKL_LONG(inner_count))
+        dfti_set_value(handle, DFTI_INPUT_DISTANCE, MKL_LONG(idist))
+        dfti_set_value(handle, DFTI_OUTPUT_DISTANCE, MKL_LONG(odist))
+
+        # Compute outer batch offsets for dims not covered by DISTANCE
+        outer_dims = sorted_batch[inner_end+1:end]
+        if !isempty(outer_dims)
+            offsets = Tuple{Int,Int}[(0, 0)]
+            for d in outer_dims
+                new_offsets = Tuple{Int,Int}[]
+                for idx in 0:sz_in[d]-1
+                    for (io, oo) in offsets
+                        push!(new_offsets, (io + idx * ist[d], oo + idx * ost[d]))
+                    end
+                end
+                offsets = new_offsets
+            end
+            outer_offsets = offsets
         end
     end
 
     dfti_commit_descriptor(handle)
 
-    return MKLrPlan{Tc,BACKWARD,inplace,N}(handle, flags, R, X, Y)
+    return MKLrPlan{Tc,BACKWARD,inplace,N}(handle, flags, R, X, Y, outer_offsets)
 end
 
 #==============================================================================#
@@ -593,18 +609,41 @@ end
 #==============================================================================#
 
 function unsafe_execute!(plan::MKLcPlan{T,K,true}, X::StridedArray{T}, Y::StridedArray{T}) where {T,K}
-    if K == FORWARD
-        dfti_compute_forward_inplace(plan.handle, pointer(X))
+    if isempty(plan.outer_offsets)
+        if K == FORWARD
+            dfti_compute_forward_inplace(plan.handle, pointer(X))
+        else
+            dfti_compute_backward_inplace(plan.handle, pointer(X))
+        end
     else
-        dfti_compute_backward_inplace(plan.handle, pointer(X))
+        for (ioff, _) in plan.outer_offsets
+            xp = pointer(X, ioff + 1)
+            if K == FORWARD
+                dfti_compute_forward_inplace(plan.handle, xp)
+            else
+                dfti_compute_backward_inplace(plan.handle, xp)
+            end
+        end
     end
 end
 
 function unsafe_execute!(plan::MKLcPlan{T,K,false}, X::StridedArray{T}, Y::StridedArray{T}) where {T,K}
-    if K == FORWARD
-        dfti_compute_forward_outofplace(plan.handle, pointer(X), pointer(Y))
+    if isempty(plan.outer_offsets)
+        if K == FORWARD
+            dfti_compute_forward_outofplace(plan.handle, pointer(X), pointer(Y))
+        else
+            dfti_compute_backward_outofplace(plan.handle, pointer(X), pointer(Y))
+        end
     else
-        dfti_compute_backward_outofplace(plan.handle, pointer(X), pointer(Y))
+        for (ioff, ooff) in plan.outer_offsets
+            xp = pointer(X, ioff + 1)
+            yp = pointer(Y, ooff + 1)
+            if K == FORWARD
+                dfti_compute_forward_outofplace(plan.handle, xp, yp)
+            else
+                dfti_compute_backward_outofplace(plan.handle, xp, yp)
+            end
+        end
     end
 end
 
@@ -618,12 +657,24 @@ end
 
 # r2c (forward rfft)
 function unsafe_execute!(plan::MKLrPlan{Tr,FORWARD}, X::StridedArray{Tr}, Y::StridedArray{<:fftwComplex}) where {Tr<:fftwReal}
-    dfti_compute_forward_outofplace(plan.handle, pointer(X), pointer(Y))
+    if isempty(plan.outer_offsets)
+        dfti_compute_forward_outofplace(plan.handle, pointer(X), pointer(Y))
+    else
+        for (ioff, ooff) in plan.outer_offsets
+            dfti_compute_forward_outofplace(plan.handle, pointer(X, ioff + 1), pointer(Y, ooff + 1))
+        end
+    end
 end
 
 # c2r (backward brfft)
 function unsafe_execute!(plan::MKLrPlan{Tc,BACKWARD}, X::StridedArray{Tc}, Y::StridedArray{<:fftwReal}) where {Tc<:fftwComplex}
-    dfti_compute_backward_outofplace(plan.handle, pointer(X), pointer(Y))
+    if isempty(plan.outer_offsets)
+        dfti_compute_backward_outofplace(plan.handle, pointer(X), pointer(Y))
+    else
+        for (ioff, ooff) in plan.outer_offsets
+            dfti_compute_backward_outofplace(plan.handle, pointer(X, ioff + 1), pointer(Y, ooff + 1))
+        end
+    end
 end
 
 # No-arg versions for MKLrPlan

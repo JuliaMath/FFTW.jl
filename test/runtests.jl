@@ -178,6 +178,22 @@ true_fftd3_m3d[:,:,2] .= -15
                     @test pfft!d3_m3d[i] ≈ true_fftd3_m3d[i]
                     @test pifft!d3_fftd3_m3d[i] ≈ m3d[i]
                 end
+
+                # Test dim 2 (middle dim) - exercises outer batch loop
+                fftd2_m3d = f(m3d,2)
+                ifftd2_fftd2_m3d = fi(fftd2_m3d,2)
+                fft!d2_m3d = complex(m3d); fft!(fft!d2_m3d,2)
+                ifft!d2_fftd2_m3d = copy(fft!d2_m3d); ifft!(ifft!d2_fftd2_m3d,2)
+                pfftd2_m3d = pf(m3d,2)*m3d
+                pfft!d2_m3d = complex(m3d); plan_fft!(pfft!d2_m3d,2)*pfft!d2_m3d
+
+                for i = 1:length(m3d)
+                    @test ifftd2_fftd2_m3d[i] ≈ m3d[i]
+                    @test fft!d2_m3d[i] ≈ fftd2_m3d[i]
+                    @test ifft!d2_fftd2_m3d[i] ≈ m3d[i]
+                    @test pfftd2_m3d[i] ≈ fftd2_m3d[i]
+                    @test pfft!d2_m3d[i] ≈ fftd2_m3d[i]
+                end
             end
 
     end
