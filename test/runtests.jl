@@ -139,10 +139,9 @@ true_fftd3_m3d[:,:,2] .= -15
         @test norm(sfft!n_m4 - m4) < 1e-8
         @test norm(psfft!n_m4 - m4) < 1e-8
 
-        # The following capabilities are FFTW only.
-        # They are not available in MKL, and hence do not test them.
-        if fftw_provider == "fftw"
-            @testset "FFTW-specific" begin
+        # The following capabilities were FFTW only with the FFTW3 wrappers,
+        # but now work with MKL via the native DFTI API as well.
+        @testset "3D FFT subset dims" begin
                 ifft3_fft3_m3d = fi(f(m3d))
 
                 fftd3_m3d = f(m3d,3)
@@ -180,7 +179,6 @@ true_fftd3_m3d[:,:,2] .= -15
                     @test pifft!d3_fftd3_m3d[i] ≈ m3d[i]
                 end
             end
-        end  # if fftw_provider == "fftw"
 
     end
 end
@@ -261,27 +259,25 @@ end
         end
     end
 
-    if fftw_provider == "fftw"
-        @testset "FFTW-specific" begin
-            rfftn_m3d = rfft(m3d)
-            rfftd3_m3d = rfft(m3d,3)
-            @test size(rfftd3_m3d) == size(true_fftd3_m3d)
-            irfft_rfftd3_m3d = irfft(rfftd3_m3d,size(m3d,3),3)
-            irfftn_rfftn_m3d = irfft(rfftn_m3d,size(m3d,1))
-            for i = 1:length(m3d)
-                @test rfftd3_m3d[i] ≈ true_fftd3_m3d[i]
-                @test irfft_rfftd3_m3d[i] ≈ m3d[i]
-                @test irfftn_rfftn_m3d[i] ≈ m3d[i]
-            end
+    @testset "3D rfft subset dims" begin
+        rfftn_m3d = rfft(m3d)
+        rfftd3_m3d = rfft(m3d,3)
+        @test size(rfftd3_m3d) == size(true_fftd3_m3d)
+        irfft_rfftd3_m3d = irfft(rfftd3_m3d,size(m3d,3),3)
+        irfftn_rfftn_m3d = irfft(rfftn_m3d,size(m3d,1))
+        for i = 1:length(m3d)
+            @test rfftd3_m3d[i] ≈ true_fftd3_m3d[i]
+            @test irfft_rfftd3_m3d[i] ≈ m3d[i]
+            @test irfftn_rfftn_m3d[i] ≈ m3d[i]
+        end
 
-            fftn_m3d = fft(m3d)
-            @test size(fftn_m3d) == (5,3,2)
-            rfftn_m3d = rfft(m3d)
-            @test size(rfftn_m3d) == (3,3,2)
-            for i = 1:3, j = 1:3, k = 1:2
-                @test rfftn_m3d[i,j,k] ≈ fftn_m3d[i,j,k]
-            end
-        end # !mkl
+        fftn_m3d = fft(m3d)
+        @test size(fftn_m3d) == (5,3,2)
+        rfftn_m3d = rfft(m3d)
+        @test size(rfftn_m3d) == (3,3,2)
+        for i = 1:3, j = 1:3, k = 1:2
+            @test rfftn_m3d[i,j,k] ≈ fftn_m3d[i,j,k] atol=1e-5
+        end
     end
 end
 
@@ -580,9 +576,6 @@ end
 
 @testset "AbstractFFTs FFT backend tests" begin
     # note this also tests adjoint functionality for FFT plans
-    # only test on FFTW because MKL is missing functionality
-    if FFTW.get_provider() == "fftw"
-        AbstractFFTs.TestUtils.test_complex_ffts(Array)
-        AbstractFFTs.TestUtils.test_real_ffts(Array; copy_input=true)
-    end
+    AbstractFFTs.TestUtils.test_complex_ffts(Array)
+    AbstractFFTs.TestUtils.test_real_ffts(Array; copy_input=true)
 end
