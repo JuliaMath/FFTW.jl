@@ -34,7 +34,7 @@ Alternatively, the FFTs in Intel's Math Kernel Library (MKL) can be used
 by running `FFTW.set_provider!("mkl")`. MKL will be provided through `MKL_jll`.
 This change of provider is persistent and has to be done only once, i.e., the package will use MKL when building and updating. 
 Note however that MKL provides only a subset of the functionality provided by FFTW. See
-Intel's [documentation](https://software.intel.com/en-us/mkl-developer-reference-c-using-fftw3-wrappers)
+Intel's [documentation](https://www.intel.com/content/www/us/en/docs/onemkl/developer-reference-c/2025-2/using-fftw3-wrappers.html)
 for more information about potential differences or gaps in functionality. 
 In case MKL does not fit the needs (anymore), `FFTW.set_provider!("fftw")` allows to revert the change of provider.
 
@@ -49,7 +49,7 @@ to the library in this package, FFTW.jl, are licensed under MIT.
 This means that code using the FFTW library via the FFTW.jl bindings is subject to FFTW's
 licensing terms.
 Code using alternative implementations of the FFTW API, such as
-[MKL's FFTW3 interface](https://software.intel.com/en-us/mkl-developer-reference-c-fftw3-interface-to-intel-math-kernel-library)
+[MKL's FFTW3 interface](https://www.intel.com/content/www/us/en/docs/onemkl/developer-reference-c/2025-2/using-fftw3-wrappers.html)
 are instead subject to the alternative's license.
 If you distribute a derived or combined work, i.e. a program that links to and is distributed
 with the FFTW library, then that distribution falls under the terms of the GPL.
