@@ -4,7 +4,7 @@ using LinearAlgebra, Reexport, Preferences
 @reexport using AbstractFFTs
 using Base.Threads
 
-import AbstractFFTs: Plan, ScaledPlan,
+import AbstractFFTs: Plan, ScaledPlan, AbstractFFTBackend,
                      fft, ifft, bfft, fft!, ifft!, bfft!,
                      plan_fft, plan_ifft, plan_bfft, plan_fft!, plan_ifft!, plan_bfft!,
                      rfft, irfft, brfft, plan_rfft, plan_irfft, plan_brfft,
@@ -33,6 +33,11 @@ end
 
 
 include("providers.jl")
+
+export FFTWBackend
+struct FFTWBackend <: AbstractFFTBackend end
+backend() = FFTWBackend()
+activate!() = AbstractFFTs.set_active_backend!(FFTW)
 
 function fftw_init_check()
     # If someone is trying to set the provider via the old environment variable, warn them that they
@@ -77,7 +82,9 @@ elseif fftw_provider == "mkl"
 end
 const libfftw3 = FakeLazyLibrary(:libfftw3_no_init, fftw_init_check, C_NULL)
 const libfftw3f = FakeLazyLibrary(:libfftw3f_no_init, fftw_init_check, C_NULL)
-
+function __init__()
+    activate!()
+end
 else
 @static if fftw_provider == "fftw"
     import FFTW_jll: libfftw3_path as libfftw3_no_init,
@@ -92,6 +99,7 @@ elseif fftw_provider == "mkl"
 end
 function __init__()
     fftw_init_check()
+    activate!()
 end
 end
 
