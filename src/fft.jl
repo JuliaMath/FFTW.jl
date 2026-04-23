@@ -140,6 +140,8 @@ alignment_of(A::FakeArray) = Int32(0)
 # around FFTW's internal file i/o buffering [see the BUFSZ constant in
 # FFTW's api/import-wisdom-from-file.c file].
 
+@static if fftw_provider == "fftw"
+
 @exclusive function export_wisdom(fname::AbstractString)
     f = ccall(:fopen, Ptr{Cvoid}, (Cstring,Cstring), fname, :w)
     systemerror("could not open wisdom file $fname for writing", f == C_NULL)
@@ -170,6 +172,15 @@ end
     ccall((:fftw_forget_wisdom,libfftw3), Cvoid, ())
     ccall((:fftwf_forget_wisdom,libfftw3f), Cvoid, ())
 end
+
+else # mkl provider - wisdom is a no-op
+
+export_wisdom(fname::AbstractString) = nothing
+import_wisdom(fname::AbstractString) = nothing
+import_system_wisdom() = nothing
+forget_wisdom() = nothing
+
+end # @static if fftw_provider
 
 # Threads
 
@@ -766,6 +777,7 @@ fftwfloat(X::StridedArray{<:fftwReal}) = X
 fftwfloat(X::AbstractArray{<:Real}) = copyto!(Array{Float64}(undef, size(X)), X)
 fftwfloat(X::AbstractArray{<:Complex}) = fftwcomplex(X)
 
+@static if fftw_provider == "fftw"
 for (f,direction) in ((:fft,FORWARD), (:bfft,BACKWARD))
     plan_f = Symbol("plan_",f)
     plan_f! = Symbol("plan_",f,"!")
@@ -818,6 +830,7 @@ for (f,direction) in ((:fft,FORWARD), (:bfft,BACKWARD))
         end
     end
 end
+end # @static if fftw_provider == "fftw" (plan_fft/plan_bfft)
 
 function mul!(y::StridedArray{T}, p::cFFTWPlan{T}, x::StridedArray{T}) where T
     assert_applicable(p, x, y)
@@ -840,6 +853,7 @@ end
 
 # rfft/brfft and planned variants.  No in-place version for now.
 
+@static if fftw_provider == "fftw"
 for (Tr,Tc) in ((:Float32,:(Complex{Float32})),(:Float64,:(Complex{Float64})))
     # Note: use $FORWARD and $BACKWARD below because of issue #9775
     @eval begin
@@ -952,6 +966,7 @@ for (Tr,Tc) in ((:Float32,:(Complex{Float32})),(:Float64,:(Complex{Float64})))
         end
     end
 end
+end # @static if fftw_provider == "fftw" (plan_rfft/plan_brfft)
 
 # FFTW r2r transforms (low-level interface)
 
