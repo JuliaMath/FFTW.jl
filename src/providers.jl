@@ -45,8 +45,20 @@ end
     # callback function that FFTW uses to launch `num` parallel
     # tasks (FFTW/fftw3#175):
     function spawnloop(f::Ptr{Cvoid}, fdata::Ptr{Cvoid}, elsize::Csize_t, num::Cint, callback_data::Ptr{Cvoid})
-        @sync for i = 0:num-1
-            Threads.@spawn ccall(f, Ptr{Cvoid}, (Ptr{Cvoid},), fdata + elsize*i)
+        # Wrap the for-loop in a simplified @sync, achieving type stability by not depending on a Channel{Any}.
+        # This is necessary for JuliaC to compile. The result runs as long as fftw only uses on thread. 
+        # If FFTW.set_num_threads is used to activate more threads, there will still be a runtime error due to @spawn,
+        # which is limited by https://github.com/JuliaLang/julia/issues/58818 anyway. 
+        tasks = Channel{Task}(Inf)
+        try
+            for i = 0:num-1
+                put!(tasks, Threads.@spawn ccall(f, Ptr{Cvoid}, (Ptr{Cvoid},), fdata + elsize*i))
+            end
+            while isready(tasks)
+                wait(take!(tasks))
+            end
+        finally
+            close(tasks)
         end
     end
 
