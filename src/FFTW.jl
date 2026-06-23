@@ -126,6 +126,9 @@ macro exclusive(ex)
 end
 
 include("fft.jl")
+@static if fftw_provider == "mkl"
+    include("mkl_dfti.jl")
+end
 include("dct.jl")
 
 include("precompile.jl")
