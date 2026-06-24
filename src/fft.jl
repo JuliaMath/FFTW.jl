@@ -2,6 +2,7 @@
 
 import Base: show, *, convert, unsafe_convert, size, strides, ndims, pointer
 import LinearAlgebra: mul!
+import Libdl: dlopen, dlsym
 
 """
     r2r(A, kind [, dims])
@@ -320,14 +321,24 @@ unsafe_convert(::Type{PlanPtr}, p::FFTWPlan) = p.plan
 # pushing the plan to be destroyed to the deferred_destroy_plans (which itself is protected by a lock).
 # This is accomplished by the maybe_destroy_plan function, which is used as the plan finalizer.
 
+struct FFTWPlanDestructor
+    ptr::PlanPtr
+    fptr::Ptr{Cvoid}
+end
+
+FFTWPlanDestructor(plan::FFTWPlan{<:fftwSingle}) =
+    FFTWPlanDestructor(plan.plan, dlsym(dlopen(libfftw3f), :fftwf_destroy_plan))
+FFTWPlanDestructor(plan::FFTWPlan{<:fftwDouble}) = 
+    FFTWPlanDestructor(plan.plan, dlsym(dlopen(libfftw3), :fftw_destroy_plan))
+
 # these functions should only be called while the fftwlock is held
-unsafe_destroy_plan(@nospecialize(plan::FFTWPlan{<:fftwDouble})) =
-    ccall((:fftw_destroy_plan,libfftw3), Cvoid, (PlanPtr,), plan)
-unsafe_destroy_plan(@nospecialize(plan::FFTWPlan{<:fftwSingle})) =
-    ccall((:fftwf_destroy_plan,libfftw3f), Cvoid, (PlanPtr,), plan)
+unsafe_destroy_plan(plan::FFTWPlan) = unsafe_destroy_plan(FFTWPlanDestructor(plan))
+function unsafe_destroy_plan(destructor::FFTWPlanDestructor)
+    ccall(destructor.fptr, Cvoid, (PlanPtr, ), destructor.ptr)
+end
 
 const deferred_destroy_lock = ReentrantLock() # lock protecting the deferred_destroy_plans list
-const deferred_destroy_plans = FFTWPlan[]
+const deferred_destroy_plans = FFTWPlanDestructor[]
 
 function destroy_deferred()
     lock(deferred_destroy_lock)
@@ -375,7 +386,7 @@ function maybe_destroy_plan(plan::FFTWPlan)
                 unlock(fftwlock)
             end
         else
-            push!(deferred_destroy_plans, plan)
+            push!(deferred_destroy_plans, FFTWPlanDestructor(plan))
         end
     finally
         unlock(deferred_destroy_lock)
@@ -495,11 +506,11 @@ function assert_applicable(p::FFTWPlan{T,K,inplace}, X::StridedArray{T}, Y::Stri
     elseif alignment_of(Y) != p.oalign && p.flags & UNALIGNED == 0
         throw(ArgumentError("FFTW plan applied to output with wrong memory alignment"))
     elseif inplace != (pointer(X) == pointer(Y))
-        throw(ArgumentError(string("FFTW ",
+        throw(ArgumentError(join(["FFTW ",
                                    inplace ? "in-place" : "out-of-place",
                                    " plan applied to ",
                                    inplace ? "out-of-place" : "in-place",
-                                   " data")))
+                                   " data"])))
     end
 end
 
