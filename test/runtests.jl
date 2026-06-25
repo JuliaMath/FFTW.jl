@@ -64,6 +64,8 @@ true_fftd3_m3d[:,:,2] .= -15
             @eval begin
                 $f_(x::$A{T,N}) where {T,N} = invoke($f, Tuple{AbstractArray{T,N}}, x)
                 $f_(x::$A{T,N},r::R) where {T,N,R} = invoke($f,Tuple{AbstractArray{T,N},R},x,r)
+                $f_(b::FFTWBackend, x::$A{T,N}) where {T,N} = invoke($f, Tuple{FFTWBackend, AbstractArray{T,N}}, b, x)
+                $f_(b::FFTWBackend, x::$A{T,N},r::R) where {T,N,R} = invoke($f,Tuple{FFTWBackend, AbstractArray{T,N},R}, b, x,r)
             end
         end
     end
@@ -358,12 +360,16 @@ let
 end
 
 @testset "Base Julia issue #9772, with size $(size(x))" for x in (randn(10),randn(10,12))
+    # note: Inference/type-stability "breaks" if multiple FFT backends are loaded
+    # and one does not supply the backend
     z = complex(x)
     y = rfft(x)
     @inferred rfft(x)
+    @inferred rfft(FFTW.backend(), x)
 
     if ndims(x) == 2
         @inferred brfft(x,18)
+        @inferred brfft(FFTW.backend(), x,18)
     end
 
     @inferred brfft(y,10)
@@ -371,6 +377,7 @@ end
               plan_bfft, plan_fft, plan_ifft,
               fft, bfft, fft_, ifft)
         p = @inferred f(z)
+        @inferred f(FFTW.backend(), z)
         if isa(p, Plan)
             @inferred plan_inv(p)
         end
@@ -378,6 +385,7 @@ end
     for f in (plan_bfft, plan_fft, plan_ifft,
               plan_rfft, fft, bfft, fft_, ifft)
         p = @inferred f(x)
+        @inferred f(FFTW.backend(), x)
         if isa(p, Plan)
             @inferred plan_inv(p)
         end

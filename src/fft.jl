@@ -771,13 +771,13 @@ for (f,direction) in ((:fft,FORWARD), (:bfft,BACKWARD))
     plan_f! = Symbol("plan_",f,"!")
     idirection = -direction
     @eval begin
-        function $plan_f(X::StridedArray{T,N}, region;
+        function $plan_f(b::FFTWBackend, X::StridedArray{T,N}, region;
                          flags::Integer=ESTIMATE,
                          timelimit::Real=NO_TIMELIMIT,
                          num_threads::Union{Nothing, Integer} = nothing) where {T<:fftwComplex,N}
             if num_threads !== nothing
                 plan = set_num_threads(num_threads) do
-                    $plan_f(X, region; flags = flags, timelimit = timelimit)
+                    $plan_f(b, X, region; flags = flags, timelimit = timelimit)
                 end
                 return plan
             end
@@ -785,22 +785,22 @@ for (f,direction) in ((:fft,FORWARD), (:bfft,BACKWARD))
                                             region, flags, timelimit)
         end
 
-        function $plan_f!(X::StridedArray{T,N}, region;
+        function $plan_f!(::FFTWBackend, X::StridedArray{T,N}, region;
                           flags::Integer=ESTIMATE,
                           timelimit::Real=NO_TIMELIMIT,
                           num_threads::Union{Nothing, Integer} = nothing ) where {T<:fftwComplex,N}
             if num_threads !== nothing
                 plan = set_num_threads(num_threads) do
-                    $plan_f!(X, region; flags = flags, timelimit = timelimit)
+                    $plan_f!(b, X, region; flags = flags, timelimit = timelimit)
                 end
                 return plan
             end
             cFFTWPlan{T,$direction,true,N}(X, X, region, flags, timelimit)
         end
-        $plan_f(X::StridedArray{<:fftwComplex}; kws...) =
-            $plan_f(X, ntuple(identity, ndims(X)); kws...)
-        $plan_f!(X::StridedArray{<:fftwComplex}; kws...) =
-            $plan_f!(X, ntuple(identity, ndims(X)); kws...)
+        $plan_f(b::FFTWBackend, X::StridedArray{<:fftwComplex}; kws...) =
+            $plan_f(b, X, ntuple(identity, ndims(X)); kws...)
+        $plan_f!(b, ::FFTWBackend, X::StridedArray{<:fftwComplex}; kws...) =
+            $plan_f!(b, X, ntuple(identity, ndims(X)); kws...)
 
         function plan_inv(p::cFFTWPlan{T,$direction,inplace,N};
                           num_threads::Union{Nothing, Integer} = nothing) where {T<:fftwComplex,N,inplace}
@@ -843,13 +843,13 @@ end
 for (Tr,Tc) in ((:Float32,:(Complex{Float32})),(:Float64,:(Complex{Float64})))
     # Note: use $FORWARD and $BACKWARD below because of issue #9775
     @eval begin
-        function plan_rfft(X::StridedArray{$Tr,N}, region;
+        function plan_rfft(b::FFTWBackend, X::StridedArray{$Tr,N}, region;
                            flags::Integer=ESTIMATE,
                            timelimit::Real=NO_TIMELIMIT,
                            num_threads::Union{Nothing, Integer} = nothing) where N
             if num_threads !== nothing
                 plan = set_num_threads(num_threads) do
-                    plan_rfft(X, region; flags = flags, timelimit = timelimit)
+                    plan_rfft(b, X, region; flags = flags, timelimit = timelimit)
                 end
                 return plan
             end
@@ -858,13 +858,13 @@ for (Tr,Tc) in ((:Float32,:(Complex{Float32})),(:Float64,:(Complex{Float64})))
             rFFTWPlan{$Tr,$FORWARD,false,N}(X, Y, region, flags, timelimit)
         end
 
-        function plan_brfft(X::StridedArray{$Tc,N}, d::Integer, region;
+        function plan_brfft(::FFTWBackend, X::StridedArray{$Tc,N}, d::Integer, region;
                             flags::Integer=ESTIMATE,
                             timelimit::Real=NO_TIMELIMIT,
                             num_threads::Union{Nothing, Integer} = nothing) where N
             if num_threads !== nothing
                 plan = set_num_threads(num_threads) do
-                    plan_brfft(X, d, region; flags = flags, timelimit = timelimit)
+                    plan_brfft(b, X, d, region; flags = flags, timelimit = timelimit)
                 end
                 return plan
             end
@@ -884,8 +884,8 @@ for (Tr,Tc) in ((:Float32,:(Complex{Float32})),(:Float64,:(Complex{Float64})))
             end
         end
 
-        plan_rfft(X::StridedArray{$Tr};kws...)=plan_rfft(X,ntuple(identity, ndims(X));kws...)
-        plan_brfft(X::StridedArray{$Tr};kws...)=plan_brfft(X,ntuple(identity, ndims(X));kws...)
+        plan_rfft(b::FFTWBackend, X::StridedArray{$Tr};kws...)=plan_rfft(b, X,ntuple(identity, ndims(X));kws...)
+        plan_brfft(b::FFTWBackend, X::StridedArray{$Tr};kws...)=plan_brfft(b, X,ntuple(identity, ndims(X));kws...)
 
         function plan_inv(p::rFFTWPlan{$Tr,$FORWARD,false,N},
                           num_threads::Union{Nothing, Integer} = nothing) where N
