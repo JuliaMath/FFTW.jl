@@ -46,7 +46,13 @@ end
     # tasks (FFTW/fftw3#175):
     function spawnloop(f::Ptr{Cvoid}, fdata::Ptr{Cvoid}, elsize::Csize_t, num::Cint, callback_data::Ptr{Cvoid})
         @sync for i = 0:num-1
-            Threads.@spawn ccall(f, Ptr{Cvoid}, (Ptr{Cvoid},), fdata + elsize*i)
+            Threads.@spawn begin
+                # Run the FFTW work chunk in a GC-safe region so the garbage
+                # collector can make progress while this thread is blocked.
+                gc_state = @ccall jl_gc_safe_enter()::Int8
+                ccall(f, Ptr{Cvoid}, (Ptr{Cvoid},), fdata + elsize*i)
+                @ccall jl_gc_safe_leave(gc_state::Int8)::Cvoid
+            end
         end
     end
 
