@@ -503,6 +503,20 @@ function assert_applicable(p::FFTWPlan{T,K,inplace}, X::StridedArray{T}, Y::Stri
     end
 end
 
+
+function assert_applicable(p::FFTWPlan{T,K, inplace}, X::AbstractArray) where {T,K, inplace}
+    if inplace
+        throw(ArgumentError("In-place plan  FFTWPlan{$(T)} cannot be applied to a $(typeof(X))"))
+    end
+end
+
+function assert_applicable(p::FFTWPlan{T, K, inplace}, X::AbstractArray, Y::AbstractArray) where {T,K, inplace}
+    if inplace
+        throw(ArgumentError("In-place plan  FFTWPlan{$(T)} cannot be applied to a $(typeof(X))"))
+    end
+end
+
+
 # strides for a column-major (Julia-style) array of size == sz
 colmajorstrides(::Tuple{}) = ()
 colmajorstrides(sz) = _colmajorstrides(1, sz...)
@@ -832,7 +846,7 @@ function *(p::cFFTWPlan{T,K,false}, x::StridedArray{T,N}) where {T,K,N}
     return y
 end
 
-function *(p::cFFTWPlan{T,K,true}, x::StridedArray{T}) where {T,K}
+function *(p::cFFTWPlan{T,K,true}, x::AbstractArray) where {T,K}
     assert_applicable(p, x)
     unsafe_execute!(p, x, x)
     return x
@@ -1046,7 +1060,7 @@ function *(p::r2rFFTWPlan{T,K,false}, x::StridedArray{T,N}) where {T,K,N}
     return y
 end
 
-function *(p::r2rFFTWPlan{T,K,true}, x::StridedArray{T}) where {T,K}
+function *(p::r2rFFTWPlan{T,K,true}, x::AbstractArray) where {T,K}
     assert_applicable(p, x)
     unsafe_execute!(p, x, x)
     return x
