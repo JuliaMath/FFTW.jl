@@ -541,6 +541,22 @@ end
     @test FFTW.get_num_threads() == 2 # Unchanged
 end
 
+@testset "Threaded plans executed concurrently" begin
+    # each execution hands its jobs to spawnloop while other tasks do the same;
+    # idle threads let a waiting caller resume elsewhere, which crashed the
+    # jobs (with 16 threads, the previous spawnloop failed this within 2 s)
+    xs = [rand(ComplexF32, 192, 192) for _ in 1:max(1, Threads.nthreads() ÷ 2)]
+    refs = FFTW.set_num_threads(() -> fft.(xs), 1)
+    p = FFTW.set_num_threads(() -> plan_fft(xs[1]; flags=FFTW.ESTIMATE), Threads.nthreads())
+    ys = similar.(xs)
+    for _ in 1:1000
+        Threads.@threads for k in eachindex(xs)
+            mul!(ys[k], p, xs[k])
+        end
+    end
+    @test all(ys .≈ refs)
+end
+
 @testset "type-inference in r2r plans" begin
     # Compare with definition
     function testr2r(::Type{T}) where {T}

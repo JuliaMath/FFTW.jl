@@ -43,10 +43,36 @@ end
 @static if fftw_provider == "fftw"
     import FFTW_jll
     # callback function that FFTW uses to launch `num` parallel
-    # tasks (FFTW/fftw3#175):
+    # tasks (FFTW/fftw3#175).
+    #
+    # The calling task must not yield until every job has finished: `fdata`,
+    # and the data each job points to, live on the C stack of the FFTW call
+    # that is waiting here. Waiting in `@sync` let the caller resume on
+    # another thread, and the jobs then crashed in FFTW's `spawn_apply`
+    # (EXCEPTION_ACCESS_VIOLATION on Windows) within seconds: with 16 Julia
+    # threads even for one caller, with 8 once several tasks execute
+    # threaded plans at once. So the caller claims jobs itself, then spins
+    # until the jobs other tasks claimed are done. A spawned task that starts
+    # after all jobs are claimed returns at once, so no job waits on a busy
+    # scheduler.
     function spawnloop(f::Ptr{Cvoid}, fdata::Ptr{Cvoid}, elsize::Csize_t, num::Cint, callback_data::Ptr{Cvoid})
-        @sync for i = 0:num-1
-            Threads.@spawn ccall(f, Ptr{Cvoid}, (Ptr{Cvoid},), fdata + elsize*i)
+        next = Threads.Atomic{Int}(0)
+        done = Threads.Atomic{Int}(0)
+        function work()
+            while true
+                i = Threads.atomic_add!(next, 1)
+                i >= num && return
+                ccall(f, Ptr{Cvoid}, (Ptr{Cvoid},), fdata + elsize*i)
+                Threads.atomic_add!(done, 1)
+            end
+        end
+        for _ = 2:num
+            Threads.@spawn work()
+        end
+        work()
+        while done[] < num
+            ccall(:jl_cpu_pause, Cvoid, ())
+            GC.safepoint()
         end
     end
 
